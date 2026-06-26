@@ -116,17 +116,6 @@ class tbl_cmf_salesman(models.Model):
         return self.name or str(self.sm_no)
 
 
-class tbl_cmf_color_req(models.Model):
-    color_req_no = models.AutoField(primary_key=True)
-    name = models.CharField(max_length=100, blank=True, null=True)
-
-    class Meta:
-        db_table = "tbl_cmf_color_req"
-
-    def __str__(self):
-        return self.name or str(self.color_req_no)
-
-
 class tbl_cmf_process(models.Model):
     process_no = models.AutoField(primary_key=True)
     name = models.CharField(max_length=100, blank=True, null=True)
@@ -184,6 +173,18 @@ class tbl_cmf(models.Model):
 
     def __str__(self):
         return self.cm_no
+
+
+class tbl_cmf_color_req(models.Model):
+    color_req_no = models.AutoField(primary_key=True)
+    name = models.CharField(max_length=100, blank=True, null=True)
+    cm = models.ForeignKey(tbl_cmf, to_field="cm_no", on_delete=models.CASCADE, null=True, blank=True, db_column="cm_no")
+
+    class Meta:
+        db_table = "tbl_cmf_color_req"
+
+    def __str__(self):
+        return self.name or str(self.color_req_no)
 
 
 class tbl_cmf_scanned(models.Model):
