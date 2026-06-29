@@ -4,7 +4,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Masterbatch Philipines Inc. - Business System</title>
+    <title>MBPI Business System</title>
     <link href="{% static 'css/bootstrap.min.css' %}" rel="stylesheet">
     <link rel="stylesheet" href="{% static 'css/bootstrap-icons.css' %}">
     <link rel="stylesheet" href="{% static 'css/sidebar.css' %}">
@@ -12,21 +12,19 @@
 <body>
     
     <div class="wrapper">
-        <!-- Overlay for mobile clicking outside -->
         <div id="sidebarOverlay" class="sidebar-overlay"></div>
 
         {% include 'sidebar.html' %}
 
         <div class="main">
-            <nav class="navbar navbar-expand-lg border-bottom px-3" style="background: var(--sidebar-bg);">
-                <!-- This button only shows on small screens -->
+            <nav class="navbar navbar-expand-lg px-3">
                 <button class="btn btn-outline-secondary d-lg-none me-2" id="mobileToggle">
                     <i class="bi bi-list"></i>
                 </button>
-                <span class="fw-bold" style="color: var(--sidebar-text);">MBPI System</span>
+                <span class="fw-bold" style="color: var(--text-main);">MBPI System</span>
             </nav>
             
-            <div class="content p-3 p-md-4">
+            <div class="content p-3 p-md-4 flex-grow-1">
                 {% block content %}{% endblock %}
             </div>
 
@@ -34,11 +32,7 @@
         </div>
     </div>
 
-
     <script src="{% static 'js/bootstrap.bundle.min.js' %}"></script>
     <script src="{% static 'js/sidebar.js' %}"></script>
-
 </body>
 </html>
-
-
