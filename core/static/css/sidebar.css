@@ -103,6 +103,11 @@ body {
 .sidebar .nav-link[aria-expanded="true"] .arrow-icon {
     transform: rotate(180deg);
 }
+.sidebar .submenu .nav-link.active-sub {
+    background-color: transparent !important;
+    color: var(--sidebar-active-text) !important;
+    font-weight: 700;
+}
 
 /* Footer Section */
 .sidebar-footer {

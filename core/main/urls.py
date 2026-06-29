@@ -5,5 +5,5 @@ urlpatterns = [
     path('', views.index, name='index'),
     path('other/', views.otherPage, name='other'),
     path('dashboard/', views.dashboard, name='dashboard'),
-    path('cmf_records/', views.cmf_records, name='cmf_records'),
+    path('cmf/records/', views.cmf_records, name='cmf_records'),
 ]
