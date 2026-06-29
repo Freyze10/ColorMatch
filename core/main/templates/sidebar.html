@@ -1,202 +1,62 @@
 {% load static %}
-<aside class="sidebar" id="sidebar">
 
+<!-- Sidebar -->
+<aside class="sidebar" id="sidebar">
     <div class="sidebar-header d-flex justify-content-between align-items-center">
-        <h4 class="mb-0 logo-text">
-            MBPI
-        </h4>
-        <button
-            class="btn btn-sm btn-outline-light"
-            id="toggleSidebar">
+        <h4 class="mb-0 logo-text">MBPI</h4>
+        <button class="btn btn-sm btn-outline-light" id="toggleSidebar">
             <i class="bi bi-list"></i>
         </button>
     </div>
 
     <div class="sidebar-menu">
         <ul class="nav flex-column mt-3">
-
             <li class="nav-item">
-
-                <a href="{% url 'dashboard' %}"
-                    class="nav-link {% if request.resolver_match.url_name == 'dashboard' %}active{% endif %}">
+                <a href="{% url 'dashboard' %}" class="nav-link {% if request.resolver_match.url_name == 'dashboard' %}active{% endif %}">
                     <i class="bi bi-speedometer2"></i>
                     <span>Dashboard</span>
                 </a>
-
             </li>
 
             <li class="nav-item">
-
-                <a href="{% url 'other' %}"
-                    class="nav-link {% if request.resolver_match.url_name == 'components' %}active{% endif %}">
-
+                <a href="#" class="nav-link">
                     <i class="bi bi-puzzle"></i>
-
-                    <span>Other Page(components)</span>
-
+                    <span>Other Page</span>
                 </a>
-
             </li>
 
+            <!-- Apps Dropdown -->
             <li class="nav-item">
-
-                <a class="nav-link" href="#">
-
-                    <i class="bi bi-heart"></i>
-
-                    <span>Extras</span>
-
-                </a>
-
-            </li>
-
-            <!-- Apps -->
-
-            <li class="nav-item">
-
-                <a class="nav-link d-flex justify-content-between align-items-center"
-
-                    data-bs-toggle="collapse"
-
-                    href="#appsMenu">
-
+                <a class="nav-link d-flex justify-content-between align-items-center" 
+                   data-bs-toggle="collapse" href="#appsMenu" role="button" aria-expanded="false">
                     <div>
-
                         <i class="bi bi-grid"></i>
-
                         <span>Apps</span>
-
                     </div>
-
-                    <i class="bi bi-chevron-down"></i>
-
+                    <i class="bi bi-chevron-down arrow-icon"></i>
                 </a>
-
                 <div class="collapse" id="appsMenu">
-
                     <ul class="nav flex-column submenu">
-
-                        <li>
-
-                            <a class="nav-link" href="#">Mail</a>
-
-                        </li>
-
-                        <li>
-
-                            <a class="nav-link" href="#">Calendar</a>
-
-                        </li>
-
-                        <li>
-
-                            <a class="nav-link" href="#">Ecommerce</a>
-
-                        </li>
-
-                        <li>
-
-                            <a class="nav-link" href="#">User</a>
-
-                        </li>
-
-                        <li>
-
-                            <a class="nav-link" href="#">Social</a>
-
-                        </li>
-
-                        <!-- Nested Menu -->
-
-                        <li>
-
-                            <a class="nav-link d-flex justify-content-between"
-
-                                data-bs-toggle="collapse"
-
-                                href="#subMenu">
-
-                                <span>Sub Level</span>
-
-                                <i class="bi bi-chevron-down"></i>
-
-                            </a>
-
-                            <div class="collapse" id="subMenu">
-
-                                <ul class="nav flex-column submenu">
-
-                                    <li><a class="nav-link" href="#">Link</a></li>
-
-                                    <li><a class="nav-link" href="#">Link</a></li>
-
-                                    <li><a class="nav-link" href="#">Link</a></li>
-
-                                </ul>
-
-                            </div>
-
-                        </li>
-
+                        <li><a class="nav-link" href="#">Mail</a></li>
+                        <li><a class="nav-link" href="#">Calendar</a></li>
                     </ul>
-
                 </div>
-
             </li>
-
-            <li class="nav-item">
-
-                <a class="nav-link" href="#">
-
-                    <i class="bi bi-bar-chart"></i>
-
-                    <span>Reports</span>
-
-                </a>
-
-            </li>
-
         </ul>
     </div>
+
     <div class="sidebar-footer">
-
-    <div class="dropup">
-
-        <a
-            href="#"
-            class="d-flex align-items-center text-decoration-none dropdown-toggle"
-            data-bs-toggle="dropdown">
-
-            <i class="bi bi-person-circle fs-4 me-2"></i>
-
-            <span>
-                {{ request.user.username }}
-            </span>
-
-        </a>
-
-        <ul class="dropdown-menu">
-
-            <li>
-                <a class="dropdown-item" href="#">
-                    <i class="bi bi-gear me-2"></i>
-                    Settings
-                </a>
-            </li>
-
-            <li><hr class="dropdown-divider"></li>
-
-            <li>
-                <a class="dropdown-item text-danger"
-                   href="{% url 'logout' %}">
-                    <i class="bi bi-box-arrow-right me-2"></i>
-                    Logout
-                </a>
-            </li>
-
-        </ul>
-
+        <div class="dropup">
+            <a href="#" class="d-flex align-items-center text-decoration-none dropdown-toggle" data-bs-toggle="dropdown">
+                <i class="bi bi-person-circle fs-4 me-2"></i>
+                <!-- <span class="user-name">{{ request.user.username }}</span> -->
+                <span class="user-name">Brant Jan</span>
+            </a>
+            <ul class="dropdown-menu">
+                <li><a class="dropdown-item" href="#"><i class="bi bi-gear me-2"></i>Settings</a></li>
+                <li><hr class="dropdown-divider"></li>
+                <li><a class="dropdown-item text-danger" href="#"><i class="bi bi-box-arrow-right me-2"></i>Logout</a></li>
+            </ul>
+        </div>
     </div>
-
-</div>
 </aside>
