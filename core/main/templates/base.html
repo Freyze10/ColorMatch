@@ -10,12 +10,19 @@
     <link rel="stylesheet" href="{% static 'css/sidebar.css' %}">
 </head>
 <body>
-    
-    <div class="wrapper">
+    {% include 'sidebar.html' %}
+    <div class="main">
+        {% block content %}
+            <h2>Landing Page</h2>
+        {% endblock %}
+        {% include 'footer.html' %}
+    </div>
 
+    <!-- <div class="wrapper">
         <div class="container-fluid p-4">
             
             {% block content %} 
+            
             <h2>Landing Page</h2>
 
             {% endblock content %}
@@ -25,7 +32,7 @@
 
         </div>
 
-    </div>
+    </div> -->
 
 </div>
 

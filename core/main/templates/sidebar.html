@@ -1,240 +1,202 @@
 {% load static %}
 <aside class="sidebar" id="sidebar">
 
-    <div class="sidebar-header">
-
-        <h4 class="mb-0">
-
-            SAITAMA
-
+    <div class="sidebar-header d-flex justify-content-between align-items-center">
+        <h4 class="mb-0 logo-text">
+            MBPI
         </h4>
-
+        <button
+            class="btn btn-sm btn-outline-light"
+            id="toggleSidebar">
+            <i class="bi bi-list"></i>
+        </button>
     </div>
 
-    <ul class="nav flex-column mt-3">
+    <div class="sidebar-menu">
+        <ul class="nav flex-column mt-3">
 
-        <li class="nav-item">
+            <li class="nav-item">
 
-            <a href="{% url 'dashboard' %}"
-                class="nav-link {% if request.resolver_match.url_name == 'dashboard' %}active{% endif %}">
-                <i class="bi bi-speedometer2"></i>
-                <span>Dashboard</span>
-            </a>
+                <a href="{% url 'dashboard' %}"
+                    class="nav-link {% if request.resolver_match.url_name == 'dashboard' %}active{% endif %}">
+                    <i class="bi bi-speedometer2"></i>
+                    <span>Dashboard</span>
+                </a>
 
-        </li>
+            </li>
 
-        <li class="nav-item">
+            <li class="nav-item">
 
-            <a href="{% url 'other' %}"
-                class="nav-link {% if request.resolver_match.url_name == 'components' %}active{% endif %}">
+                <a href="{% url 'other' %}"
+                    class="nav-link {% if request.resolver_match.url_name == 'components' %}active{% endif %}">
 
-                <i class="bi bi-puzzle"></i>
+                    <i class="bi bi-puzzle"></i>
 
-                <span>Other Page(components)</span>
+                    <span>Other Page(components)</span>
 
-            </a>
+                </a>
 
-        </li>
+            </li>
 
-        <li class="nav-item">
+            <li class="nav-item">
 
-            <a class="nav-link" href="#">
+                <a class="nav-link" href="#">
 
-                <i class="bi bi-heart"></i>
+                    <i class="bi bi-heart"></i>
 
-                <span>Extras</span>
+                    <span>Extras</span>
 
-            </a>
+                </a>
 
-        </li>
+            </li>
 
-        <!-- Apps -->
+            <!-- Apps -->
 
-        <li class="nav-item">
+            <li class="nav-item">
 
-            <a class="nav-link d-flex justify-content-between align-items-center"
+                <a class="nav-link d-flex justify-content-between align-items-center"
 
-                data-bs-toggle="collapse"
+                    data-bs-toggle="collapse"
 
-                href="#appsMenu">
+                    href="#appsMenu">
 
-                <div>
+                    <div>
 
-                    <i class="bi bi-grid"></i>
+                        <i class="bi bi-grid"></i>
 
-                    <span>Apps</span>
+                        <span>Apps</span>
+
+                    </div>
+
+                    <i class="bi bi-chevron-down"></i>
+
+                </a>
+
+                <div class="collapse" id="appsMenu">
+
+                    <ul class="nav flex-column submenu">
+
+                        <li>
+
+                            <a class="nav-link" href="#">Mail</a>
+
+                        </li>
+
+                        <li>
+
+                            <a class="nav-link" href="#">Calendar</a>
+
+                        </li>
+
+                        <li>
+
+                            <a class="nav-link" href="#">Ecommerce</a>
+
+                        </li>
+
+                        <li>
+
+                            <a class="nav-link" href="#">User</a>
+
+                        </li>
+
+                        <li>
+
+                            <a class="nav-link" href="#">Social</a>
+
+                        </li>
+
+                        <!-- Nested Menu -->
+
+                        <li>
+
+                            <a class="nav-link d-flex justify-content-between"
+
+                                data-bs-toggle="collapse"
+
+                                href="#subMenu">
+
+                                <span>Sub Level</span>
+
+                                <i class="bi bi-chevron-down"></i>
+
+                            </a>
+
+                            <div class="collapse" id="subMenu">
+
+                                <ul class="nav flex-column submenu">
+
+                                    <li><a class="nav-link" href="#">Link</a></li>
+
+                                    <li><a class="nav-link" href="#">Link</a></li>
+
+                                    <li><a class="nav-link" href="#">Link</a></li>
+
+                                </ul>
+
+                            </div>
+
+                        </li>
+
+                    </ul>
 
                 </div>
 
-                <i class="bi bi-chevron-down"></i>
-
-            </a>
-
-            <div class="collapse" id="appsMenu">
-
-                <ul class="nav flex-column submenu">
-
-                    <li>
-
-                        <a class="nav-link" href="#">Mail</a>
-
-                    </li>
-
-                    <li>
-
-                        <a class="nav-link" href="#">Calendar</a>
-
-                    </li>
-
-                    <li>
-
-                        <a class="nav-link" href="#">Ecommerce</a>
-
-                    </li>
-
-                    <li>
-
-                        <a class="nav-link" href="#">User</a>
-
-                    </li>
-
-                    <li>
-
-                        <a class="nav-link" href="#">Social</a>
-
-                    </li>
-
-                    <!-- Nested Menu -->
-
-                    <li>
-
-                        <a class="nav-link d-flex justify-content-between"
-
-                            data-bs-toggle="collapse"
-
-                            href="#subMenu">
-
-                            <span>Sub Level</span>
-
-                            <i class="bi bi-chevron-down"></i>
-
-                        </a>
-
-                        <div class="collapse" id="subMenu">
-
-                            <ul class="nav flex-column submenu">
-
-                                <li><a class="nav-link" href="#">Link</a></li>
-
-                                <li><a class="nav-link" href="#">Link</a></li>
-
-                                <li><a class="nav-link" href="#">Link</a></li>
-
-                            </ul>
-
-                        </div>
-
-                    </li>
-
-                </ul>
-
-            </div>
-
-        </li>
-
-        <li class="nav-item">
-
-            <a class="nav-link" href="#">
-
-                <i class="bi bi-bar-chart"></i>
-
-                <span>Reports</span>
-
-            </a>
-
-        </li>
-
-    </ul>
-
-</aside>
-
-<!-- ===================== -->
-<!-- Content -->
-<!-- ===================== -->
-
-<div class="main">
-
-    <!-- Navbar -->
-
-    <nav class="navbar navbar-expand-lg bg-white border-bottom shadow-sm px-3">
-
-        <button class="btn btn-outline-secondary"
-
-            id="toggleSidebar">
-
-            <i class="bi bi-list"></i>
-
-        </button>
-
-        <form class="ms-3 d-none d-md-block">
-
-            <input class="form-control"
-
-                placeholder="Search...">
-
-        </form>
-
-        <ul class="navbar-nav ms-auto">
-
-            <li class="nav-item">
-
-                <a class="nav-link" href="#">
-
-                    <i class="bi bi-bell"></i>
-
-                </a>
-
             </li>
 
             <li class="nav-item">
 
                 <a class="nav-link" href="#">
 
-                    <i class="bi bi-chat"></i>
+                    <i class="bi bi-bar-chart"></i>
+
+                    <span>Reports</span>
 
                 </a>
-
-            </li>
-
-            <li class="nav-item dropdown">
-
-                <a class="nav-link dropdown-toggle"
-
-                    data-bs-toggle="dropdown"
-
-                    href="#">
-
-                    Draude Oba
-
-                </a>
-
-                <ul class="dropdown-menu dropdown-menu-end">
-
-                    <li><a class="dropdown-item" href="#">Settings</a></li>
-
-                    <li><a class="dropdown-item" href="#">Upgrade</a></li>
-
-                    <li><a class="dropdown-item" href="#">Help</a></li>
-
-                    <li><hr class="dropdown-divider"></li>
-
-                    <li><a class="dropdown-item" href="#">Logout</a></li>
-
-                </ul>
 
             </li>
 
         </ul>
+    </div>
+    <div class="sidebar-footer">
 
-    </nav>
+    <div class="dropup">
+
+        <a
+            href="#"
+            class="d-flex align-items-center text-decoration-none dropdown-toggle"
+            data-bs-toggle="dropdown">
+
+            <i class="bi bi-person-circle fs-4 me-2"></i>
+
+            <span>
+                {{ request.user.username }}
+            </span>
+
+        </a>
+
+        <ul class="dropdown-menu">
+
+            <li>
+                <a class="dropdown-item" href="#">
+                    <i class="bi bi-gear me-2"></i>
+                    Settings
+                </a>
+            </li>
+
+            <li><hr class="dropdown-divider"></li>
+
+            <li>
+                <a class="dropdown-item text-danger"
+                   href="{% url 'logout' %}">
+                    <i class="bi bi-box-arrow-right me-2"></i>
+                    Logout
+                </a>
+            </li>
+
+        </ul>
+
+    </div>
+
 </div>
+</aside>

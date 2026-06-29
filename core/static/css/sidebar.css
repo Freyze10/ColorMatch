@@ -21,6 +21,8 @@ body {
     background: #ffffff;
     border-right: 1px solid #dee2e6;
     transition: all .3s ease;
+    display:flex;
+    flex-direction:column;
     flex-shrink: 0;
     position: fixed;
     top: 0;
@@ -28,6 +30,10 @@ body {
     height: 100vh;
     overflow-y: auto;
     z-index: 1040;
+}
+.sidebar-menu{
+    flex:1;
+    overflow-y:auto;
 }
 
 .sidebar-header {
@@ -145,6 +151,18 @@ body {
     border-radius: 10px;
 }
 
+.sidebar-footer{
+    padding:15px;
+    border-top:1px solid rgba(255,255,255,.1);
+}
+
+.sidebar-footer a{
+    color:white;
+}
+
+.sidebar-footer a:hover{
+    color:#fff;
+}
 /* ===================================
    Responsive
 =================================== */
