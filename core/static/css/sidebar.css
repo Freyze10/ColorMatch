@@ -113,6 +113,37 @@ body {
 .user-name { color: var(--sidebar-text); font-weight: 600; }
 .user-role { color: var(--text-muted); font-size: 0.75rem; }
 
+.user-profile-link {
+    width: 100%;
+    display: flex !important;
+    align-items: center;
+    justify-content: space-between; /* This pushes internal flex items apart */
+    padding: 8px 10px;
+    border-radius: 8px;
+    transition: background 0.2s;
+}
+
+.user-profile-link:hover {
+    background: var(--sidebar-hover-bg);
+}
+
+/* THE FIX: Pushing the Arrow to the rightmost side */
+.sidebar-footer .dropdown-toggle::after {
+    margin-left: auto; /* Pushes the arrow to the far right */
+    vertical-align: middle;
+}
+
+/* Hide the arrow when the sidebar is collapsed (Desktop) */
+.sidebar.collapsed .sidebar-footer .dropdown-toggle::after {
+    display: none !important;
+}
+
+/* Ensure the user info container is also flex to stay on the left */
+.user-profile-link > div {
+    display: flex;
+    align-items: center;
+}
+
 /* --- 4. Main Content Area --- */
 .main {
     flex: 1;
