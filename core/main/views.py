@@ -5,5 +5,8 @@ from django.http import HttpResponse
 def index(request):
     return render(request, "base.html")
 
+def dashboard(request):
+    return render(request, "dashboard/dashboard.html")
+
 def otherPage(request):
     return render(request, "other.html")

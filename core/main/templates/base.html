@@ -13,16 +13,12 @@
     
     <div class="wrapper">
 
-    <!-- ===================== -->
-    <!-- Sidebar -->
-    <!-- ===================== -->
-
-    {% include 'sidebar.html' %}
-
         <div class="container-fluid p-4">
-            <h2>Dashboard</h2>
+            
+            {% block content %} 
+            <h2>Landing Page</h2>
 
-            {% block content %} {% endblock content %}
+            {% endblock content %}
             
             
             {% include 'footer.html' %}
