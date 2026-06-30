@@ -7,11 +7,50 @@ am5.ready(function() {
 
     root.setThemes([am5themes_Animated.new(root)]);
 
+    // Make the chart's own canvas background transparent so the surrounding
+    // .theme-card's background color (light or dark) shows through instead
+    // of amCharts' default white background painted underneath the chart.
+    root.container.set("background", am5.Rectangle.new(root, {
+        fill: am5.color(0xffffff),
+        fillOpacity: 0
+    }));
+
     // Create chart
     let chart = root.container.children.push(am5percent.PieChart.new(root, {
         layout: root.verticalLayout,
         innerRadius: am5.percent(55) // Thinner donut for a more modern look
     }));
+
+    // === COLOR PALETTE (theme-aware) ===
+    // Slice colors stay the same in both themes (teal/slate brand colors read
+    // fine on both backgrounds), but text/label colors need to flip.
+    function getThemeColors() {
+        let isDark = document.body.classList.contains("dark-mode");
+
+        return {
+            isDark: isDark,
+
+            // Center label (Orders/Samples/Total)
+            labelMuted: isDark
+                ? am5.color(0xCBD5E1)    // Light gray
+                : am5.color(0x64748B),   // Slate gray
+
+            // Center value
+            labelMain: isDark
+                ? am5.color(0xF8FAFC)    // Almost white
+                : am5.color(0x1E293B),   // Dark slate
+
+            legendText: isDark
+                ? am5.color(0xCBD5E1)
+                : am5.color(0x64748B),
+
+            legendValue: am5.color(0x14B8A6),
+
+            sliceStroke: isDark
+                ? am5.color(0x0F172A)
+                : am5.color(0xFFFFFF)
+        };
+    }
 
     // === DATA WITH THEME COLORS ===
     let data = [{
@@ -55,19 +94,13 @@ am5.ready(function() {
 
     // --- THEME-AWARE CENTER LABEL ---
     let label = chart.seriesContainer.children.push(am5.Label.new(root, {
+        centerX: am5.percent(50),
+        centerY: am5.percent(50),
         textAlign: "center",
-        centerY: am5.p50,
-        centerX: am5.p50,
-        text: "[#64748b fs14]Orders\n[bold fs30]0[/]"
+        populateText: true,
+        fontSize: 16,
+        fill: getThemeColors().labelMain
     }));
-
-    // Adapter to change label color based on Dark Mode
-    label.adapters.add("fill", function(fill, target) {
-        if (document.body.classList.contains("dark-mode")) {
-            return am5.color(0xf8fafc); // Light color for dark mode
-        }
-        return am5.color(0x1e293b);     // Slate color for light mode
-    });
 
     // Update label based on which slices are currently visible.
     // Rules:
@@ -76,18 +109,42 @@ am5.ready(function() {
     //   - Only Samples visible -> show Samples total
     //   - Neither visible     -> show Total 0
     function refreshLabel() {
-        let samplesItem = series.dataItems.find(function(d) { return d.dataContext.category === "Samples"; });
-        let ordersItem = series.dataItems.find(function(d) { return d.dataContext.category === "Orders"; });
+
+        let samplesItem = series.dataItems.find(d => d.dataContext.category === "Samples");
+        let ordersItem  = series.dataItems.find(d => d.dataContext.category === "Orders");
 
         let samplesVisible = samplesItem.get("visible");
-        let ordersVisible = ordersItem.get("visible");
+        let ordersVisible  = ordersItem.get("visible");
 
         if (ordersVisible) {
-            label.set("text", "[#64748b fs14]Orders\n[bold fs30]" + ordersItem.get("value") + "[/]");
+
+            label.set("html",
+                "<div style='text-align:center;'>" +
+                "<div style='font-size:14px;'>Orders</div>" +
+                "<div style='font-size:30px;font-weight:bold;'>" +
+                ordersItem.get("value") +
+                "</div></div>"
+            );
+
         } else if (samplesVisible) {
-            label.set("text", "[#64748b fs14]Samples\n[bold fs30]" + samplesItem.get("value") + "[/]");
+
+            label.set("html",
+                "<div style='text-align:center;'>" +
+                "<div style='font-size:14px;'>Samples</div>" +
+                "<div style='font-size:30px;font-weight:bold;'>" +
+                samplesItem.get("value") +
+                "</div></div>"
+            );
+
         } else {
-            label.set("text", "[#64748b fs14]Total\n[bold fs30]0[/]");
+
+            label.set("html",
+                "<div style='text-align:center;'>" +
+                "<div style='font-size:14px;'>Total</div>" +
+                "<div style='font-size:30px;font-weight:bold;'>0</div>" +
+                "</div>"
+            );
+
         }
     }
 
@@ -106,21 +163,37 @@ am5.ready(function() {
         marginBottom: 10
     }));
 
-    legend.labels.template.setAll({
-        fontSize: 14,
-        fontWeight: "500",
-        fill: am5.color(0x64748b) // Muted Slate
-    });
-
-    legend.valueLabels.template.setAll({
-        fontSize: 14,
-        fontWeight: "700",
-        fill: am5.color(0x14b8a6) // Teal numbers in legend
-    });
-
     legend.data.setAll(series.dataItems);
+
+    // --- APPLY THEME COLORS (initial + on toggle) ---
+    function applyTheme() {
+        let colors = getThemeColors();
+        label.set("fill", colors.labelMain);
+        
+        legend.labels.template.setAll({
+            fontSize: 14,
+            fontWeight: "500",
+            fill: colors.legendText
+        });
+
+        legend.valueLabels.template.setAll({
+            fontSize: 14,
+            fontWeight: "700",
+            fill: colors.legendValue
+        });
+
+        series.slices.template.set("stroke", colors.sliceStroke);
+        series.slices.template.set("strokeOpacity", 1);
+        series.slices.template.set("strokeWidth", 2);
+
+        refreshLabel();
+    }
+
+    applyTheme();
+
+    // React live to dark/light mode toggle (dispatched by sidebar.js)
+    document.addEventListener("themechange", applyTheme);
 
     // Animations
     series.appear(1000, 100);
-    refreshLabel(); // Set initial text after data is loaded
 });

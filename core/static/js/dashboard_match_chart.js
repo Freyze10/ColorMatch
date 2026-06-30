@@ -7,6 +7,14 @@ am5.ready(function() {
 
     root.setThemes([am5themes_Animated.new(root)]);
 
+    // Make the chart's own canvas background transparent so the surrounding
+    // .theme-card's background color (light or dark) shows through instead
+    // of amCharts' default white background painted underneath the chart.
+    root.container.set("background", am5.Rectangle.new(root, {
+        fill: am5.color(0xffffff),
+        fillOpacity: 0
+    }));
+
     let chart = root.container.children.push(am5xy.XYChart.new(root, {
         panX: false,
         panY: false,
@@ -26,6 +34,18 @@ am5.ready(function() {
         { month: "Jul", matches: 85, rematches: 30 }
     ];
 
+    // === COLOR PALETTE (theme-aware) ===
+    function getThemeColors() {
+        let isDark = document.body.classList.contains("dark-mode");
+        return {
+            isDark: isDark,
+            axisLabel: isDark ? am5.color(0xf1f5f9) : am5.color(0x334155),
+            gridLine: isDark ? am5.color(0x334155) : am5.color(0xe2e8f0),
+            legendText: isDark ? am5.color(0xf1f5f9) : am5.color(0x334155),
+            bulletStroke: isDark ? am5.color(0x1e293b) : am5.color(0xffffff)
+        };
+    }
+
     // === Y-AXIS (LEFT: MONTHS) ===
     let yRenderer = am5xy.AxisRendererY.new(root, {
         minGridDistance: 1, // THE FIX: Setting this to 1 forces EVERY label to show
@@ -44,11 +64,13 @@ am5.ready(function() {
     yAxis.data.setAll(data);
 
     // === X-AXIS (BOTTOM: NUMBERS) ===
+    let xRenderer = am5xy.AxisRendererX.new(root, {
+        strokeOpacity: 0.1
+    });
+
     let xAxis = chart.xAxes.push(am5xy.ValueAxis.new(root, {
         min: 0,
-        renderer: am5xy.AxisRendererX.new(root, {
-            strokeOpacity: 0.1
-        })
+        renderer: xRenderer
     }));
 
     // === CLEAN VERTICAL SCROLLBAR ===
@@ -57,8 +79,20 @@ am5.ready(function() {
         marginLeft: 15
     });
     chart.set("scrollbarY", scrollbarY);
-    scrollbarY.startGrip.set("forceHidden", true);
-    scrollbarY.endGrip.set("forceHidden", true);
+
+    // Fully remove both grips (the small circular drag handles at each end
+    // of the scrollbar track). forceHidden alone can still leave them
+    // clickable/visible in some amCharts5 versions, so we also zero out
+    // their size and disable pointer events as a belt-and-suspenders fix.
+    [scrollbarY.startGrip, scrollbarY.endGrip].forEach(function(grip) {
+        grip.set("forceHidden", true);
+        grip.set("visible", false);
+        grip.set("width", 0);
+        grip.set("height", 0);
+        grip.set("interactive", false);
+        grip.events.disable();
+    });
+
     scrollbarY.get("background").setAll({ fillOpacity: 0, strokeOpacity: 0 });
 
     // === TOOLTIP CURSOR ===
@@ -108,12 +142,12 @@ am5.ready(function() {
         })
     }));
 
-    rematchesSeries.bullets.push(function() {
+    let bullet = rematchesSeries.bullets.push(function() {
         return am5.Bullet.new(root, {
             sprite: am5.Circle.new(root, {
                 radius: 5,
                 fill: am5.color(0x0f172a),
-                stroke: root.interfaceColors.get("background"),
+                stroke: am5.color(0xffffff), // overridden by applyTheme() below
                 strokeWidth: 2
             })
         });
@@ -136,6 +170,32 @@ am5.ready(function() {
         marginBottom: 10
     }));
     legend.data.setAll(chart.series.values);
+
+    // === APPLY THEME COLORS (initial + on toggle) ===
+    function applyTheme() {
+        let colors = getThemeColors();
+
+        yRenderer.labels.template.set("fill", colors.axisLabel);
+        xRenderer.labels.template.set("fill", colors.axisLabel);
+        xRenderer.grid.template.set("stroke", colors.gridLine);
+
+        legend.labels.template.setAll({
+            fill: colors.legendText
+        });
+
+        // Update bullet stroke (the ring around each line-chart dot) so it
+        // matches the card background instead of leaving a white halo in
+        // dark mode.
+        rematchesSeries.bullets.each(function(b) {
+            let sprite = b.get("sprite");
+            if (sprite) sprite.set("stroke", colors.bulletStroke);
+        });
+    }
+
+    applyTheme();
+
+    // React live to dark/light mode toggle (dispatched by sidebar.js)
+    document.addEventListener("themechange", applyTheme);
 
     chart.appear(1000, 100);
 });
