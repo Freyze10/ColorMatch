@@ -39,9 +39,9 @@ am5.ready(function() {
         let isDark = document.body.classList.contains("dark-mode");
         return {
             isDark: isDark,
-            axisLabel: isDark ? am5.color(0xf1f5f9) : am5.color(0x334155),
+            axisLabel: isDark ? am5.color(0xcbd5e1) : am5.color(0x475569),
             gridLine: isDark ? am5.color(0x334155) : am5.color(0xe2e8f0),
-            legendText: isDark ? am5.color(0xf1f5f9) : am5.color(0x334155),
+            legendText: isDark ? am5.color(0xcbd5e1) : am5.color(0x64748b),
             bulletStroke: isDark ? am5.color(0x1e293b) : am5.color(0xffffff)
         };
     }
@@ -57,8 +57,7 @@ am5.ready(function() {
 
     let yAxis = chart.yAxes.push(am5xy.CategoryAxis.new(root, {
         categoryField: "month",
-        renderer: yRenderer,
-        tooltip: am5.Tooltip.new(root, {})
+        renderer: yRenderer
     }));
 
     yAxis.data.setAll(data);
@@ -79,20 +78,8 @@ am5.ready(function() {
         marginLeft: 15
     });
     chart.set("scrollbarY", scrollbarY);
-
-    // Fully remove both grips (the small circular drag handles at each end
-    // of the scrollbar track). forceHidden alone can still leave them
-    // clickable/visible in some amCharts5 versions, so we also zero out
-    // their size and disable pointer events as a belt-and-suspenders fix.
-    [scrollbarY.startGrip, scrollbarY.endGrip].forEach(function(grip) {
-        grip.set("forceHidden", true);
-        grip.set("visible", false);
-        grip.set("width", 0);
-        grip.set("height", 0);
-        grip.set("interactive", false);
-        grip.events.disable();
-    });
-
+    scrollbarY.startGrip.set("forceHidden", true);
+    scrollbarY.endGrip.set("forceHidden", true);
     scrollbarY.get("background").setAll({ fillOpacity: 0, strokeOpacity: 0 });
 
     // === TOOLTIP CURSOR ===
@@ -175,20 +162,40 @@ am5.ready(function() {
     function applyTheme() {
         let colors = getThemeColors();
 
-        yRenderer.labels.template.set("fill", colors.axisLabel);
-        xRenderer.labels.template.set("fill", colors.axisLabel);
-        xRenderer.grid.template.set("stroke", colors.gridLine);
+        // Update axis label templates
+        yRenderer.labels.template.setAll({
+            fill: colors.axisLabel
+        });
 
+        xRenderer.labels.template.setAll({
+            fill: colors.axisLabel
+        });
+
+        xRenderer.grid.template.setAll({
+            stroke: colors.gridLine
+        });
+
+        // Update existing Y-axis labels
+        yRenderer.labels.each(function(label) {
+            label.set("fill", colors.axisLabel);
+        });
+
+        // Update existing X-axis labels
+        xRenderer.labels.each(function(label) {
+            label.set("fill", colors.axisLabel);
+        });
+
+        // Update legend template
         legend.labels.template.setAll({
             fill: colors.legendText
         });
 
-        // Update bullet stroke (the ring around each line-chart dot) so it
-        // matches the card background instead of leaving a white halo in
-        // dark mode.
-        rematchesSeries.bullets.each(function(b) {
-            let sprite = b.get("sprite");
-            if (sprite) sprite.set("stroke", colors.bulletStroke);
+        // Update existing legend labels
+        legend.dataItems.each(function(dataItem) {
+            let label = dataItem.get("label");
+            if (label) {
+                label.set("fill", colors.legendText);
+            }
         });
     }
 
