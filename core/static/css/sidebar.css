@@ -1,5 +1,5 @@
 /* ===================================
-   1. THEME VARIABLES
+   1. THEME VARIABLES (Global)
 =================================== */
 :root {
     /* Light Mode (Default) */
@@ -12,7 +12,7 @@
     --sidebar-border: #dee2e6;
     
     --main-bg: #f8fafc;
-    --card-bg: #ffffff;       /* For Dashboard Cards */
+    --card-bg: #ffffff;       
     --text-main: #1e293b;
     --text-muted: #64748b;
     --navbar-bg: #ffffff;
@@ -30,7 +30,7 @@ body.dark-mode {
     --sidebar-border: #1e293b;
     
     --main-bg: #0f172a;
-    --card-bg: #1e293b;       /* For Dashboard Cards */
+    --card-bg: #1e293b;       
     --text-main: #f8fafc;
     --text-muted: #94a3b8;
     --navbar-bg: #1e293b;
@@ -46,6 +46,7 @@ body {
     transition: background-color 0.3s, color 0.3s;
     overflow-x: hidden;
     font-family: 'Inter', system-ui, -apple-system, sans-serif;
+    min-height: 100vh;
 }
 
 .wrapper { 
@@ -117,13 +118,13 @@ body {
 /* Submenu Styling */
 .sidebar .submenu .nav-link.active-sub {
     background-color: transparent !important;
-    /* color: var(--sidebar-active-text) !important; */
     color: #0d9488;
     font-weight: 700;
     border-left: 2px solid #0d9488;
     border-radius: 0;
 }
-    /* Dropdown Arrow Fix */
+
+/* Dropdown Arrow Animation */
 .sidebar .arrow-icon {
     margin-left: auto;
     transition: transform 0.3s;
@@ -132,7 +133,7 @@ body {
     transform: rotate(180deg);
 }
 
-/* Footer Section */
+/* Sidebar Footer Section */
 .sidebar-footer {
     padding: 15px 20px;
     border-top: 1px solid var(--sidebar-border);
@@ -148,6 +149,7 @@ body {
     border-radius: 8px;
     transition: background 0.2s;
     color: var(--sidebar-text);
+    text-decoration: none;
 }
 
 .user-profile-link:hover {
@@ -157,23 +159,17 @@ body {
 .user-name { color: var(--sidebar-text); font-weight: 600; }
 .user-role { color: var(--text-muted); font-size: 0.75rem; }
 
-.sidebar-footer .dropdown-toggle::after {
-    margin-left: auto;
-    vertical-align: middle;
-}
-
 /* ===================================
    4. MAIN CONTENT & NAVBAR
 =================================== */
 .main {
     flex: 1;
-    min-width: 0; /* let content shrink below its intrinsic width instead of forcing horizontal page overflow */
+    min-width: 0; 
     margin-left: 260px;
     background: var(--main-bg);
     min-height: 100vh;
     transition: all 0.3s ease;
     display: flex;
-    flex-grow: 1;
     flex-direction: column;
 }
 
@@ -183,120 +179,11 @@ body {
     height: 64px;
     display: flex;
     align-items: center;
+    padding: 0 1.5rem;
 }
 
 /* ===================================
-   5. DASHBOARD COMPONENTS (Theme Aware)
-=================================== */
-.theme-card {
-    background-color: var(--card-bg) !important;
-    border: none !important;
-    box-shadow: 0 0.125rem 0.25rem rgba(0, 0, 0, 0.075) !important;
-    transition: background-color 0.3s, transform 0.2s;
-}
-
-.theme-text-main { color: var(--text-main) !important; }
-
-/* Dashboard Tables */
-.custom-dashboard-table thead th {
-    background-color: var(--table-header);
-    color: #ffffff;
-    font-size: 0.75rem;
-    font-weight: 600;
-    text-transform: uppercase;
-    letter-spacing: 0.025em;
-    padding: 12px;
-    border: none;
-}
-
-.custom-dashboard-table tbody td {
-    padding: 16px 12px;
-    border-bottom: 1px solid var(--sidebar-border);
-    color: var(--text-main);
-}
-
-/* Table row hover, theme aware (Bootstrap's table-hover defaults to a
-   light-only hover tint that's invisible on dark cards) */
-.custom-dashboard-table tbody tr:hover {
-    background-color: var(--sidebar-hover-bg);
-}
-
-/* KPI Icon Circles */
-.icon-circle {
-    width: 48px;
-    height: 48px;
-    border-radius: 12px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    flex-shrink: 0;
-}
-
-.bg-teal-subtle { background-color: rgba(20, 184, 166, 0.15); }
-.text-teal { color: #14b8a6; }
-
-/* ===================================
-   5b. DASHBOARD DARK MODE OVERRIDES
-   Bootstrap's *-subtle utility classes (badges, icon circles) and
-   text-muted are tuned for light backgrounds and read poorly / become
-   invisible on dark cards, so we override them here.
-=================================== */
-body.dark-mode .text-muted {
-    color: var(--text-muted) !important;
-}
-
-body.dark-mode .table-hover > tbody > tr {
-    background-color: transparent;
-}
-
-body.dark-mode .table-hover > tbody > tr:hover {
-    background-color: var(--sidebar-hover-bg) !important;
-    color: var(--text-main);
-}
-
-body.dark-mode .custom-dashboard-table tbody td {
-    color: var(--text-main);
-}
-
-body.dark-mode .custom-dashboard-table {
-    --bs-table-bg: transparent;
-    --bs-table-color: var(--text-main);
-    --bs-table-hover-bg: var(--sidebar-hover-bg);
-    --bs-table-hover-color: var(--text-main);
-}
-
-body.dark-mode .badge.bg-success-subtle {
-    background-color: rgba(34, 197, 94, 0.18) !important;
-    color: #4ade80 !important;
-    border-color: rgba(34, 197, 94, 0.35) !important;
-}
-
-body.dark-mode .badge.bg-primary-subtle {
-    background-color: rgba(59, 130, 246, 0.18) !important;
-    color: #60a5fa !important;
-    border-color: rgba(59, 130, 246, 0.35) !important;
-}
-
-body.dark-mode .badge.bg-warning-subtle {
-    background-color: rgba(234, 179, 8, 0.18) !important;
-    color: #facc15 !important;
-    border-color: rgba(234, 179, 8, 0.35) !important;
-}
-
-body.dark-mode .icon-circle.bg-teal-subtle {
-    background-color: rgba(20, 184, 166, 0.18);
-}
-
-body.dark-mode .icon-circle.bg-primary-subtle {
-    background-color: rgba(59, 130, 246, 0.18);
-}
-
-body.dark-mode .icon-circle.text-primary {
-    color: #60a5fa !important;
-}
-
-/* ===================================
-   6. RESPONSIVE / MOBILE / COLLAPSED
+   5. RESPONSIVE / COLLAPSED STATES
 =================================== */
 .sidebar-overlay {
     position: fixed;
@@ -309,6 +196,7 @@ body.dark-mode .icon-circle.text-primary {
     display: none;
 }
 
+/* Mobile View (< 992px) */
 @media (max-width: 991.98px) {
     .sidebar { transform: translateX(-100%); }
     .sidebar.show { transform: translateX(0); }
@@ -316,6 +204,7 @@ body.dark-mode .icon-circle.text-primary {
     .sidebar-overlay.show { display: block; }
 }
 
+/* Desktop Collapsed View (>= 992px) */
 @media (min-width: 992px) {
     .sidebar.collapsed { width: 80px; }
     .sidebar.collapsed ~ .main { margin-left: 80px; }
@@ -333,5 +222,7 @@ body.dark-mode .icon-circle.text-primary {
     .sidebar.collapsed .sidebar-footer .dropdown-toggle::after { display: none !important; }
 }
 
-/* Utility to ensure footer stays bottom of main */
-.mt-auto { margin-top: auto !important; }
+/* Global Utility for Dark Mode Text */
+body.dark-mode .text-muted {
+    color: var(--text-muted) !important;
+}
