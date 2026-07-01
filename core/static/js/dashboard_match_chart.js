@@ -52,6 +52,10 @@ am5.ready(function() {
         inversed: true
     });
 
+    yRenderer.labels.template.adapters.add("fill", function () {
+        return getThemeColors().axisLabel;
+    });
+
     // Clean look
     yRenderer.grid.template.set("visible", false);
 
@@ -65,6 +69,14 @@ am5.ready(function() {
     // === X-AXIS (BOTTOM: NUMBERS) ===
     let xRenderer = am5xy.AxisRendererX.new(root, {
         strokeOpacity: 0.1
+    });
+
+    xRenderer.labels.template.adapters.add("fill", function () {
+        return getThemeColors().axisLabel;
+    });
+
+    xRenderer.grid.template.adapters.add("stroke", function () {
+        return getThemeColors().gridLine;
     });
 
     let xAxis = chart.xAxes.push(am5xy.ValueAxis.new(root, {
@@ -156,13 +168,18 @@ am5.ready(function() {
         marginTop: 15,
         marginBottom: 10
     }));
+
+    legend.labels.template.adapters.add("fill", function () {
+        return getThemeColors().legendText;
+    });
+
     legend.data.setAll(chart.series.values);
 
     // === APPLY THEME COLORS (initial + on toggle) ===
     function applyTheme() {
         let colors = getThemeColors();
 
-        // Update axis label templates
+        // Update templates
         yRenderer.labels.template.setAll({
             fill: colors.axisLabel
         });
@@ -175,28 +192,14 @@ am5.ready(function() {
             stroke: colors.gridLine
         });
 
-        // Update existing Y-axis labels
-        yRenderer.labels.each(function(label) {
-            label.set("fill", colors.axisLabel);
-        });
-
-        // Update existing X-axis labels
-        xRenderer.labels.each(function(label) {
-            label.set("fill", colors.axisLabel);
-        });
-
-        // Update legend template
         legend.labels.template.setAll({
             fill: colors.legendText
         });
 
-        // Update existing legend labels
-        legend.dataItems.each(function(dataItem) {
-            let label = dataItem.get("label");
-            if (label) {
-                label.set("fill", colors.legendText);
-            }
-        });
+        // Force the axes to recreate their labels
+        yAxis.markDirty();
+        xAxis.markDirty();
+        legend.markDirty();
     }
 
     applyTheme();

@@ -41,6 +41,7 @@ document.addEventListener("DOMContentLoaded", function () {
             const isDark = body.classList.contains("dark-mode");
             localStorage.setItem("theme", isDark ? "dark" : "light");
             themeToggle.textContent = isDark ? "Switch to Light Mode" : "Try Dark Mode";
+            document.dispatchEvent(new CustomEvent("themechange"));
         });
     }
 
