@@ -1,9 +1,100 @@
-
 {% extends "base.html" %}
 
 {% block navigation %} 
-CMF Records
+Color Matching Records
 {% endblock navigation %}
+
 {% block content %}
-    <div>This is tables</div>
+<div class="container-fluid">
+    
+    <!-- TOP HEADER: Title, Search, and Refresh -->
+    <div class="row align-items-center mb-3 gy-2">
+        <div class="col-md-6">
+            <h4 class="mb-0 fw-bold">Color Matching Records</h4>
+        </div>
+        <div class="col-md-6">
+            <div class="d-flex justify-content-md-end gap-2">
+                <div class="input-group input-group-sm" style="max-width: 250px;">
+                    <input type="text" class="form-control" placeholder="Search records...">
+                </div>
+                <button class="btn btn-sm btn-outline-secondary d-flex align-items-center gap-1">
+                    <i class="bi bi-arrow-clockwise"></i> Refresh
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- TABLE CARD: Using border and rounded utilities instead of a Card component -->
+    <div class="border rounded-3 shadow-sm overflow-hidden bg-body">
+        <div class="table-responsive">
+            <table class="table table-hover align-middle mb-0">
+                <!-- Header: table-secondary provides that grey/slate look -->
+                <thead class="table-secondary">
+                    <tr class="small text-uppercase">
+                        <th class="ps-3">CMF No. <i class="bi bi-chevron-down ms-1"></i></th>
+                        <th>Customer</th>
+                        <th>Primary Color</th>
+                        <th>Color Description</th>
+                        <th>Finished Product</th>
+                        <th>Required Date</th>
+                        <th>Target Date</th>
+                        <th>Matching Type</th>
+                        <th>Product Code</th>
+                        <th class="pe-3">Status</th>
+                    </tr>
+                </thead>
+                <tbody class="small">
+                    {% for record in records %}
+                    <tr>
+                        <td class="ps-3 fw-bold">{{ record.cmf_no }}</td>
+                        <td>{{ record.customer }}</td>
+                        <td>{{ record.primary_color }}</td>
+                        <td>{{ record.description }}</td>
+                        <td>{{ record.product }}</td>
+                        <td>{{ record.required_date }}</td>
+                        <td>{{ record.target_date }}</td>
+                        <td>{{ record.type }}</td>
+                        <td>{{ record.code }}</td>
+                        <td class="pe-3">{{ record.status }}</td>
+                    </tr>
+                    {% empty %}
+                    <tr>
+                        <td colspan="10" class="text-center py-4 text-muted">No records found.</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <!-- FOOTER: Filters and Export -->
+    <div class="row align-items-center mt-3 gy-3">
+        <div class="col-md-8">
+            <div class="d-flex flex-wrap align-items-center gap-3">
+                <span class="small fw-bold">Filter Status:</span>
+                
+                <div class="form-check form-check-inline mb-0 small">
+                    <input class="form-check-input" type="checkbox" id="completed" checked>
+                    <label class="form-check-label" for="completed">Completed</label>
+                </div>
+                
+                <div class="form-check form-check-inline mb-0 small">
+                    <input class="form-check-input" type="checkbox" id="pending" checked>
+                    <label class="form-check-label" for="pending">Pending</label>
+                </div>
+
+                <div class="ms-md-2 border-start ps-3 text-muted small">
+                    Showing {{ records|length }} records
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4 text-md-end">
+            <!-- btn-success provides the teal/green look -->
+            <button class="btn btn-success btn-sm px-3 d-inline-flex align-items-center gap-2">
+                <i class="bi bi-file-earmark-excel"></i> Export to Excel
+            </button>
+        </div>
+    </div>
+
+</div>
 {% endblock content %}
