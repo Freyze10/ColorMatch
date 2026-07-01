@@ -1,37 +1,48 @@
 {% extends "base.html" %}
 
-{% block navigation %} 
+{% block navigation %}
 Color Matching Records
 {% endblock navigation %}
 
 {% block content %}
-<div class="container-fluid">
-    
-    <!-- TOP HEADER: Title, Search, and Refresh -->
-    <div class="row align-items-center mb-3 gy-2">
-        <div class="col-md-6">
-            <h4 class="mb-0 fw-bold">Color Matching Records</h4>
-        </div>
-        <div class="col-md-6">
-            <div class="d-flex justify-content-md-end gap-2">
-                <div class="input-group input-group-sm" style="max-width: 250px;">
-                    <input type="text" class="form-control" placeholder="Search records...">
-                </div>
-                <button class="btn btn-sm btn-outline-secondary d-flex align-items-center gap-1">
-                    <i class="bi bi-arrow-clockwise"></i> Refresh
-                </button>
+
+<div class="d-flex flex-column">
+
+    <!-- Search -->
+    <div class="row g-2 mb-3 align-items-center">
+
+        <div class="col">
+            <div class="input-group input-group-sm">
+                <span class="input-group-text cmf-search-addon border-end-0">
+                    <i class="bi bi-search text-muted"></i>
+                </span>
+                <input
+                    type="text"
+                    class="form-control cmf-search-input border-start-0 ps-0"
+                    placeholder="Search by customer, color, or CMF number...">
             </div>
         </div>
+
+        <div class="col-auto">
+            <button class="btn btn-sm btn-outline-secondary">
+                <i class="bi bi-arrow-clockwise"></i>
+                <span class="d-none d-sm-inline">Refresh</span>
+            </button>
+        </div>
+
     </div>
 
-    <!-- TABLE CARD: Using border and rounded utilities instead of a Card component -->
-    <div class="border rounded-3 shadow-sm overflow-hidden bg-body">
-        <div class="table-responsive">
-            <table class="table table-hover align-middle mb-0">
-                <!-- Header: table-secondary provides that grey/slate look -->
-                <thead class="table-secondary">
+    <!-- TABLE CARD -->
+    <!-- cmf-scroll-body clamps max-height (so the card can never push the page
+         taller than the viewport) AND scrolls horizontally on phones, with a
+         sticky header, instead of relying on Bootstrap's plain .table-responsive. -->
+    <div class="card border-0 shadow-sm rounded-3 cmf-table-card">
+        <div class="cmf-scroll-body">
+            <table class="table table-hover align-middle mb-0 cmf-records-table">
+
+                <thead>
                     <tr class="small text-uppercase">
-                        <th class="ps-3">CMF No. <i class="bi bi-chevron-down ms-1"></i></th>
+                        <th class="ps-3">CMF No.</th>
                         <th>Customer</th>
                         <th>Primary Color</th>
                         <th>Color Description</th>
@@ -43,6 +54,7 @@ Color Matching Records
                         <th class="pe-3">Status</th>
                     </tr>
                 </thead>
+
                 <tbody class="small">
                     {% for record in records %}
                     <tr>
@@ -55,46 +67,63 @@ Color Matching Records
                         <td>{{ record.target_date }}</td>
                         <td>{{ record.type }}</td>
                         <td>{{ record.code }}</td>
-                        <td class="pe-3">{{ record.status }}</td>
+                        <td class="pe-3">
+                            <span class="badge
+                                {% if record.status == 'Completed' %}
+                                    bg-success-subtle text-success border border-success
+                                {% else %}
+                                    bg-warning-subtle text-warning-emphasis border border-warning
+                                {% endif %}">
+                                {{ record.status }}
+                            </span>
+                        </td>
                     </tr>
                     {% empty %}
                     <tr>
-                        <td colspan="10" class="text-center py-4 text-muted">No records found.</td>
+                        <td colspan="10" class="text-center py-5 text-muted">
+                            No records found.
+                        </td>
                     </tr>
                     {% endfor %}
                 </tbody>
+
             </table>
         </div>
     </div>
 
-    <!-- FOOTER: Filters and Export -->
-    <div class="row align-items-center mt-3 gy-3">
-        <div class="col-md-8">
-            <div class="d-flex flex-wrap align-items-center gap-3">
+    <!-- Footer -->
+    <div class="mt-2 py-3 px-2">
+        <div class="d-flex flex-column flex-md-row justify-content-between align-items-md-center gap-3">
+
+            <div class="d-flex flex-column flex-sm-row align-items-sm-center gap-2 gap-sm-3">
+
                 <span class="small fw-bold">Filter Status:</span>
-                
-                <div class="form-check form-check-inline mb-0 small">
-                    <input class="form-check-input" type="checkbox" id="completed" checked>
-                    <label class="form-check-label" for="completed">Completed</label>
-                </div>
-                
-                <div class="form-check form-check-inline mb-0 small">
-                    <input class="form-check-input" type="checkbox" id="pending" checked>
-                    <label class="form-check-label" for="pending">Pending</label>
+
+                <div class="d-flex flex-wrap gap-3">
+                    <div class="form-check">
+                        <input class="form-check-input" type="checkbox" checked id="completed">
+                        <label class="form-check-label" for="completed">Completed</label>
+                    </div>
+                    <div class="form-check">
+                        <input class="form-check-input" type="checkbox" checked id="pending">
+                        <label class="form-check-label" for="pending">Pending</label>
+                    </div>
                 </div>
 
-                <div class="ms-md-2 border-start ps-3 text-muted small">
-                    Showing {{ records|length }} records
-                </div>
+                <div class="vr d-none d-sm-block"></div>
+
+                <small class="text-muted">Showing {{ records|length }} records</small>
+
             </div>
-        </div>
-        <div class="col-md-4 text-md-end">
-            <!-- btn-success provides the teal/green look -->
-            <button class="btn btn-success btn-sm px-3 d-inline-flex align-items-center gap-2">
-                <i class="bi bi-file-earmark-excel"></i> Export to Excel
+
+            <button class="btn btn-success btn-sm px-4">
+                <i class="bi bi-file-earmark-excel"></i>
+                Export to Excel
             </button>
+
         </div>
     </div>
 
 </div>
-{% endblock content %}
+
+{% endblock %}

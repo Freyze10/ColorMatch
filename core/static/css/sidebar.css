@@ -167,6 +167,7 @@ body {
 =================================== */
 .main {
     flex: 1;
+    min-width: 0; /* let content shrink below its intrinsic width instead of forcing horizontal page overflow */
     margin-left: 260px;
     background: var(--main-bg);
     min-height: 100vh;
