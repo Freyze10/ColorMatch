@@ -2,25 +2,25 @@
    1. THEME VARIABLES (Global)
 =================================== */
 :root {
-    /* Light Mode (Default) */
+    /* Light Mode - Adjusted background for better contrast */
     --sidebar-bg: #ffffff;
-    --sidebar-header-bg: #0d9488; /* Corporate Teal */
+    --sidebar-header-bg: #0d9488;
     --sidebar-text: #334155;
     --sidebar-hover-bg: #f1f5f9;
     --sidebar-active-bg: #e0f2f1;
     --sidebar-active-text: #0d9488;
     --sidebar-border: #dee2e6;
     
-    --main-bg: #f8fafc;
-    --card-bg: #ffffff;       
+    --main-bg: #f1f5f9;       /* Changed from #f8fafc to #f1f5f9 */
+    --card-bg: #ffffff;
     --text-main: #1e293b;
     --text-muted: #64748b;
     --navbar-bg: #ffffff;
     --table-header: #94a3b8;
 }
 
+/* Dark mode variables remain unchanged as they were already fine */
 body.dark-mode {
-    /* Dark Mode (Teal & Slate) */
     --sidebar-bg: #0f172a;
     --sidebar-header-bg: #0d9488; 
     --sidebar-text: #cbd5e1;
@@ -30,7 +30,7 @@ body.dark-mode {
     --sidebar-border: #1e293b;
     
     --main-bg: #0f172a;
-    --card-bg: #1e293b;       
+    --card-bg: #1e293b;
     --text-main: #f8fafc;
     --text-muted: #94a3b8;
     --navbar-bg: #1e293b;

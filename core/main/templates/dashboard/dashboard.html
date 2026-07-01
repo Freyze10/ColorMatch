@@ -42,7 +42,7 @@ Dashboard
             <div class="card border-0 shadow-sm rounded-3 h-100 theme-card">
                 <div class="card-body p-3 p-md-4">
                     <h6 class="text-uppercase fw-bold text-muted small mb-4">Monthly Matches</h6>
-                    <div id="match_rematch_chart" style="width: 100%; height: 450px;"></div>
+                    <div id="match_rematch_chart" style="width: 100%; height: 350px;"></div>
                 </div>
             </div>
         </div>
@@ -51,7 +51,7 @@ Dashboard
             <div class="card border-0 shadow-sm rounded-3 h-100 theme-card">
                 <div class="card-body p-3 p-md-4">
                     <h6 class="text-uppercase fw-bold text-muted small mb-4">Sample vs Order</h6>
-                    <div id="sample_order_chart" style="width: 100%; height: 450px;"></div>
+                    <div id="sample_order_chart" style="width: 100%; height: 350px;"></div>
                 </div>
             </div>
         </div>
@@ -59,45 +59,42 @@ Dashboard
 
     <!-- ROW 3: TABLE & KPI CARDS -->
     <div class="row g-3 g-md-4">
-        <!-- Recent Matches Record Table (CMF-Records Styling) -->
+        <!-- Recent Matches Record Table (Matched to CMF Design) -->
         <div class="col-12 col-lg-9">
-            <div class="card border-0 shadow-sm rounded-3 dash-table-card h-100">
-                <div class="p-3 p-md-4 pb-0">
-                    <h6 class="text-uppercase fw-bold text-muted small mb-3">Recent Matches Record</h6>
-                </div>
-                <div class="dash-scroll-body">
-                    <table class="table table-hover align-middle mb-0 dash-records-table">
+            <div class="card border-0 shadow-sm rounded-3 cmf-table-card h-100">
+                <div class="cmf-scroll-body">
+                    <table class="table table-hover align-middle mb-0 cmf-records-table">
                         <thead>
                             <tr class="small text-uppercase">
-                                <th class="ps-4">Employee</th>
+                                <th class="ps-3">Employee</th>
                                 <th>Matched</th>
                                 <th>Rematches</th>
-                                <th class="pe-4">Success %</th>
+                                <th class="pe-3">Success %</th>
                             </tr>
                         </thead>
                         <tbody class="small">
                             <tr>
-                                <td class="ps-4 fw-bold theme-text-main">Person 1</td>
+                                <td class="ps-3 fw-bold theme-text-main">Person 1</td>
                                 <td class="theme-text-main">60</td>
                                 <td class="theme-text-main">15</td>
-                                <td class="pe-4">
-                                    <span class="badge bg-primary-subtle text-primary border border-primary-subtle dash-status-badge">75%</span>
+                                <td class="pe-3">
+                                    <span class="badge bg-primary-subtle text-primary border border-primary">75%</span>
                                 </td>
                             </tr>
                             <tr>
-                                <td class="ps-4 fw-bold theme-text-main">Person 2</td>
+                                <td class="ps-3 fw-bold theme-text-main">Person 2</td>
                                 <td class="theme-text-main">45</td>
                                 <td class="theme-text-main">5</td>
-                                <td class="pe-4">
-                                    <span class="badge bg-success-subtle text-success border border-success-subtle dash-status-badge">88%</span>
+                                <td class="pe-3">
+                                    <span class="badge bg-success-subtle text-success border border-success">88%</span>
                                 </td>
                             </tr>
                             <tr>
-                                <td class="ps-4 fw-bold theme-text-main">Person 3</td>
+                                <td class="ps-3 fw-bold theme-text-main">Person 3</td>
                                 <td class="theme-text-main">30</td>
                                 <td class="theme-text-main">12</td>
-                                <td class="pe-4">
-                                    <span class="badge bg-warning-subtle text-warning border border-warning-subtle dash-status-badge">60%</span>
+                                <td class="pe-3">
+                                    <span class="badge bg-warning-subtle text-warning border border-warning">60%</span>
                                 </td>
                             </tr>
                         </tbody>
