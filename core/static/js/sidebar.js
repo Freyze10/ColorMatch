@@ -4,6 +4,7 @@ document.addEventListener("DOMContentLoaded", function () {
     const toggleSidebar = document.getElementById("toggleSidebar"); // Button inside sidebar
     const mobileToggle = document.getElementById("mobileToggle"); // Button in top navbar
     const themeToggle = document.getElementById("themeToggle");
+    const logoTrigger = document.querySelector(".logo-icon-box");
     const body = document.body;
 
     // --- 1. Sidebar Toggle Logic ---
@@ -18,6 +19,7 @@ document.addEventListener("DOMContentLoaded", function () {
 
     if (toggleSidebar) toggleSidebar.addEventListener("click", toggleMenu);
     if (mobileToggle) mobileToggle.addEventListener("click", toggleMenu);
+    if (logoTrigger) logoTrigger.addEventListener("click", toggleMenu); 
     
     if (overlay) {
         overlay.addEventListener("click", () => {

@@ -89,6 +89,66 @@ body {
     padding: 15px 0; 
 }
 
+/* Logo Styling */
+.logo-container {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    user-select: none;
+}
+
+.logo-icon-box {
+    background: rgba(255, 255, 255, 0.2); /* Subtle glass effect */
+    color: white;
+    width: 35px;
+    height: 35px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 800;
+    font-size: 1.2rem;
+    border-radius: 8px;
+    border: 1px solid rgba(255, 255, 255, 0.3);
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+    font-family: 'Syne', sans-serif; /* High-impact font if available */
+}
+
+.logo-text-group {
+    display: flex;
+    flex-direction: column;
+    line-height: 1;
+}
+
+.logo-main {
+    font-size: 1.4rem;
+    font-weight: 800;
+    letter-spacing: 1px;
+    color: #ffffff;
+    text-transform: uppercase;
+}
+
+.logo-sub {
+    font-size: 0.6rem;
+    font-weight: 600;
+    letter-spacing: 2px;
+    color: rgba(255, 255, 255, 0.7);
+    margin-top: 2px;
+}
+
+.logo-icon-box {
+    cursor: pointer; /* Makes it look clickable */
+    transition: transform 0.2s, background 0.2s;
+}
+
+.logo-icon-box:hover {
+    background: rgba(255, 255, 255, 0.3);
+    transform: scale(1.05);
+}
+
+.logo-icon-box:active {
+    transform: scale(0.95);
+}
+
 .sidebar .nav-link {
     color: var(--sidebar-text);
     padding: 12px 18px;
