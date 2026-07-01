@@ -8,18 +8,33 @@ Color Matching Records
 
 <div class="d-flex flex-column">
 
-    <!-- Search -->
+    <!-- Search Row -->
     <div class="row g-2 mb-3 align-items-center">
 
         <div class="col">
-            <div class="input-group input-group-sm">
-                <span class="input-group-text cmf-search-addon border-end-0">
-                    <i class="bi bi-search text-muted"></i>
-                </span>
+            <div class="input-group input-group-sm cmf-search-group">
+                <!-- Dropdown at the start -->
+                <button class="btn btn-outline-secondary dropdown-toggle cmf-search-dropdown" type="button" data-bs-toggle="dropdown" aria-expanded="false">
+                    Filter By
+                </button>
+                <ul class="dropdown-menu cmf-dropdown-menu shadow-sm">
+                    <li><a class="dropdown-item" href="#">CMF No.</a></li>
+                    <li><a class="dropdown-item" href="#">Customer</a></li>
+                    <li><a class="dropdown-item" href="#">Primary Color</a></li>
+                    <li><hr class="dropdown-divider"></li>
+                    <li><a class="dropdown-item" href="#">All Fields</a></li>
+                </ul>
+
+                <!-- Input Field -->
                 <input
                     type="text"
-                    class="form-control cmf-search-input border-start-0 ps-0"
-                    placeholder="Search by customer, color, or CMF number...">
+                    class="form-control cmf-search-input"
+                    placeholder="Search records...">
+
+                <!-- Search Icon at the end -->
+                <span class="input-group-text cmf-search-addon">
+                    <i class="bi bi-search text-muted"></i>
+                </span>
             </div>
         </div>
 
@@ -33,13 +48,9 @@ Color Matching Records
     </div>
 
     <!-- TABLE CARD -->
-    <!-- cmf-scroll-body clamps max-height (so the card can never push the page
-         taller than the viewport) AND scrolls horizontally on phones, with a
-         sticky header, instead of relying on Bootstrap's plain .table-responsive. -->
     <div class="card border-0 shadow-sm rounded-3 cmf-table-card">
         <div class="cmf-scroll-body">
             <table class="table table-hover align-middle mb-0 cmf-records-table">
-
                 <thead>
                     <tr class="small text-uppercase">
                         <th class="ps-3">CMF No.</th>
@@ -86,19 +97,15 @@ Color Matching Records
                     </tr>
                     {% endfor %}
                 </tbody>
-
             </table>
         </div>
     </div>
 
-    <!-- Footer -->
+    <!-- Footer Area (remains unchanged) -->
     <div class="mt-2 py-3 px-2">
         <div class="d-flex flex-column flex-md-row justify-content-between align-items-md-center gap-3">
-
             <div class="d-flex flex-column flex-sm-row align-items-sm-center gap-2 gap-sm-3">
-
                 <span class="small fw-bold">Filter Status:</span>
-
                 <div class="d-flex flex-wrap gap-3">
                     <div class="form-check">
                         <input class="form-check-input" type="checkbox" checked id="completed">
@@ -109,21 +116,15 @@ Color Matching Records
                         <label class="form-check-label" for="pending">Pending</label>
                     </div>
                 </div>
-
                 <div class="vr d-none d-sm-block"></div>
-
                 <small class="text-muted">Showing {{ records|length }} records</small>
-
             </div>
-
             <button class="btn btn-success btn-sm px-4">
                 <i class="bi bi-file-earmark-excel"></i>
                 Export to Excel
             </button>
-
         </div>
     </div>
-
 </div>
 
 {% endblock %}

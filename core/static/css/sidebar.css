@@ -11,7 +11,7 @@
     --sidebar-active-text: #0d9488;
     --sidebar-border: #dee2e6;
     
-    --main-bg: #f1f5f9;       /* Changed from #f8fafc to #f1f5f9 */
+    --main-bg: #ebebeb;       /* Changed from #f8fafc to #f1f5f9 */
     --card-bg: #ffffff;
     --text-main: #1e293b;
     --text-muted: #64748b;
@@ -180,6 +180,12 @@ body {
     display: flex;
     align-items: center;
     padding: 0 1.5rem;
+}
+
+.navbar-page-title {
+    /* clamp(minimum, preferred, maximum) */
+    font-size: clamp(1.1rem, 2.5vw, 1.85rem);
+    letter-spacing: -0.02em;
 }
 
 /* ===================================
