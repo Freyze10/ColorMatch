@@ -13,3 +13,6 @@ def otherPage(request):
 
 def cmf_records(request):
     return render(request, "cmf/cmf_records.html")
+
+def cmf_entry(request):
+    return render(request, "cmf/cmf_entry.html")
