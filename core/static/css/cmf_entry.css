@@ -1,0 +1,106 @@
+/* ==============================================
+   cmf_entry.css
+   ============================================== */
+
+/* Typography */
+.extra-small {
+    font-size: 0.75rem !important;
+    color: var(--text-main);
+    letter-spacing: 0.01rem;
+}
+
+.cmf-entry-card {
+    background-color: var(--card-bg);
+    border: 1px solid var(--sidebar-border);
+    border-radius: 0.6rem; 
+    transition: background-color 0.3s;
+}
+
+.cmf-section-title {
+    color: #0d9488;
+    font-size: 0.8rem;
+    font-weight: 700;
+    border-left: 3px solid #0d9488;
+    padding-left: 10px;
+    text-transform: uppercase;
+}
+
+/* --- Uniform Field Styling --- */
+.uniform-input {
+    background-color: var(--card-bg);
+    color: var(--text-main);
+    border: 1px solid #cbd5e1 !important; 
+    border-radius: 0.4rem !important; 
+    padding: 0.25rem 0.5rem;
+    transition: border-color 0.2s, box-shadow 0.2s;
+}
+
+.uniform-input:focus {
+    border-color: #0d9488 !important;
+    box-shadow: 0 0 0 2px rgba(13, 148, 136, 0.15) !important;
+    outline: none;
+}
+
+/* --- High Visibility Checkbox & Radios --- */
+.visible-check {
+    width: 1.15em !important;
+    height: 1.15em !important;
+    border: 2px solid #94a3b8 !important; 
+    border-radius: 0.25rem; 
+    cursor: pointer;
+}
+
+.visible-check:checked {
+    background-color: #0d9488 !important;
+    border-color: #0d9488 !important;
+}
+
+/* Button Styling */
+.btn-teal { background-color: #0d9488; color: white; border: none; border-radius: 0.4rem; }
+.btn-teal:hover { background-color: #0b7a70; color: white; }
+.btn-dark-teal { background-color: #134e4a; border: none; border-radius: 0.4rem; }
+.btn-primary, .btn-success { border-radius: 0.4rem; }
+
+/* ==============================================
+   DARK MODE COMPATIBILITY
+   ============================================== */
+body.dark-mode .uniform-input {
+    background-color: #0f172a; 
+    border-color: #334155 !important; 
+    color: #f8fafc;
+}
+
+/* FIX: Placeholder visibility in Dark Mode */
+body.dark-mode .uniform-input::placeholder {
+    color: #94a3b8 !important;
+    opacity: 0.8;
+}
+
+/* FIX: Date Picker Icon visibility in Dark Mode (Inverts black to white) */
+body.dark-mode .uniform-input::-webkit-calendar-picker-indicator {
+    filter: invert(1);
+    cursor: pointer;
+}
+
+body.dark-mode .visible-check {
+    border: 2px solid #475569 !important;
+    background-color: #0f172a;
+}
+
+body.dark-mode .visible-check:checked {
+    background-color: #0d9488 !important;
+    border-color: #0d9488 !important;
+}
+
+body.dark-mode .bg-white {
+    background-color: #0f172a !important;
+    border-color: #334155 !important;
+}
+
+body.dark-mode .bg-light-subtle {
+    background-color: rgba(255, 255, 255, 0.03) !important;
+}
+
+body.dark-mode .cmf-entry-card {
+    border-color: #334155;
+}

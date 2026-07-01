@@ -1,22 +1,35 @@
 /* ==============================================
    cmf_records.css
+   Scoped exclusively to .cmf-* classes.
+   No overlap with sidebar.css class names.
    ============================================== */
 
-/* ── Table card shell ────────────────────────── */
+/* ── Table card shell ──────────────────────────
+   Replaces Bootstrap's .card so we fully control
+   the background via our CSS variable.           */
 .cmf-table-card {
     background-color: var(--card-bg);
     border-radius: 0.5rem;
     box-shadow: 0 0.125rem 0.25rem rgba(0, 0, 0, 0.075);
-    overflow: hidden;
+    overflow: hidden;   /* clips the scrollable body at rounded corners */
 }
 
+/* ── Scroll container ──────────────────────────
+   max-height: use clamp so the box is never
+   taller than ~65% of the viewport on desktop
+   and shrinks sensibly on small phones.
+   overflow-x: auto  → horizontal scroll (mobile)
+   overflow-y: auto  → vertical scroll (many rows) */
 .cmf-scroll-body {
     max-height: clamp(280px, 60vh, 640px);
     overflow-x: auto;
     overflow-y: auto;
-    -webkit-overflow-scrolling: touch;
+    -webkit-overflow-scrolling: touch;  /* iOS momentum scroll */
 }
 
+/* ── Sticky thead ──────────────────────────────
+   Stays pinned while rows scroll vertically.
+   z-index 2 keeps it above tbody rows.           */
 .cmf-records-table thead th {
     position: sticky;
     top: 0;
@@ -30,67 +43,40 @@
     border-bottom: none;
 }
 
+/* ── tbody cells ───────────────────────────────  */
 .cmf-records-table tbody td {
     color: var(--text-main);
     border-bottom: 1px solid var(--sidebar-border);
     white-space: nowrap;
-    background-color: transparent; /* Ensures dark mode compatibility */
 }
 
-.cmf-records-table tbody tr:hover td {
-    background-color: var(--sidebar-hover-bg) !important;
-}
-
-/* ── Search Bar & Dropdown ────────────────────── */
-.cmf-search-group .cmf-search-input,
-.cmf-search-group .cmf-search-addon,
-.cmf-search-group .cmf-search-dropdown {
-    background-color: var(--card-bg);
-    color: var(--text-main);
-    border-color: var(--sidebar-border);
-}
-
-.cmf-search-group .cmf-search-input:focus {
-    background-color: var(--card-bg);
-    color: var(--text-main);
-    border-color: #0d9488;
-    box-shadow: none;
-}
-
-/* ── Dropdown Menu Theme ─────────────────────── */
-.cmf-dropdown-menu {
-    background-color: var(--card-bg);
-    border: 1px solid var(--sidebar-border);
-}
-
-.cmf-dropdown-menu .dropdown-item {
-    color: var(--text-main);
-    font-size: 0.85rem;
-}
-
-.cmf-dropdown-menu .dropdown-item:hover {
+/* ── Row hover (uses Bootstrap's var, but we
+   override it so it works on dark backgrounds)   */
+.cmf-records-table tbody tr:hover > td {
     background-color: var(--sidebar-hover-bg);
-    color: #0d9488;
-}
-
-.cmf-dropdown-menu .dropdown-divider {
-    border-top: 1px solid var(--sidebar-border);
 }
 
 /* ==============================================
    DARK MODE OVERRIDES
+   Bootstrap's .table sets its own --bs-table-*
+   variables that sit above our CSS variables in
+   specificity — we reset them here for dark mode.
    ============================================== */
 body.dark-mode .cmf-records-table {
     --bs-table-bg: transparent;
     --bs-table-color: var(--text-main);
     --bs-table-hover-bg: var(--sidebar-hover-bg);
+    --bs-table-hover-color: var(--text-main);
     --bs-table-border-color: var(--sidebar-border);
 }
 
+/* thead must be restated for dark mode — sticky
+   header can go transparent without this rule.   */
 body.dark-mode .cmf-records-table thead th {
     background-color: var(--table-header);
 }
 
+/* Status badges */
 body.dark-mode .cmf-records-table .badge.bg-success-subtle {
     background-color: rgba(34, 197, 94, 0.18) !important;
     color: #4ade80 !important;
@@ -103,11 +89,38 @@ body.dark-mode .cmf-records-table .badge.bg-warning-subtle {
     border-color: rgba(234, 179, 8, 0.35) !important;
 }
 
-/* Form controls in dark mode */
+/* ── Search bar ─────────────────────────────────
+   Base background for both themes (previously this
+   was delegated to Bootstrap's .bg-body, which was
+   also the source of the dark-mode leak — its
+   !important overrode our dark-mode override below). */
+.cmf-search-addon,
+.cmf-search-input {
+    background-color: var(--card-bg);
+}
+
+/* ── Search bar dark mode ──────────────────────
+   Bootstrap's .form-control / .input-group-text
+   default to white on light backgrounds.         */
+body.dark-mode .cmf-search-input,
+body.dark-mode .cmf-search-addon {
+    background-color: var(--card-bg);
+    color: var(--text-main);
+    border-color: var(--sidebar-border);
+}
+
 body.dark-mode .cmf-search-input::placeholder {
     color: var(--text-muted);
 }
 
+body.dark-mode .cmf-search-input:focus {
+    background-color: var(--card-bg);
+    color: var(--text-main);
+    border-color: #0d9488;
+    box-shadow: 0 0 0 0.2rem rgba(13, 148, 136, 0.2);
+}
+
+/* ── Footer checkboxes dark mode ───────────────  */
 body.dark-mode .form-check-input {
     background-color: var(--sidebar-hover-bg);
     border-color: var(--sidebar-border);

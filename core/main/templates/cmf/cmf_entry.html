@@ -1,9 +1,218 @@
-
 {% extends "base.html" %}
+{% load static %}
 
 {% block navigation %} 
-CMF Records
+CMF Entry
 {% endblock navigation %}
+
 {% block content %}
-    <div>This is CMF Fields</div>
-{% endblock content %}
+<div class="container-fluid p-0">
+    <form class="cmf-entry-form">
+        <div class="row g-2">
+            
+            <!-- LEFT COLUMN -->
+            <div class="col-lg-7">
+                <!-- General Information -->
+                <div class="card cmf-entry-card mb-2 shadow-sm">
+                    <div class="card-body p-3">
+                        <h6 class="cmf-section-title mb-3">General Information</h6>
+                        
+                        <div class="row g-2 mb-2">
+                            <div class="col-md-12">
+                                <label class="fw-bold extra-small">Color Matching No:</label>
+                                <input type="text" class="form-control form-control-sm uniform-input">
+                            </div>
+                            <div class="col-md-12">
+                                <label class="fw-bold extra-small">Customer:</label>
+                                <input type="text" class="form-control form-control-sm uniform-input">
+                            </div>
+                        </div>
+                        
+                        <div class="row g-2 mb-2">
+                            <div class="col-6">
+                                <label class="fw-bold extra-small">Date Created:</label>
+                                <input type="date" class="form-control form-control-sm uniform-input">
+                            </div>
+                            <div class="col-6">
+                                <label class="fw-bold extra-small">Required Date:</label>
+                                <input type="date" class="form-control form-control-sm uniform-input">
+                            </div>
+                        </div>
+
+                        <div class="row g-2 mb-2">
+                            <div class="col-6">
+                                <label class="fw-bold extra-small">Date Received:</label>
+                                <input type="date" class="form-control form-control-sm uniform-input">
+                            </div>
+                            <div class="col-6">
+                                <label class="fw-bold extra-small">Due Date:</label>
+                                <input type="date" class="form-control form-control-sm uniform-input">
+                            </div>
+                        </div>
+
+                        <div class="mb-2">
+                            <label class="fw-bold extra-small d-block mb-1">Matching Type:</label>
+                            <div class="form-check form-check-inline">
+                                <input class="form-check-input visible-check" type="radio" name="matchType" id="newM" checked>
+                                <label class="form-check-label extra-small" for="newM">New Matching</label>
+                            </div>
+                            <div class="form-check form-check-inline">
+                                <input class="form-check-input visible-check" type="radio" name="matchType" id="reM">
+                                <label class="form-check-label extra-small" for="reM">Re-Match</label>
+                            </div>
+                        </div>
+
+                        <div class="row g-2 mb-2">
+                            <div class="col-md-12">
+                                <label class="fw-bold extra-small">Sales Person:</label>
+                                <input type="text" class="form-control form-control-sm uniform-input">
+                            </div>
+                            <div class="col-md-12">
+                                <label class="fw-bold extra-small">Finished Product:</label>
+                                <input type="text" class="form-control form-control-sm uniform-input">
+                            </div>
+                        </div>
+
+                        <div class="row g-2">
+                            <div class="col-4">
+                                <label class="fw-bold extra-small">Primary Color:</label>
+                                <select class="form-select form-select-sm uniform-input"><option>-</option></select>
+                            </div>
+                            <div class="col-8">
+                                <label class="fw-bold extra-small">Description:</label>
+                                <input type="text" class="form-control form-control-sm uniform-input" placeholder="Enter color description...">
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Color Requirement -->
+                <div class="card cmf-entry-card mb-2 shadow-sm">
+                    <div class="card-body p-3">
+                        <h6 class="cmf-section-title mb-3">Color Requirement</h6>
+                        <div class="d-flex flex-wrap gap-3 align-items-center">
+                            <div class="form-check"><input class="form-check-input visible-check" type="radio" name="colorReq" id="c1"><label class="form-check-label extra-small" for="c1">Transparent</label></div>
+                            <div class="form-check"><input class="form-check-input visible-check" type="radio" name="colorReq" id="c2"><label class="form-check-label extra-small" for="c2">Opaque</label></div>
+                            <div class="form-check"><input class="form-check-input visible-check" type="radio" name="colorReq" id="c3"><label class="form-check-label extra-small" for="c3">Translucent</label></div>
+                            <div class="form-check"><input class="form-check-input visible-check" type="radio" name="colorReq" id="c4"><label class="form-check-label extra-small" for="c4">Metallic</label></div>
+                            <div class="form-check"><input class="form-check-input visible-check" type="radio" name="colorReq" id="c5"><label class="form-check-label extra-small" for="c5">Fluorescent</label></div>
+                            <div class="form-check"><input class="form-check-input visible-check" type="radio" name="colorReq" id="c6"><label class="form-check-label extra-small" for="c6">Pearlescent</label></div>
+                            
+                            <div class="d-flex align-items-center gap-2">
+                                <div class="form-check mb-0">
+                                    <input class="form-check-input visible-check" type="radio" name="colorReq" id="c7">
+                                    <label class="form-check-label extra-small" for="c7">Others:</label>
+                                </div>
+                                <input type="text" class="form-control form-control-sm uniform-input" style="width: 150px; height: 26px;">
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- RIGHT COLUMN -->
+            <div class="col-lg-5">
+                <div class="card cmf-entry-card h-100 shadow-sm">
+                    <div class="card-body p-3">
+                        <h6 class="cmf-section-title mb-3">Process / Technical Specs</h6>
+                        
+                        <div class="mb-2">
+                            <label class="fw-bold extra-small">Resin Type:</label>
+                            <input type="text" class="form-control form-control-sm uniform-input">
+                        </div>
+
+                        <div class="mb-2">
+                            <label class="fw-bold extra-small d-block mb-1">Process:</label>
+                            <div class="d-flex flex-wrap gap-2">
+                                <div class="form-check"><input class="form-check-input visible-check" type="checkbox" id="p1"><label class="form-check-label extra-small" for="p1">Injection</label></div>
+                                <div class="form-check"><input class="form-check-input visible-check" type="checkbox" id="p2"><label class="form-check-label extra-small" for="p2">Blow-Molding</label></div>
+                                <div class="form-check"><input class="form-check-input visible-check" type="checkbox" id="p3"><label class="form-check-label extra-small" for="p3">Film</label></div>
+                                <div class="form-check"><input class="form-check-input visible-check" type="checkbox" id="p4"><label class="form-check-label extra-small" for="p4">Pipe</label></div>
+                            </div>
+                        </div>
+
+                        <div class="row g-2 mb-2">
+                            <div class="col-7"><label class="fw-bold extra-small">Qty Resin for Test:</label><input type="text" class="form-control form-control-sm uniform-input"></div>
+                            <div class="col-5">
+                                <label class="fw-bold extra-small d-block">Provided:</label>
+                                <div class="form-check form-check-inline"><input class="form-check-input visible-check" type="radio" name="resPr" id="ry"><label class="form-check-label extra-small" for="ry">Y</label></div>
+                                <div class="form-check form-check-inline"><input class="form-check-input visible-check" type="radio" name="resPr" id="rn"><label class="form-check-label extra-small" for="rn">N</label></div>
+                            </div>
+                        </div>
+
+                        <div class="row g-2 mb-2">
+                            <div class="col-7"><label class="fw-bold extra-small">MI Value:</label><input type="text" class="form-control form-control-sm uniform-input"></div>
+                            <div class="col-5">
+                                <label class="fw-bold extra-small d-block">Sample Avail:</label>
+                                <div class="form-check form-check-inline"><input class="form-check-input visible-check" type="radio" name="sa" id="say"><label class="form-check-label extra-small" for="say">Y</label></div>
+                                <div class="form-check form-check-inline"><input class="form-check-input visible-check" type="radio" name="sa" id="san"><label class="form-check-label extra-small" for="san">N</label></div>
+                            </div>
+                        </div>
+
+                        <div class="mb-2">
+                            <label class="fw-bold extra-small d-block mb-1">Colorant Type:</label>
+                            <div class="d-flex align-items-center gap-3">
+                                <div class="form-check"><input class="form-check-input visible-check" type="radio" name="ct" id="mb"><label class="form-check-label extra-small" for="mb">MB</label></div>
+                                <div class="form-check"><input class="form-check-input visible-check" type="radio" name="ct" id="dc"><label class="form-check-label extra-small" for="dc">DC</label></div>
+                                <div class="d-flex align-items-center gap-1">
+                                    <div class="form-check mb-0">
+                                        <input class="form-check-input visible-check" type="radio" name="ct" id="ct_other">
+                                        <label class="form-check-label extra-small" for="ct_other">Others:</label>
+                                    </div>
+                                    <input type="text" class="form-control form-control-sm uniform-input" style="width: 100px; height: 26px;">
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="row g-2 mb-2">
+                            <div class="col-6">
+                                <label class="fw-bold extra-small">Target Dosage:</label>
+                                <input type="text" class="form-control form-control-sm uniform-input" placeholder="% or phr">
+                            </div>
+                            <div class="col-6">
+                                <label class="fw-bold extra-small">Operating Temp:</label>
+                                <input type="text" class="form-control form-control-sm uniform-input" placeholder="°C">
+                            </div>
+                        </div>
+
+                        <div class="mb-0">
+                            <label class="fw-bold extra-small">Remarks:</label>
+                            <textarea class="form-control form-control-sm uniform-input" rows="2"></textarea>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- ADDITIONAL INFO (Below Left) -->
+            <div class="col-lg-7">
+                <div class="card cmf-entry-card shadow-sm">
+                    <div class="card-body p-3">
+                        <h6 class="cmf-section-title mb-2">Additional Information</h6>
+                        <textarea class="form-control form-control-sm uniform-input" rows="3" placeholder="Technical details..."></textarea>
+                    </div>
+                </div>
+            </div>
+
+            <!-- PRODUCT CODE BAR (Below Right) -->
+            <div class="col-lg-5">
+                <div class="card cmf-entry-card bg-light-subtle h-100 shadow-sm">
+                    <div class="card-body p-3">
+                         <label class="fw-bold extra-small text-uppercase mb-1">Product Code:</label>
+                         <input type="text" class="form-control form-control-sm uniform-input bg-white fw-bold">
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- ACTION BUTTONS -->
+        <div class="d-flex justify-content-between align-items-center mt-3 mb-5 px-1">
+            <button type="button" class="btn btn-sm btn-teal px-3 shadow-sm"><i class="bi bi-upload"></i> Upload</button>
+            <div class="d-flex gap-1">
+                <button type="button" class="btn btn-sm btn-dark-teal px-3 text-white shadow-sm"><i class="bi bi-printer"></i> Print</button>
+                <button type="button" class="btn btn-sm btn-primary px-3 shadow-sm"><i class="bi bi-plus-lg"></i> New</button>
+                <button type="submit" class="btn btn-sm btn-success px-3 shadow-sm"><i class="bi bi-save"></i> Save</button>
+            </div>
+        </div>
+    </form>
+</div>
+{% endblock %}

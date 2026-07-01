@@ -184,7 +184,7 @@ body {
 
 .navbar-page-title {
     /* clamp(minimum, preferred, maximum) */
-    font-size: clamp(1.1rem, 2.5vw, 1.85rem);
+    font-size: clamp(1.3rem, 2.5vw, 1.6rem);
     letter-spacing: -0.02em;
 }
 
