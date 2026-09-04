@@ -153,8 +153,9 @@ def cmf_entry(request):
     attachments = []
     if request.method == "POST":
         original_cmf_no = request.POST.get('original_cmf_no', '').strip()
+        is_new = request.POST.get('is_new', '1')
         try:
-            if original_cmf_no:
+            if original_cmf_no and is_new == '0':
                 saved_record = cmf_entry_save.update_cmf_complete_entry(request, original_cmf_no)
                 messages.success(request, f"Successfully updated CMF No. {saved_record.cm_no}")
             else:
@@ -203,6 +204,7 @@ def cmf_entry(request):
                     final_prod_code = final_formula.code.product_code
 
                 form_data = {
+                    'is_new': '1' if cm_no_override else '0',
                     'cmf_no': cm_no_override if cm_no_override else cmf.cm_no,
                     'customer': formula_info.customer if formula_info else "",
 
@@ -234,7 +236,7 @@ def cmf_entry(request):
                     'color_guide_return': 'Y' if cmf.is_guide_to_return else ('N' if cmf.is_guide_to_return is False else ''),
                     'is_low_cost': 'Y' if cmf.is_low_cost else ('N' if cmf.is_low_cost is False else ''),
                     'remarks': cmf.remarks,
-                    'product_code': final_prod_code,
+                    'product_code': "" if cm_no_override else final_prod_code,
 
                     # plain lists — NOT a QueryDict, template must use "in form_data.resin" (not .getlist.resin)
                     'resin': [str(rid) for rid in resin_ids],
@@ -247,6 +249,8 @@ def cmf_entry(request):
                         'file_id', 'file_name', 'file_type'
                     )
                 )
+    allowed_departments = ['Laboratory', 'Information Technology', 'Sales']
+    is_allowed = request.user.role.department in allowed_departments or request.user.is_superuser
     context = {
         "customers": cmf_records_services.get_customer_list(), 
         "salesman": cmf_records_services.get_salesman_list(),
@@ -254,6 +258,7 @@ def cmf_entry(request):
         "resin": cmf_records_services.get_resin_list(),
         "form_data": form_data,
         "attachments": attachments,
+        'is_allowed': is_allowed,
     }
     return render(request, "sidemenu/cmf/cmf_entry.html", context)
 
