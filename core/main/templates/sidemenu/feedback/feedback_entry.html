@@ -80,9 +80,9 @@
                         <div class="col-md-3"><label class="extra-small fw-bold">Feedback Status:</label></div>
                         <div class="col-md-9">
                             <select name="feedback_status" id="id_f_feedback_status" class="form-select form-select-sm uniform-input">
-                                <option value="Pending" {% if form_data.feedback_status == 'Pending' or not form_data.feedback_status %}selected{% endif %}>Pending</option>
-                                <option value="Passed" {% if form_data.feedback_status == 'Passed' %}selected{% endif %}>Passed</option>
-                                <option value="Failed" {% if form_data.feedback_status == 'Failed' %}selected{% endif %}>Failed</option>
+                                {% for choice in form_data.status_choices %}
+                                    <option value="{{ choice }}" {% if form_data.feedback_status == choice %}selected{% endif %}>{{ choice }}</option>
+                                {% endfor %}
                             </select>
                         </div>
                     </div>

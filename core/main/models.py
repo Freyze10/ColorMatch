@@ -421,7 +421,7 @@ class tbl_feedback_details(models.Model):
         db_column="code_no"
     )
     date_sample_received = models.DateField(blank=True, null=True)
-    status = models.CharField(max_length=10, default='pending')
+    status = models.CharField(max_length=100, default='pending')
     comment = models.TextField(blank=True, null=True)
     storage_details = models.CharField(max_length=100, blank=True, null=True)
     
