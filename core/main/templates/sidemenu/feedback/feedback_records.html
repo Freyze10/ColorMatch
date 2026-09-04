@@ -52,13 +52,23 @@
                         <td>{{ record.due_date }}</td>
                         <td>{{ record.type }}</td>
                         <td>
-                            {% if record.status|lower == 'passed' %}
-                                <span class="badge bg-success-subtle text-success border border-success">Passed</span>
-                            {% elif record.status|lower == 'failed' %}
-                                <span class="badge bg-danger-subtle text-danger border border-danger">Failed</span>
-                            {% else %}
-                                <span class="badge bg-warning-subtle text-warning border border-warning">Pending</span>
-                            {% endif %}
+                            {% with status_lower=record.status|lower %}
+                                {% if status_lower == 'pending' %}
+                                    <span class="badge bg-warning-subtle text-warning border border-warning">{{ record.status }}</span>
+                                {% elif status_lower == 'rematch' %}
+                                    <span class="badge bg-primary-subtle text-primary border border-primary">{{ record.status }}</span>
+                                {% elif status_lower == 'abandoned' %}
+                                    <span class="badge bg-danger-subtle text-danger border border-danger">{{ record.status }}</span>
+                                {% elif status_lower == 'ordered' %}
+                                    <span class="badge bg-dark-subtle text-dark border border-dark">{{ record.status }}</span>
+                                {% elif 'approved' in status_lower %}
+                                    <span class="badge bg-success-subtle text-success border border-success">{{ record.status }}</span>
+                                {% elif 'request' in status_lower %}
+                                    <span class="badge bg-info-subtle text-info border border-info">{{ record.status }}</span>
+                                {% else %}
+                                    <span class="badge bg-light text-dark border border-secondary">{{ record.status }}</span>
+                                {% endif %}
+                            {% endwith %}
                         </td>
                         <td class="text-truncate" style="max-width: 150px;" title="{{ record.details }}">
                             {{ record.details }}

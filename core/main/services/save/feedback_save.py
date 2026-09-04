@@ -21,7 +21,7 @@ FEEDBACK_STATUS_OPTIONS = [
     'Approved with result',
     'Approved without result',
     'Request for additional samples',
-    'Approve and request for samples',
+    'Approved and request for samples',
 ]
 
 # Always available, regardless of what was submitted.
