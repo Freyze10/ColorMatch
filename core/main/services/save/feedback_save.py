@@ -84,7 +84,6 @@ def _get_selected_option_names(tracking):
     """Returns the submitted-option names (Sample/Chips/Price) for a tracking record."""
     if not tracking:
         return []
-    print(tbl_submitted_selected.objects.filter(completed_id=tracking).values_list('option_id__name', flat=True))
     return list(
         tbl_submitted_selected.objects.filter(completed_id=tracking).values_list('option_id__name', flat=True)
     )
