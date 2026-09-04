@@ -532,6 +532,7 @@ def cmf_mb_formula(request):
                     'cmyk_y': header.y,
                     'cmyk_k': header.k,
                     'matcher_id': header.matcher.id if header.matcher else "",
+                    'is_final': True if header.is_final else False,
                 })
 
                 ingredients = list(
@@ -542,7 +543,7 @@ def cmf_mb_formula(request):
                 ingredients = ingredients[:10]
             else:
                 messages.error(request, f"Formula record not found for ID {formula_id}.")
-
+    
     if not ingredients:
         ingredients = [{'material': '', 'value': '', 'weight': ''}] * 10
     user_list  = (

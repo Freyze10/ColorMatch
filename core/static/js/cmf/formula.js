@@ -161,6 +161,35 @@
             if (visibleInput) visibleInput.value = hidden.value;
         }
     });
+    // final icon toggle logic
+    const finalIcon = document.querySelector('.formula-final-star');
+    const finalInput = document.querySelector('input[name="is_final"]');
+
+    if (finalIcon && finalInput) {
+        finalIcon.addEventListener('click', function() {
+            // 1. Check current state from hidden input
+            const isCurrentlyFinal = finalInput.value === 'true';
+            
+            // 2. Toggle state
+            const newState = !isCurrentlyFinal;
+            finalInput.value = newState ? 'true' : 'false';
+
+            // 3. Update UI (Classes and Title)
+            if (newState) {
+                // Change to Filled Star
+                this.classList.remove('bi-star', 'text-muted');
+                this.classList.add('bi-star-fill', 'text-warning');
+                this.title = "Final formula — click to unmark";
+                Preline.toast("Marked as Final Formula", "success");
+            } else {
+                // Change to Empty Star
+                this.classList.remove('bi-star-fill', 'text-warning');
+                this.classList.add('bi-star', 'text-muted');
+                this.title = "Mark as final formula";
+                Preline.toast("Unmarked from Final", "info");
+            }
+        });
+    }
 
     // --- 4. SAVE / NEW / PRINT BUTTONS ---
     const saveBtn = document.querySelector('.btn-save-formula');
