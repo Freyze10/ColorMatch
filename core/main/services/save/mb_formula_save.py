@@ -38,7 +38,7 @@ def save_mb_complete_formula(request):
             'html': 'sRGB Hex', 'L': 'Spectro L', 'A': 'Spectro A',
             'B': 'Spectro B', 'C': 'Spectro C', 'H': 'Spectro H',
             'notes': 'Note', 'code': 'Product Code', 'date': 'Date',
-            'matcher': 'Matcher Account'
+            'matcher': 'Matcher Account', 'is_final': 'Final Formula',
         }
         return mapping.get(field, field.replace('_', ' ').title())
 
@@ -98,6 +98,7 @@ def save_mb_complete_formula(request):
                 'm': clean_num(post_data.get('cmyk_m')),
                 'y': clean_num(post_data.get('cmyk_y')),
                 'k': clean_num(post_data.get('cmyk_k')),
+                'is_final': post_data.get('is_final') == 'true',
             }
 
             diff_logs = []

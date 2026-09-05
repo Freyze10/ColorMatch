@@ -208,8 +208,14 @@
         <!-- RIGHT COLUMN: Formula Composition Table -->
         <div class="col-lg-9 col-md-8">
             <div class="card border-0 shadow-sm mb-table-card rounded-3 h-100 d-flex flex-column">
-                <div class="p-3 d-flex align-items-center dark-card-header">
+                <div class="p-3 d-flex align-items-center justify-content-between dark-card-header">
                     <h6 class="fw-bold text-uppercase extra-small m-0">Formula Composition</h6>
+                    <input type="hidden" name="is_final" id="id_is_final" value="{{ form_data.is_final|yesno:'true,false' }}">
+    
+                    <!-- The clickable icon -->
+                    <i class="bi {% if form_data.is_final %}bi-star-fill text-warning{% else %}bi-star text-muted{% endif %} formula-final-star"
+                        style="cursor: pointer;"
+                        title="{% if form_data.is_final %}Final formula — click to unmark{% else %}Mark as final formula{% endif %}"></i>
                 </div>
                 <!-- Table wrapper -->
                 <div class="mb-scroll-body flex-grow-1" style="overflow-y: auto;">

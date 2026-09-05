@@ -10,6 +10,7 @@ CMF Entry
     <form class="cmf-entry-form" method="POST" action="{% url 'cmf_entry' %}" enctype="multipart/form-data">
     {% csrf_token %}
         <input type="hidden" name="original_cmf_no" value="{{ form_data.cmf_no|default:'' }}">
+        <input type="hidden" name="is_new" value="{{ form_data.is_new|default:'1' }}">
         <input type="file" name="file" id="hidden-file-input" multiple style="display:none;">
         <div class="row g-2">
             
@@ -367,7 +368,7 @@ CMF Entry
                 </button>
                 <button type="button" class="btn btn-sm btn-success px-3 shadow-sm btn-save"
                 {% if not is_allowed %}disabled{% endif %}>
-                {% if form_data.cmf_no %}
+                {% if form_data.cmf_no and form_data.is_new == '0' %}
                     <i class="bi bi-save"></i> Update
                 {% else %}
                     <i class="bi bi-save"></i> Save

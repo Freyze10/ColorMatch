@@ -15,6 +15,7 @@ from datetime import date, datetime, timedelta
 from django.urls import reverse
 from django.utils import timezone
 
+from main.services.save import feedback_save
 from main.services.dashboard.dashboard_services import get_dashboard_context
 from main.utils.log_audit_trail import log_audit
 from main.services.formula import master_formula_services, formulation_services
@@ -152,8 +153,9 @@ def cmf_entry(request):
     attachments = []
     if request.method == "POST":
         original_cmf_no = request.POST.get('original_cmf_no', '').strip()
+        is_new = request.POST.get('is_new', '1')
         try:
-            if original_cmf_no:
+            if original_cmf_no and is_new == '0':
                 saved_record = cmf_entry_save.update_cmf_complete_entry(request, original_cmf_no)
                 messages.success(request, f"Successfully updated CMF No. {saved_record.cm_no}")
             else:
@@ -202,6 +204,7 @@ def cmf_entry(request):
                     final_prod_code = final_formula.code.product_code
 
                 form_data = {
+                    'is_new': '1' if cm_no_override else '0',
                     'cmf_no': cm_no_override if cm_no_override else cmf.cm_no,
                     'customer': formula_info.customer if formula_info else "",
 
@@ -233,7 +236,7 @@ def cmf_entry(request):
                     'color_guide_return': 'Y' if cmf.is_guide_to_return else ('N' if cmf.is_guide_to_return is False else ''),
                     'is_low_cost': 'Y' if cmf.is_low_cost else ('N' if cmf.is_low_cost is False else ''),
                     'remarks': cmf.remarks,
-                    'product_code': final_prod_code,
+                    'product_code': "" if cm_no_override else final_prod_code,
 
                     # plain lists — NOT a QueryDict, template must use "in form_data.resin" (not .getlist.resin)
                     'resin': [str(rid) for rid in resin_ids],
@@ -246,6 +249,8 @@ def cmf_entry(request):
                         'file_id', 'file_name', 'file_type'
                     )
                 )
+    allowed_departments = ['Laboratory', 'Information Technology', 'Sales']
+    is_allowed = request.user.role.department in allowed_departments or request.user.is_superuser
     context = {
         "customers": cmf_records_services.get_customer_list(), 
         "salesman": cmf_records_services.get_salesman_list(),
@@ -253,6 +258,7 @@ def cmf_entry(request):
         "resin": cmf_records_services.get_resin_list(),
         "form_data": form_data,
         "attachments": attachments,
+        'is_allowed': is_allowed,
     }
     return render(request, "sidemenu/cmf/cmf_entry.html", context)
 
@@ -526,6 +532,7 @@ def cmf_mb_formula(request):
                     'cmyk_y': header.y,
                     'cmyk_k': header.k,
                     'matcher_id': header.matcher.id if header.matcher else "",
+                    'is_final': True if header.is_final else False,
                 })
 
                 ingredients = list(
@@ -536,7 +543,7 @@ def cmf_mb_formula(request):
                 ingredients = ingredients[:10]
             else:
                 messages.error(request, f"Formula record not found for ID {formula_id}.")
-
+    
     if not ingredients:
         ingredients = [{'material': '', 'value': '', 'weight': ''}] * 10
     user_list  = (
@@ -1075,181 +1082,26 @@ def formulation(request):
 
 @role_required
 def feedback(request):
-    form_data = {}
     feedback_no = request.GET.get('feedback_no') or request.POST.get('feedback_no')
 
-    # --- 1. POST LOGIC (SAVE/UPDATE WITH AUDIT) ---
+    # --- 1. POST LOGIC (SAVE/UPDATE) ---
     if request.method == "POST":
-        try:
-            data = request.POST
-            diff_logs = []
-
-            def format_val(val):
-                """Standardizes values for comparison."""
-                if val is None or val == "" or val == "None": return "---"
-                return str(val).strip()
-
-            def parse_date(d_str):
-                """Converts MM/DD/YYYY string from form to Python date object."""
-                if not d_str: return None
-                try: 
-                    return datetime.strptime(d_str.strip(), '%m/%d/%Y').date()
-                except ValueError: return None
-                
-            with transaction.atomic():
-                fb_instance = tbl_feedback_details.objects.select_related('cm_no', 'rs_no').filter(feedback_no=feedback_no).first()
-                if not fb_instance:
-                    raise Exception(f"Feedback record not found.")
-
-                # Identify parent for the log message
-                parent_no = fb_instance.cm_no.cm_no if fb_instance.cm_no else fb_instance.rs_no.rs_no
-                
-                # Mapping: POST Key -> (Model Attribute, Display Label)
-                update_map = {
-                    'feedback_status': ('status', 'Status'),
-                    'date_sample_received': ('date_sample_received', 'Sample Received Date', parse_date),
-                    'comments': ('comment', 'Comments'),
-                    'storage_details': ('storage_details', 'Storage Details'),
-                }
-
-                for post_key, (attr, label) in update_map.items():
-                    old_db_val = getattr(fb_instance, attr)
-                    new_form_val = data.get(post_key, '')
-
-                    curr_str = format_val(old_db_val)
-                    new_str = format_val(new_form_val)
-
-                    if curr_str != new_str:
-                        diff_logs.append(f"{label} ({curr_str} -> {new_str})")
-                        setattr(fb_instance, attr, new_form_val)
-
-                if diff_logs:
-                    fb_instance.save()
-                    log_msg = f"Feedback for {parent_no}. Changes: {', '.join(diff_logs)}"
-                    log_audit(request, "Updated", log_msg)
-                    messages.success(request, f"Feedback for {parent_no} successfully updated.")
-                else:
-                    messages.info(request, "No changes were made to the feedback.")
-
-                return redirect(f"{request.path}?feedback_no={feedback_no}")
-
-        except Exception as e:
-            messages.error(request, f"Error updating feedback: {str(e)}")
+        success, message = feedback_save.save_feedback_entry(request, feedback_no)
+        if success:
+            messages.success(request, message)
+        else:
+            messages.error(request, message)
+        return redirect(f"{request.path}?feedback_no={feedback_no}")
 
     # --- 2. GET LOGIC (LOAD SINGLE RECORD) ---
+    form_data = {}
     if feedback_no:
-        fb = tbl_feedback_details.objects.select_related('cm_no', 'rs_no').filter(feedback_no=feedback_no).first()
-        if fb:
-            if fb.cm_no:
-                pending_info = tbl_cmf_pending_completed.objects.filter(cm_no=fb.cm_no).select_related('code').first()
-                formula = tbl_cmf_formula.objects.filter(cm_no=fb.cm_no).first()
-                dates = tbl_cmf_dates.objects.filter(cm_no=fb.cm_no).first()
-                pending = tbl_cmf_pending_completed.objects.filter(cm_no=fb.cm_no).first()
-
-                form_data = {
-                    'feedback_no': fb.feedback_no,
-                    'matching_no': fb.cm_no.cm_no,
-                    'customer': formula.customer if formula else '',
-                    'date_created': dates.form_made.strftime('%m/%d/%Y') if dates and dates.form_made else '',
-                    'required_date': dates.date_required if dates else '',
-                    'date_received': dates.date_received_lab if dates else '',
-                    'due_date': dates.due_date_lab.strftime('%m/%d/%Y') if dates and dates.due_date_lab else '',
-                    'finished_product': formula.finished_product if formula else '',
-                    'color_description': fb.cm_no.color_desc or '',
-                    'matching_type': fb.cm_no.matching_type or '',
-                    'sales_person': fb.cm_no.sm.name if fb.cm_no.sm else '',
-                    'current_status': 'Completed' if (pending and pending.is_completed) else 'Pending',
-                    'pending_reason': pending.reason if pending else '',
-                    'product_code': pending_info.code.product_code if pending_info and pending_info.code else "",
-                    'code_description': pending.code_details if pending else '',
-                    'date_submitted': pending.date_submitted.strftime('%m/%d/%Y') if pending and pending.date_submitted else '',
-                    'ar_number': pending.ar_no if pending else '',
-                    'ar_date': pending.ar_date.strftime('%m/%d/%Y') if pending and pending.ar_date else '',
-                    'record_type': 'cmf',
-                    'feedback_status': fb.status or 'Pending',
-                    'date_sample_received': fb.date_sample_received.strftime('%m/%d/%Y') if fb.date_sample_received else '',
-                    'comments': fb.comment or '',
-                    'storage_details': fb.storage_details or '',
-                }
-
-            elif fb.rs_no:
-                pending_info = tbl_cmf_pending_completed.objects.filter(rs_no=fb.rs_no).select_related('code').first()
-                pending = tbl_cmf_pending_completed.objects.filter(rs_no=fb.rs_no).first()
-                dates = tbl_cmf_dates.objects.filter(rs_no=fb.rs_no).first()
-                form_data = {
-                    'feedback_no': fb.feedback_no,
-                    'matching_no': fb.rs_no.rs_no,
-                    'customer': fb.rs_no.customer or '',
-                    'date_created': dates.form_made.strftime('%m/%d/%Y') if dates and dates.form_made else '',
-                    'required_date': dates.date_required if dates else '',
-                    'date_received': dates.date_received_lab if dates else '',
-                    'due_date': dates.due_date_lab.strftime('%m/%d/%Y') if dates and dates.due_date_lab else '',
-                    'finished_product': fb.rs_no.finished_product or '',
-                    'color_description': fb.rs_no.color_desc or '',
-                    'matching_type': fb.rs_no.matching_type or '',
-                    'sales_person': fb.rs_no.sm_no.name if fb.rs_no.sm_no else '',
-                    'current_status': 'Completed' if (pending and pending.is_completed) else 'Pending',
-                    'pending_reason': pending.reason if pending else '',
-                    'product_code': pending_info.code.product_code if pending_info and pending_info.code else "",
-                    'code_description': pending.code_details if pending else '',
-                    'date_submitted': pending.date_submitted.strftime('%m/%d/%Y') if pending and pending.date_submitted else '',
-                    'ar_number': pending.ar_no if pending else '',
-                    'ar_date': pending.ar_date.strftime('%m/%d/%Y') if pending and pending.ar_date else '',
-                    'record_type': 'rs',
-                    'feedback_status': fb.status or 'Pending',
-                    'date_sample_received': fb.date_sample_received.strftime('%m/%d/%Y') if fb.date_sample_received else '',
-                    'comments': fb.comment or '',
-                    'storage_details': fb.storage_details or '',
-                }
-        else:
+        form_data = feedback_save.get_feedback_form_data(feedback_no)
+        if not form_data:
             messages.error(request, f"Feedback record with ID {feedback_no} not found.")
 
-    # --- 3. LOAD RECORDS LIST (STATIC FOR NOW) ---
-    feedback_qs = tbl_feedback_details.objects.all().select_related('cm_no', 'rs_no', 'code').order_by('-feedback_no')
-
-    records_list = []
-    for fb in feedback_qs:
-        item = {
-            'feedback_no': fb.feedback_no,
-            'status': fb.status,
-            'details': fb.comment or '---',
-            'package_details': fb.storage_details or '---',
-        }
-
-        if fb.cm_no:
-            final_formula = tbl_mb_extruder_formula.objects.filter(cm_no=fb.cm_no, is_final=True).select_related('code').first()
-            if not final_formula:
-                final_formula = tbl_dc_extruder_formula.objects.filter(cm_no=fb.cm_no, is_final=True).select_related('code').first()
-
-            formula = tbl_cmf_formula.objects.filter(cm_no=fb.cm_no).first()
-            dates = tbl_cmf_dates.objects.filter(cm_no=fb.cm_no).first()
-
-            item.update({
-                'matching_no': fb.cm_no.cm_no,
-                'customer': formula.customer if formula else '---',
-                'color_desc': fb.cm_no.color_desc or '---',
-                'finished_prod': formula.finished_product if formula else '---',
-                'required_date': dates.date_required if dates else '---',
-                'due_date': dates.due_date_lab.strftime('%m/%d/%Y') if dates and dates.due_date_lab else '---',
-                'type': fb.cm_no.matching_type or '---',
-                'mode': 'cmf',
-                'prod_code': final_formula.code.product_code if final_formula and final_formula.code else (fb.code.product_code if fb.code else '---')
-            })
-        elif fb.rs_no:
-            pending_info = tbl_cmf_pending_completed.objects.filter(rs_no=fb.rs_no).select_related('code').first()
-            dates = tbl_cmf_dates.objects.filter(rs_no=fb.rs_no).first()
-            item.update({
-                'matching_no': fb.rs_no.rs_no,
-                'customer': fb.rs_no.customer or '---',
-                'color_desc': fb.rs_no.color_desc or '---',
-                'prod_code': pending_info.code.product_code if pending_info and pending_info.code else "---",
-                'finished_prod': fb.rs_no.finished_product or '---',
-                'required_date': dates.date_required if dates else '---',
-                'due_date': dates.due_date_lab.strftime('%m/%d/%Y') if dates and dates.due_date_lab else '---',
-                'type': fb.rs_no.matching_type or '---',
-                'mode': 'rs'
-            })
-        records_list.append(item)
+    # --- 3. LOAD RECORDS LIST ---
+    records_list = feedback_save.get_feedback_records()
 
     context = {
         'feedback_records': records_list,
