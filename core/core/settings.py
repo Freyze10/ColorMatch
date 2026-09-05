@@ -153,6 +153,7 @@ USE_I18N = True
 
 USE_TZ = True
 
+CSRF_TRUSTED_ORIGINS = os.environ.get('CSRF_TRUSTED_ORIGINS', '').split(',')
 
 # 1. This silences the Cross-Origin-Opener-Policy warning for HTTP
 SECURE_CROSS_ORIGIN_OPENER_POLICY = None

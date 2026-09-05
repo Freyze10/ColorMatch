@@ -7,7 +7,7 @@ services:
     restart: always
     tty: true
     volumes:
-      - ./postgres_data:/var/lib/postgresql/data
+      - ../db_data:/var/lib/postgresql/data
     environment:
       - POSTGRES_DB=db_test_colormatch
       - POSTGRES_USER=postgres
@@ -22,9 +22,39 @@ services:
     command: gunicorn --bind 0.0.0.0:8000 --workers 3 --threads 2 core.wsgi:application
     volumes:
       - .:/app
+      - /volume1/docker/colormatch/system-server-shared:/mnt/legacy_data
     ports:
       - "8080:8000"
     env_file:
       - .env
     depends_on:
       - db
+      
+  pgadmin:
+    image: dpage/pgadmin4
+    container_name: colormatch_pgadmin
+    restart: always
+    environment:
+      - PGADMIN_DEFAULT_EMAIL=brant.mbpi@gmail.com   # Use this to log in to pgAdmin
+      - PGADMIN_DEFAULT_PASSWORD=mbpi        # Use this to log in to pgAdmin
+    ports:
+      - "7070:80"          # host:container — container still listens on 80
+    depends_on:
+      - db
+
+  tailscale:
+    image: tailscale/tailscale:latest
+    container_name: colormatch_tailscale
+    environment:
+      - TS_AUTHKEY=${TS_AUTHKEY}
+      - TS_HOSTNAME=mbpi-system
+      - TS_STATE_DIR=/var/lib/tailscale
+      - TS_USERSPACE=false
+    volumes:
+      - ../tailscale_data:/var/lib/tailscale
+      - /dev/net/tun:/dev/net/tun
+    cap_add:
+      - NET_ADMIN
+      - NET_RAW
+    network_mode: "service:web"   # shares web container's network namespace
+    restart: unless-stopped
