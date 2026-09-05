@@ -1,6 +1,6 @@
 import dbfread
 from django.core.cache import cache
-from django.db import connection
+from django.db import connection, transaction
 from .dbf_utils import to_bool, to_str, to_int, is_valid_date, dbf_path
 
 def sync_rm_list(progress_callback=None):
@@ -31,17 +31,23 @@ def sync_rm_list(progress_callback=None):
     data = [{"rm_code": code} for code in unique_rm_codes]
 
     emit(f"RM List: writing {len(data)} codes to PostgreSQL...")
-    with connection.cursor() as cursor:
-        # We use ON CONFLICT DO NOTHING so we don't duplicate existing codes
-        # This is much safer and faster than TRUNCATE
-        cursor.executemany("""
-            INSERT INTO tbl_raw_material_list (rm_code) 
-            VALUES (%(rm_code)s)
-            ON CONFLICT (rm_code) DO NOTHING
-        """, data)
+    try:
+        with transaction.atomic():
+            with connection.cursor() as cursor:
+                # We use ON CONFLICT DO NOTHING so we don't duplicate existing codes
+                # This is much safer and faster than TRUNCATE
+                cursor.executemany("""
+                    INSERT INTO tbl_raw_material_list (rm_code) 
+                    VALUES (%(rm_code)s)
+                    ON CONFLICT (rm_code) DO NOTHING
+                """, data)
 
-    emit(f"RM List: Sync completed.")
-    return len(data)
+            emit(f"RM List: Sync completed.")
+            return len(data)
+    except Exception as e:
+            emit(f"Critical Error during Master Formula save: {e}")
+            raise e
+    
 
 
 def sync_rm_incoming(progress_callback=None):
@@ -89,17 +95,22 @@ def sync_rm_incoming(progress_callback=None):
     data = list(latest_by_code.values())
 
     emit(f"RM Incoming: Updating {len(data)} latest incoming timestamps...")
-    with connection.cursor() as cursor:
-        # ON CONFLICT (material_code) ensures we only ever have ONE 'latest' record per material
-        cursor.executemany("""
-            INSERT INTO tbl_rm_incoming (date, material_code, note)
-            VALUES (%(date)s, %(material_code)s, %(note)s)
-            ON CONFLICT (material_code) 
-            DO UPDATE SET 
-                note = EXCLUDED.note, 
-                date = EXCLUDED.date
-        """, data)
+    try:
+        with transaction.atomic():
+            with connection.cursor() as cursor:
+                # ON CONFLICT (material_code) ensures we only ever have ONE 'latest' record per material
+                cursor.executemany("""
+                    INSERT INTO tbl_rm_incoming (date, material_code, note)
+                    VALUES (%(date)s, %(material_code)s, %(note)s)
+                    ON CONFLICT (material_code) 
+                    DO UPDATE SET 
+                        note = EXCLUDED.note, 
+                        date = EXCLUDED.date
+                """, data)
 
-    emit(f"RM Incoming: Successfully synced.")
-    cache.delete('raw_material_codes')
-    return len(data)
+            emit(f"RM Incoming: Successfully synced.")
+            cache.delete('raw_material_codes')
+            return len(data)
+    except Exception as e:
+        emit(f"Critical Error during Master Formula save: {e}")
+        raise e

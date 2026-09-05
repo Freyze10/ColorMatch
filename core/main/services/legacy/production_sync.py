@@ -1,6 +1,6 @@
 import collections
 import dbfread
-from django.db import connection
+from django.db import connection, transaction
 from .dbf_utils import to_bool, to_float, to_int, to_str, dbf_path
 
 def sync_production(progress_callback=None):
@@ -68,33 +68,39 @@ def sync_production(progress_callback=None):
         emit("Production: Already up to date.")
         return 0
 
+    emit(f"Production: Found {len(prod_recs)} new records to sync.")
     # 4. Write to Postgres
-    with connection.cursor() as cursor:
-        cursor.executemany("""
-            INSERT INTO tbl_production01 (prod_id, prod_date, customer, form_id, index_no, prod_code, prod_color, dosage, ld, lot_no, order_no, colormatch_no, colormatch_date, mix_time, machine_no, note, user_id, is_deleted, is_printed, inventory_c_date, form_type)
-            VALUES (%(prod_id)s, %(prod_date)s, %(customer)s, %(form_id)s, %(index_no)s, %(prod_code)s, %(prod_color)s, %(dosage)s, %(ld)s, %(lot_no)s, %(order_no)s, %(colormatch_no)s, %(colormatch_date)s, %(mix_time)s, %(machine_no)s, %(note)s, %(user_id)s, %(is_deleted)s, %(is_printed)s, %(inventory_c_date)s, %(form_type)s)
-            ON CONFLICT (prod_id) DO NOTHING;
-        """, prod_recs)
+    try:
+        with transaction.atomic():
+            with connection.cursor() as cursor:
+                cursor.executemany("""
+                    INSERT INTO tbl_production01 (prod_id, prod_date, customer, form_id, index_no, prod_code, prod_color, dosage, ld, lot_no, order_no, colormatch_no, colormatch_date, mix_time, machine_no, note, user_id, is_deleted, is_printed, inventory_c_date, form_type)
+                    VALUES (%(prod_id)s, %(prod_date)s, %(customer)s, %(form_id)s, %(index_no)s, %(prod_code)s, %(prod_color)s, %(dosage)s, %(ld)s, %(lot_no)s, %(order_no)s, %(colormatch_no)s, %(colormatch_date)s, %(mix_time)s, %(machine_no)s, %(note)s, %(user_id)s, %(is_deleted)s, %(is_printed)s, %(inventory_c_date)s, %(form_type)s)
+                    ON CONFLICT (prod_id) DO NOTHING;
+                """, prod_recs)
 
-        cursor.executemany("""
-            INSERT INTO tbl_production_encode (prod_id, prepared_by, encoded_by, encoded_on, confirmation_encoded_on) 
-            VALUES (%(prod_id)s, %(prepared_by)s, %(encoded_by)s, %(encoded_on)s, %(conf_encoded_on)s)
-            ON CONFLICT DO NOTHING;
-        """, prod_recs)
+                cursor.executemany("""
+                    INSERT INTO tbl_production_encode (prod_id, prepared_by, encoded_by, encoded_on, confirmation_encoded_on) 
+                    VALUES (%(prod_id)s, %(prepared_by)s, %(encoded_by)s, %(encoded_on)s, %(conf_encoded_on)s)
+                    ON CONFLICT DO NOTHING;
+                """, prod_recs)
 
-        cursor.executemany("""
-            INSERT INTO tbl_production_quantity (prod_id, quantity_req, quantity_batch, quantity_prod) 
-            VALUES (%(prod_id)s, %(qty_req)s, %(qty_batch)s, %(qty_prod)s)
-            ON CONFLICT DO NOTHING;
-        """, prod_recs)
+                cursor.executemany("""
+                    INSERT INTO tbl_production_quantity (prod_id, quantity_req, quantity_batch, quantity_prod) 
+                    VALUES (%(prod_id)s, %(qty_req)s, %(qty_batch)s, %(qty_prod)s)
+                    ON CONFLICT DO NOTHING;
+                """, prod_recs)
 
-        all_items = [i for r in prod_recs for i in items_by_prod_id.get(r['prod_id'], [])]
-        if all_items:
-            cursor.executemany("""
-                INSERT INTO tbl_production02 (prod_id, sequence_no, material_code, large_scale, small_scale, total_weight, is_deleted, total_loss, total_consumption)
-                VALUES (%(prod_id)s, %(seq)s, %(material_code)s, %(large_scale)s, %(small_scale)s, %(total_weight)s, %(is_deleted)s, %(total_loss)s, %(total_consumption)s)
-                ON CONFLICT DO NOTHING;
-            """, all_items)
+                all_items = [i for r in prod_recs for i in items_by_prod_id.get(r['prod_id'], [])]
+                if all_items:
+                    cursor.executemany("""
+                        INSERT INTO tbl_production02 (prod_id, sequence_no, material_code, large_scale, small_scale, total_weight, is_deleted, total_loss, total_consumption)
+                        VALUES (%(prod_id)s, %(seq)s, %(material_code)s, %(large_scale)s, %(small_scale)s, %(total_weight)s, %(is_deleted)s, %(total_loss)s, %(total_consumption)s)
+                        ON CONFLICT DO NOTHING;
+                    """, all_items)
 
-    emit(f"Production: synced {len(prod_recs)} new records.")
-    return len(prod_recs)
+            emit(f"Production: synced {len(prod_recs)} new records.")
+            return len(prod_recs)
+    except Exception as e:
+        emit(f"Critical Error during Master Formula save: {e}")
+        raise e

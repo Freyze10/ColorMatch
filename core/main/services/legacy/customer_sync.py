@@ -1,6 +1,6 @@
 import dbfread
 from django.core.cache import cache
-from django.db import connection
+from django.db import connection, transaction
 from .dbf_utils import to_bool, to_str, dbf_path
 
 def sync_customer_list(progress_callback=None):
@@ -37,13 +37,18 @@ def sync_customer_list(progress_callback=None):
     data = [{"customer": name} for name in unique_customers]
 
     emit(f"Customer Sync: Writing {len(data)} unique records to PostgreSQL...")
-    with connection.cursor() as cursor:
-        cursor.executemany("""
-            INSERT INTO tbl_customer (customer) 
-            VALUES (%(customer)s)
-            ON CONFLICT (customer) DO NOTHING
-        """, data)
+    try:
+        with transaction.atomic():
+            with connection.cursor() as cursor:
+                cursor.executemany("""
+                    INSERT INTO tbl_customer (customer) 
+                    VALUES (%(customer)s)
+                    ON CONFLICT (customer) DO NOTHING
+                """, data)
 
-    emit(f"Customer Sync: Completed.")
-    cache.delete('customer_list')
-    return len(data)
+            emit(f"Customer Sync: Completed.")
+            cache.delete('customer_list')
+            return len(data)
+    except Exception as e:
+        emit(f"Critical Error during Master Formula save: {e}")
+        raise e
