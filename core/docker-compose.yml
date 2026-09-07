@@ -9,7 +9,7 @@ services:
     volumes:
       - ../db_data:/var/lib/postgresql/data
     environment:
-      - POSTGRES_DB=db_test_colormatch
+      - POSTGRES_DB=db_colormatch
       - POSTGRES_USER=postgres
       - POSTGRES_PASSWORD=password
     ports:
