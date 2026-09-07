@@ -58,3 +58,4 @@ services:
       - NET_RAW
     network_mode: "service:web"   # shares web container's network namespace
     restart: unless-stopped
+    command: sh -c "tailscaled --state=/var/lib/tailscale/tailscaled.state & sleep 10; tailscale funnel 8000"
