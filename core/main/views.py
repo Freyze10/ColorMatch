@@ -3,7 +3,7 @@ from decimal import Decimal
 import base64
 from django.core.cache import cache
 from django.core.management import call_command
-from django.contrib.auth import authenticate, login, logout, get_user_model 
+from django.contrib.auth import authenticate, login, logout, get_user_model, update_session_auth_hash 
 from django.contrib.auth.models import User
 from django.db import transaction
 from django.db.models import Max, Min, Value
@@ -1136,10 +1136,62 @@ def audit_trail(request):
 
 @role_required
 def settings(request):
-    # maintenance message for page
-    return redirect(f"{reverse('maintenance')}?feature=Settings")
-    # return render(request, 'settings/settings.html')
+    if request.method == "POST":
+        form_type = request.POST.get('form_type')
 
+        if form_type == 'personal_info':
+            user = request.user
+            user.first_name = request.POST.get('first_name', user.first_name)
+            user.last_name = request.POST.get('last_name', user.last_name)
+            user.email = request.POST.get('email', user.email)
+            user.save()
+            messages.success(request, "Personal information updated successfully.")
+            return redirect('settings')
+
+        elif form_type == 'change_password':
+            current_password = request.POST.get('current_password')
+            new_password = request.POST.get('new_password')
+            confirm_password = request.POST.get('confirm_password')
+
+            if not request.user.check_password(current_password):
+                messages.error(request, "Current password is incorrect.")
+                return redirect('settings')
+
+            if new_password != confirm_password:
+                messages.error(request, "New password and confirmation do not match.")
+                return redirect('settings')
+
+            if len(new_password) < 8:
+                messages.error(request, "Password must be at least 8 characters.")
+                return redirect('settings')
+
+            request.user.set_password(new_password)
+            request.user.save()
+            update_session_auth_hash(request, request.user)  # keeps user logged in after password change
+            messages.success(request, "Password updated successfully.")
+            return redirect('settings')
+
+    return render(request, "settings/settings.html")
+    # return redirect(f"{reverse('maintenance')}?feature=Settings")
+
+def logout_all_devices(request):
+    """
+    Placeholder — proper implementation depends on your session backend.
+    For Django's default DB-backed sessions, this requires deleting all
+    Session rows tied to this user (there's no built-in single-call for
+    this without tracking session keys per user separately).
+    """
+    from django.contrib.sessions.models import Session
+    from django.contrib.auth import get_user_model
+
+    for session in Session.objects.all():
+        data = session.get_decoded()
+        if str(data.get('_auth_user_id')) == str(request.user.id):
+            session.delete()
+
+    logout(request)
+    messages.info(request, "You have been logged out of all devices.")
+    return redirect('login')
 
 
 

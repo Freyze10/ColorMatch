@@ -1,1 +1,152 @@
-working
+{% extends "base.html" %}
+{% load static %}
+
+{% block navigation %} 
+Settings
+{% endblock navigation %}
+
+{% block style %}
+<link rel="stylesheet" href="{% static 'css/settings/settings.css' %}">
+{% endblock %}
+{% block content %}
+
+<div class="row g-4">
+    <!-- LEFT COLUMN: Personal Info -->
+    <div class="col-lg-5">
+        <div class="card settings-card shadow-sm mb-4">
+            <div class="card-body p-4 text-center">
+                <div class="settings-avatar mx-auto mb-3">
+                    {{ user.first_name|slice:":1"|upper }}{{ user.last_name|slice:":1"|upper }}
+                </div>
+                <h5 class="fw-bold mb-0">{{ user.first_name }} {{ user.last_name }}</h5>
+                <p class="text-muted extra-small mb-0">{{ user.role.department|default:"—" }}</p>
+            </div>
+        </div>
+
+        <div class="card settings-card shadow-sm">
+            <div class="card-body p-3">
+                <h6 class="settings-section-title mb-3">Personal Information</h6>
+
+                <form id="personalInfoForm" method="POST" action="{% url 'settings' %}">
+                    {% csrf_token %}
+                    <input type="hidden" name="form_type" value="personal_info">
+
+                    <div class="row g-2 mb-2">
+                        <div class="col-6">
+                            <label class="extra-small fw-bold">First Name:</label>
+                            <input type="text" name="first_name" value="{{ user.first_name }}" class="form-control form-control-sm uniform-input">
+                        </div>
+                        <div class="col-6">
+                            <label class="extra-small fw-bold">Last Name:</label>
+                            <input type="text" name="last_name" value="{{ user.last_name }}" class="form-control form-control-sm uniform-input">
+                        </div>
+                    </div>
+
+                    <div class="mb-2">
+                        <label class="extra-small fw-bold">Email:</label>
+                        <input type="email" name="email" value="{{ user.email }}" class="form-control form-control-sm uniform-input">
+                    </div>
+
+                    <div class="row g-2 mb-2">
+                        <div class="col-6">
+                            <label class="extra-small fw-bold">Username:</label>
+                            <input type="text" value="{{ user.username }}" class="form-control form-control-sm uniform-input readonly-gray" readonly>
+                        </div>
+                        <div class="col-6">
+                            <label class="extra-small fw-bold">Department:</label>
+                            <input type="text" value="{{ user.role.department|default:'—' }}" class="form-control form-control-sm uniform-input readonly-gray" readonly>
+                        </div>
+                    </div>
+
+                    <div class="d-flex justify-content-end mt-3">
+                        <button type="submit" class="btn btn-sm btn-success px-4 shadow-sm">
+                            <i class="bi bi-save me-1"></i> Save Changes
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- RIGHT COLUMN: Security & Preferences -->
+    <div class="col-lg-7">
+        <div class="card settings-card shadow-sm mb-4">
+            <div class="card-body p-3">
+                <h6 class="settings-section-title mb-3">Security</h6>
+
+                <form id="changePasswordForm" method="POST" action="{% url 'settings' %}">
+                    {% csrf_token %}
+                    <input type="hidden" name="form_type" value="change_password">
+
+                    <div class="mb-2">
+                        <label class="extra-small fw-bold required-label">Current Password:</label>
+                        <div class="input-group input-group-sm">
+                            <input type="password" name="current_password" class="form-control uniform-input js-toggle-password" required>
+                            <span class="input-group-text uniform-input border-start-0 js-password-toggle-btn" style="cursor: pointer;">
+                                <i class="bi bi-eye-slash"></i>
+                            </span>
+                        </div>
+                    </div>
+
+                    <div class="row g-2 mb-2">
+                        <div class="col-6">
+                            <label class="extra-small fw-bold required-label">New Password:</label>
+                            <input type="password" name="new_password" id="id_new_password" class="form-control form-control-sm uniform-input" required>
+                        </div>
+                        <div class="col-6">
+                            <label class="extra-small fw-bold required-label">Confirm New Password:</label>
+                            <input type="password" name="confirm_password" id="id_confirm_password" class="form-control form-control-sm uniform-input" required>
+                        </div>
+                    </div>
+
+                    <div class="extra-small text-muted mb-3">
+                        <i class="bi bi-info-circle me-1"></i>Use at least 8 characters with a mix of letters and numbers.
+                    </div>
+
+                    <div class="d-flex justify-content-between align-items-center">
+                        <a href="#" class="extra-small link-teal">Forgot your password?</a>
+                        <button type="submit" class="btn btn-sm btn-dark-teal px-4 shadow-sm text-white">
+                            <i class="bi bi-shield-lock me-1"></i> Update Password
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+
+        <div class="card settings-card shadow-sm mb-4">
+            <div class="card-body p-3">
+                <h6 class="settings-section-title mb-3">Active Session</h6>
+                <div class="row g-2">
+                    <div class="col-6">
+                        <span class="extra-small fw-bold d-block text-muted">Last Login</span>
+                        <span class="extra-small">{{ user.last_login|date:"m/d/Y g:i A"|default:"—" }}</span>
+                    </div>
+                    <div class="col-6">
+                        <span class="extra-small fw-bold d-block text-muted">Account Created</span>
+                        <span class="extra-small">{{ user.date_joined|date:"m/d/Y"|default:"—" }}</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="card settings-card shadow-sm">
+            <div class="card-body p-3">
+                <h6 class="settings-section-title mb-3 text-danger">Danger Zone</h6>
+                <div class="d-flex justify-content-between align-items-center">
+                    <div>
+                        <span class="extra-small fw-bold d-block">Log out of all devices</span>
+                        <span class="extra-small text-muted">This will end all active sessions, including this one.</span>
+                    </div>
+                    <button type="button" class="btn btn-sm btn-outline-danger px-3" id="btnLogoutAllDevices">
+                        <i class="bi bi-box-arrow-right me-1"></i> Log Out Everywhere
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script src="{% static 'js/settings/settings.js' %}"></script>
+{% endblock %}

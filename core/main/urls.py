@@ -71,4 +71,5 @@ urlpatterns = [
     path('formulation/<int:form_id>/materials/', formulation_services.formulation_materials_json, name='formulation_materials_json'),
     path('mb-formula/log-print/<int:formula_id>/', print_mb_formula.log_formula_print, name='log_mb_formula_print'),
     path('dc-formula/log-print/<int:formula_id>/', print_dc_formula.log_formula_print, name='log_dc_formula_print'),
+    path('settings/logout-all/', views.logout_all_devices, name='logout_all_devices')
 ]
