@@ -2,16 +2,16 @@ version: '3.8'
 
 services:
   db:
-    image: postgres:15
+    image: postgres:17
     container_name: colormatch_db
     restart: always
     tty: true
     volumes:
       - ../db_data:/var/lib/postgresql/data
     environment:
-      - POSTGRES_DB=db_colormatch
-      - POSTGRES_USER=postgres
-      - POSTGRES_PASSWORD=password
+      - POSTGRES_DB=${DB_NAME}
+      - POSTGRES_USER=${DB_USER}
+      - POSTGRES_PASSWORD=${DB_PASSWORD}
     ports:
       - "5435:5432"
 
@@ -22,7 +22,7 @@ services:
     command: gunicorn --bind 0.0.0.0:8000 --workers 3 --threads 2 core.wsgi:application
     volumes:
       - .:/app
-      - /volume1/docker/colormatch/system-server-shared:/mnt/legacy_data
+      - legacy_data_share:/mnt/legacy_data:ro
     ports:
       - "8080:8000"
     env_file:
@@ -35,8 +35,8 @@ services:
     container_name: colormatch_pgadmin
     restart: always
     environment:
-      - PGADMIN_DEFAULT_EMAIL=brant.mbpi@gmail.com   # Use this to log in to pgAdmin
-      - PGADMIN_DEFAULT_PASSWORD=mbpi        # Use this to log in to pgAdmin
+      - PGADMIN_DEFAULT_EMAIL=${PGADMIN_DEFAULT_EMAIL}   # Use this to log in to pgAdmin
+      - PGADMIN_DEFAULT_PASSWORD=${PGADMIN_DEFAULT_PASSWORD}        # Use this to log in to pgAdmin
     ports:
       - "7070:80"          # host:container — container still listens on 80
     depends_on:
@@ -58,4 +58,18 @@ services:
       - NET_RAW
     network_mode: "service:web"   # shares web container's network namespace
     restart: unless-stopped
-    command: sh -c "tailscaled --state=/var/lib/tailscale/tailscaled.state & sleep 10; tailscale funnel 8000"
+    command: >
+      sh -c "
+      tailscaled --state=/var/lib/tailscale/tailscaled.state --socket=/var/run/tailscale/tailscaled.sock &
+      TS_PID=$$!;
+      until tailscale --socket=/var/run/tailscale/tailscaled.sock status >/dev/null 2>&1; do sleep 1; done;
+      tailscale --socket=/var/run/tailscale/tailscaled.sock funnel 8000;
+      wait $$TS_PID
+      "
+volumes:
+  legacy_data_share:
+    driver: local
+    driver_opts:
+      type: cifs
+      device: "//${SYS_SERVER_IP}/system-new-old"
+      o: "username=${SYS_SERVER_USER},password=${SYS_SERVER_PASS},vers=3.0,ro,iocharset=utf8,file_mode=0444,dir_mode=0555"
