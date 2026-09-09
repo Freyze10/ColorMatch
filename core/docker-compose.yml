@@ -57,7 +57,10 @@ services:
       - NET_ADMIN
       - NET_RAW
     network_mode: "service:web"   # shares web container's network namespace
-    restart: unless-stopped
+    restart: always
+    depends_on:
+      web:
+        condition: service_started
     command: >
       sh -c "
       tailscaled --state=/var/lib/tailscale/tailscaled.state --socket=/var/run/tailscale/tailscaled.sock &

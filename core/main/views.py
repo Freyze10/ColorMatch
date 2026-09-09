@@ -15,6 +15,7 @@ from datetime import date, datetime, timedelta
 from django.urls import reverse
 from django.utils import timezone
 
+from main.services.settings import settings_services
 from main.services.save import feedback_save
 from main.services.dashboard.dashboard_services import get_dashboard_context
 from main.utils.log_audit_trail import log_audit
@@ -1140,58 +1141,49 @@ def settings(request):
         form_type = request.POST.get('form_type')
 
         if form_type == 'personal_info':
-            user = request.user
-            user.first_name = request.POST.get('first_name', user.first_name)
-            user.last_name = request.POST.get('last_name', user.last_name)
-            user.email = request.POST.get('email', user.email)
-            user.save()
-            messages.success(request, "Personal information updated successfully.")
-            return redirect('settings')
-
+            success, message = settings_services.update_personal_info(request)
         elif form_type == 'change_password':
-            current_password = request.POST.get('current_password')
-            new_password = request.POST.get('new_password')
-            confirm_password = request.POST.get('confirm_password')
+            success, message = settings_services.change_own_password(request)
+        else:
+            success, message = False, "Unknown form submission."
 
-            if not request.user.check_password(current_password):
-                messages.error(request, "Current password is incorrect.")
-                return redirect('settings')
-
-            if new_password != confirm_password:
-                messages.error(request, "New password and confirmation do not match.")
-                return redirect('settings')
-
-            if len(new_password) < 8:
-                messages.error(request, "Password must be at least 8 characters.")
-                return redirect('settings')
-
-            request.user.set_password(new_password)
-            request.user.save()
-            update_session_auth_hash(request, request.user)  # keeps user logged in after password change
-            messages.success(request, "Password updated successfully.")
-            return redirect('settings')
+        if success:
+            messages.success(request, message)
+        else:
+            messages.error(request, message)
+        return redirect('settings')
 
     return render(request, "settings/settings.html")
     # return redirect(f"{reverse('maintenance')}?feature=Settings")
 
-def logout_all_devices(request):
-    """
-    Placeholder — proper implementation depends on your session backend.
-    For Django's default DB-backed sessions, this requires deleting all
-    Session rows tied to this user (there's no built-in single-call for
-    this without tracking session keys per user separately).
-    """
-    from django.contrib.sessions.models import Session
-    from django.contrib.auth import get_user_model
+@permission_required(allowed_roles=['ADMIN'])
+def admin_password_requests(request):
+    if not settings_services.has_password_requests_access(request.user):
+        messages.error(request, "You don't have permission to view this page.")
+        return redirect('settings')
 
-    for session in Session.objects.all():
-        data = session.get_decoded()
-        if str(data.get('_auth_user_id')) == str(request.user.id):
-            session.delete()
+    if request.method == "POST":
+        action = request.POST.get('action')
+        request_id = request.POST.get('request_id')
 
-    logout(request)
-    messages.info(request, "You have been logged out of all devices.")
-    return redirect('login')
+        if action == 'approve':
+            success, message = settings_services.approve_request(request_id, request.user, request)
+        elif action == 'reject':
+            success, message = settings_services.reject_request(request_id, request.user)
+        else:
+            success, message = False, "Unknown action."
+
+        if success:
+            messages.success(request, message) if action == 'approve' else messages.info(request, message)
+        else:
+            messages.error(request, message)
+        return redirect('admin_password_requests')
+
+    context = {
+        'pending_requests': settings_services.get_pending_requests(),
+        'recent_requests': settings_services.get_recent_decided_requests(),
+    }
+    return render(request, "settings/account/admin_password_requests.html", context)
 
 
 

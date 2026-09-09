@@ -1,5 +1,7 @@
 from django.urls import path
 
+from .services.settings import settings_services
+
 from .services.export import export_audit_trail, export_feedback, export_formulation, export_master_formula
 from .services.save import cmf_entry_save
 
@@ -33,6 +35,9 @@ urlpatterns = [
     path('legacy/sync/', views.trigger_legacy_sync, name='trigger_legacy_sync'),
     path('maintenance/', views.maintenance, name='maintenance'),
     path('settings/', views.settings, name='settings'),
+        path('settings/logout-all/', settings_services.logout_all_devices, name='logout_all_devices'),
+        path('forgot-password/', settings_services.forgot_password, name='forgot_password'),
+        path('settings/password-requests/', views.admin_password_requests, name='admin_password_requests'),
 
     # export
     path('cmf/records/export/', views.cmf_records_export_preview, name='cmf_records_export_preview'),
@@ -51,6 +56,7 @@ urlpatterns = [
     path('formulation/export/', export_formulation.export_formulation_excel, name='export_formulation_excel'),
     path('feedback/export/', export_feedback.export_feedback_excel, name='export_feedback_excel'),
     path('audit-trail/export/', export_audit_trail.export_audit_trail_excel, name='export_audit_trail_csv'),
+    
     # with parameters
     path('cmf/records/<str:cm_no>/', views.cmf_record_detail, name='cmf_record_detail'),
     path('cmf/log-export-download/',cmf_record_export.log_cmf_export_action, name='log_cmf_export_download'),
@@ -71,5 +77,5 @@ urlpatterns = [
     path('formulation/<int:form_id>/materials/', formulation_services.formulation_materials_json, name='formulation_materials_json'),
     path('mb-formula/log-print/<int:formula_id>/', print_mb_formula.log_formula_print, name='log_mb_formula_print'),
     path('dc-formula/log-print/<int:formula_id>/', print_dc_formula.log_formula_print, name='log_dc_formula_print'),
-    path('settings/logout-all/', views.logout_all_devices, name='logout_all_devices')
+    path('reset-password/<str:token>/', settings_services.reset_password, name='reset_password'),
 ]

@@ -67,6 +67,44 @@ class tbl_audit_trail(models.Model):
     def __str__(self):
         return f"{self.timestamp} - {self.action_type}"
 
+import uuid
+from django.conf import settings
+from django.db import models
+
+
+class tbl_password_reset_request(models.Model):
+    STATUS_CHOICES = [
+        ('pending', 'Pending'),
+        ('approved', 'Approved'),
+        ('rejected', 'Rejected'),
+        ('completed', 'Completed'),
+    ]
+
+    request_id = models.AutoField(primary_key=True)
+    user = models.ForeignKey('tbl_user', on_delete=models.CASCADE, related_name='password_reset_requests')
+    status = models.CharField(max_length=10, choices=STATUS_CHOICES, default='pending')
+    token = models.CharField(max_length=64, blank=True, null=True, unique=True)
+
+    requested_at = models.DateTimeField(auto_now_add=True)
+    decided_at = models.DateTimeField(blank=True, null=True)
+    decided_by = models.ForeignKey(
+        'tbl_user', on_delete=models.SET_NULL,
+        null=True, blank=True, related_name='password_requests_decided'
+    )
+
+    class Meta:
+        db_table = "tbl_password_reset_request"
+        ordering = ['-requested_at']
+
+    def __str__(self):
+        return f"{self.user.username} - {self.status}"
+
+    def generate_token(self):
+        self.token = uuid.uuid4().hex
+        return self.token
+
+    def is_valid_for_reset(self):
+        return self.status == 'approved' and self.token
 
 # ==========================================
 # 2. PRODUCT CODES
