@@ -1,6 +1,6 @@
 from django.db.models import Q
 from django.http import JsonResponse
-
+from django.utils import timezone
 from main.models import tbl_audit_trail
 
 def get_audit_trail_data(request):
@@ -61,9 +61,11 @@ def get_audit_trail_data(request):
         fname = log.user.first_name if log.user else ""
         lname = log.user.last_name if log.user else ""
         full_name = f"{lname}, {fname}" if lname else "---"
-        
+        # timezone.localtime() handles the conversion using your TIME_ZONE setting
+        local_ts = timezone.localtime(log.timestamp)
+
         data.append({
-            "timestamp": log.timestamp.strftime('%Y-%m-%d %I:%M %p'),
+            "timestamp": local_ts.strftime('%m/%d/%Y %I:%M %p'),
             "username": log.user.username if log.user else "System",
             "full_name": full_name,
             "action_type": log.action_type,
