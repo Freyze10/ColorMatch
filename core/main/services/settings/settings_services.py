@@ -1,5 +1,3 @@
-import os
-
 from django.contrib.auth import update_session_auth_hash, logout, get_user_model
 from django.contrib.sessions.models import Session
 from django.contrib import messages
@@ -122,15 +120,17 @@ def approve_request(request_id, admin_user, request):
     email_sent = False
     if req_obj.user.email:
         try:
-            send_mail(
+            sent_count = send_mail(
                 subject="Password Reset Approved",
                 message=f"Your password reset has been approved. Use this link to set a new password:\n\n{reset_link}\n\nThis link can only be used once.",
-                from_email=os.environ.get('PGADMIN_DEFAULT_EMAIL'),
+                from_email=None,  # uses DEFAULT_FROM_EMAIL
                 recipient_list=[req_obj.user.email],
-                fail_silently=True,
+                fail_silently=False,
             )
-            email_sent = True
-        except Exception:
+            print(sent_count)
+            email_sent = sent_count > 0
+        except Exception as e:
+            print("EMAIL SEND FAILED:", e)
             email_sent = False
 
     if email_sent:
@@ -174,7 +174,7 @@ def complete_reset(req_obj, new_password, confirm_password):
 
 def logout_all_devices(request):
     messages.info(request, "You have been logged out of all devices.")
-    return redirect('login')
+    return redirect('signin')
 
 
 def forgot_password(request):
@@ -199,7 +199,7 @@ def reset_password(request, token):
 
     if not req_obj:
         messages.error(request, "This reset link is invalid or has already been used.")
-        return redirect('login')
+        return redirect('signin')
 
     if request.method == "POST":
         new_password = request.POST.get('new_password', '')
@@ -208,7 +208,7 @@ def reset_password(request, token):
         success, message = complete_reset(req_obj, new_password, confirm_password)
         if success:
             messages.success(request, message)
-            return redirect('login')
+            return redirect('signin')
         else:
             messages.error(request, message)
             return redirect('reset_password', token=token)
