@@ -35,9 +35,11 @@ urlpatterns = [
     path('legacy/sync/', views.trigger_legacy_sync, name='trigger_legacy_sync'),
     path('maintenance/', views.maintenance, name='maintenance'),
     path('settings/', views.settings, name='settings'),
-        path('settings/logout-all/', settings_services.logout_all_devices, name='logout_all_devices'),
-        path('forgot-password/', settings_services.forgot_password, name='forgot_password'),
-        path('settings/password-requests/', views.admin_password_requests, name='admin_password_requests'),
+    path('settings/logout-all/', settings_services.logout_all_devices, name='logout_all_devices'),
+    path('forgot-password/', settings_services.forgot_password, name='forgot_password'),
+    path('settings/password-requests/', views.admin_password_requests, name='admin_password_requests'),
+    path('permission-access/', views.permission_access, name='permission_access'),
+
 
     # export
     path('cmf/records/export/', views.cmf_records_export_preview, name='cmf_records_export_preview'),
@@ -56,6 +58,7 @@ urlpatterns = [
     path('formulation/export/', export_formulation.export_formulation_excel, name='export_formulation_excel'),
     path('feedback/export/', export_feedback.export_feedback_excel, name='export_feedback_excel'),
     path('audit-trail/export/', export_audit_trail.export_audit_trail_excel, name='export_audit_trail_csv'),
+    path('permission-access/toggle/', views.toggle_permission, name='toggle_permission'),
     
     # with parameters
     path('cmf/records/<str:cm_no>/', views.cmf_record_detail, name='cmf_record_detail'),

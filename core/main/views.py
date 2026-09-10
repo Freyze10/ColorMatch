@@ -23,11 +23,11 @@ from main.services.formula import master_formula_services, formulation_services
 from main.services.save import mb_formula_save, dc_formula_save, rs_entry_save
 from main.decorators import access_required, role_required
 from main.models import (
-    tbl_audit_trail, tbl_cmf, tbl_cmf_dates, tbl_cmf_formula, tbl_cmf_pending_completed, 
+    tbl_access_point, tbl_audit_trail, tbl_cmf, tbl_cmf_dates, tbl_cmf_formula, tbl_cmf_pending_completed, 
     tbl_cmf_process02, tbl_cmf_process02, tbl_cmf_scanned, tbl_cmf_specification02, tbl_coding_materials, tbl_dc_extruder_formula, 
     tbl_dc_extruder_materials, tbl_feedback_details, tbl_generated_prod_code, tbl_internal_color_code, tbl_master_formula, tbl_master_formula_encode, tbl_master_formula_info, tbl_mb_extruder_formula, 
     tbl_mb_extruder_formula02, tbl_resin, tbl_cmf_salesman, tbl_resins_selected, 
-    tbl_cmf_color_req, tbl_cmf_specification, tbl_cmf_process, tbl_rs, tbl_submitted_option, tbl_submitted_selected
+    tbl_cmf_color_req, tbl_cmf_specification, tbl_cmf_process, tbl_role, tbl_role_permissions, tbl_rs, tbl_submitted_option, tbl_submitted_selected
 )
 
 from .services.cmf_records import cmf_records_services
@@ -1185,6 +1185,37 @@ def admin_password_requests(request):
     }
     return render(request, "settings/account/admin_password_requests.html", context)
 
+@access_required(access_name='Permission Access', allowed_roles=['ADMIN'])
+def permission_access(request):
+    roles = tbl_role.objects.all().order_by('department', 'role')
+    access_points = tbl_access_point.objects.all().order_by('access_id')
+    permissions = tbl_role_permissions.objects.filter(is_enabled=True).values_list('role_id', 'access_id')
+    enabled_set = set(permissions)  # {(role_id, access_id), ...}
+
+    context = {
+        'roles': roles,
+        'access_points': access_points,
+        'enabled_set': enabled_set,
+    }
+    return render(request, 'sidemenu/access_control/permission.html', context)
+
+
+@access_required(access_name='Permission Access', allowed_roles=['ADMIN'])
+def toggle_permission(request):
+    role_id = request.POST.get('role_id')
+    access_id = request.POST.get('access_id')
+    is_enabled = request.POST.get('is_enabled') == 'true'
+
+    obj, _ = tbl_role_permissions.objects.get_or_create(
+        role_id=role_id,
+        access_id=access_id,
+        defaults={'is_enabled': is_enabled}
+    )
+    if obj.is_enabled != is_enabled:
+        obj.is_enabled = is_enabled
+        obj.save(update_fields=['is_enabled'])
+
+    return JsonResponse({'status': 'ok'})
 
 
 # EXPORT 

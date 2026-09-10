@@ -1,0 +1,90 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block navigation %}
+Permission Access Control
+{% endblock navigation %}
+
+{% block content %}
+<div class="card shadow-sm border-0">
+    <div class="card-body">
+        <div class="table-responsive">
+            <table class="table align-middle permission-table">
+                <thead>
+                    <tr>
+                        <th class="extra-small">Access Point</th>
+                        {% for role in roles %}
+                            <th class="extra-small text-center">
+                                {{ role.department }}<br>
+                                <span class="text-muted">{{ role.role }}</span>
+                            </th>
+                        {% endfor %}
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for point in access_points %}
+                    <tr>
+                        <td>{{ point.access_name }}</td>
+                        {% for role in roles %}
+                        <td class="text-center">
+                            <label class="teal-toggle-switch">
+                                <input type="checkbox"
+                                    class="permission-toggle"
+                                    data-role-id="{{ role.pk }}"
+                                    data-access-id="{{ point.access_id }}"
+                                    {% for r_id, a_id in enabled_set %}{% if r_id == role.pk and a_id == point.access_id %}checked{% endif %}{% endfor %}>
+                                <span class="teal-toggle-slider"></span>
+                            </label>
+                        </td>
+                        {% endfor %}
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+    function getCookie(name) {
+        const value = `; ${document.cookie}`;
+        const parts = value.split(`; ${name}=`);
+        if (parts.length === 2) return parts.pop().split(';').shift();
+    }
+
+    document.querySelectorAll('.permission-toggle').forEach(function (checkbox) {
+        checkbox.addEventListener('change', function () {
+            const roleId = this.dataset.roleId;
+            const accessId = this.dataset.accessId;
+            const isEnabled = this.checked;
+            const csrftoken = getCookie('csrftoken');
+
+            fetch("{% url 'toggle_permission' %}", {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/x-www-form-urlencoded',
+                    'X-CSRFToken': csrftoken
+                },
+                body: new URLSearchParams({
+                    role_id: roleId,
+                    access_id: accessId,
+                    is_enabled: isEnabled
+                })
+            })
+            .then(res => res.json())
+            .then(data => {
+                if (data.status !== 'ok') {
+                    this.checked = !isEnabled;
+                    alert('Failed to update permission.');
+                }
+            })
+            .catch(() => {
+                this.checked = !isEnabled;
+                alert('Failed to update permission.');
+            });
+        });
+    });
+});
+</script>
+{% endblock %}
