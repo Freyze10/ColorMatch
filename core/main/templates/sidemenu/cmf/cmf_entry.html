@@ -54,7 +54,7 @@ CMF Entry
                                 </div>
                             </div>
                         </div>
-
+                        {% if user.role.department != "Sales" %}
                         <div class="row g-2 mb-2">
                             <div class="col-6">
                                 <label class="fw-bold extra-small required-label">Date Received:</label>
@@ -71,6 +71,17 @@ CMF Entry
                                 </div>
                             </div>
                         </div>
+                        {% else %}
+                        <div class="row g-2 mb-2">
+                            <div class="col-6">
+                                <label class="fw-bold extra-small required-label">Submit to Lab:</label>
+                                <div class="input-group input-group-sm flatpickr-container" data-wrap="true">
+                                    <input type="text" name="submit_to_lab" value="{{ form_data.submit_to_lab|default:'' }}" class="form-control uniform-input date-picker-single" placeholder="MM/DD/YYYY" data-input required>
+                                    <span class="input-group-text uniform-input border-start-0" data-toggle><i class="bi bi-calendar3"></i></span>
+                                </div>
+                            </div>
+                        </div>
+                        {% endif %}
 
                         <div class="row g-2 mb-2">
                             <div class="col-md-6">

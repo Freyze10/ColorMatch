@@ -217,6 +217,7 @@ def cmf_entry(request):
                     # (could be "ASAP" for required_date, or "MM/DD/YYYY, MM/DD/YYYY" for date_received)
                     'required_date': dates.date_required if dates else "",
                     'date_received': dates.date_received_lab if dates else "",
+                    'submit_to_lab': dates.submit_to_lab if dates else "",
 
                     'matchType': cmf.matching_type,
                     'product_status': cmf.product_status,
