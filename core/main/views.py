@@ -21,7 +21,7 @@ from main.services.dashboard.dashboard_services import get_dashboard_context
 from main.utils.log_audit_trail import log_audit
 from main.services.formula import master_formula_services, formulation_services
 from main.services.save import mb_formula_save, dc_formula_save, rs_entry_save
-from main.decorators import permission_required, role_required
+from main.decorators import access_required, role_required
 from main.models import (
     tbl_audit_trail, tbl_cmf, tbl_cmf_dates, tbl_cmf_formula, tbl_cmf_pending_completed, 
     tbl_cmf_process02, tbl_cmf_process02, tbl_cmf_scanned, tbl_cmf_specification02, tbl_coding_materials, tbl_dc_extruder_formula, 
@@ -110,7 +110,7 @@ def signout(request):
     return redirect('signin')
 
 # @role_required # This now handles both login AND role check
-@permission_required(allowed_departments=['Laboratory', 'Information Technology'])
+@access_required(access_name='Dashboard', allowed_departments=['Laboratory', 'Information Technology'])
 def dashboard(request):
     context = get_dashboard_context()
     return render(request, "sidemenu/dashboard/dashboard.html", context)
@@ -124,14 +124,14 @@ def maintenance(request):
     feature_name = request.GET.get('feature', 'This page')
     return render(request, 'maintenance/maintenance.html', {'feature_name': feature_name})
 
-@role_required
+@access_required('CMF Records')
 def cmf_records(request):
     all_records = cmf_records_services.get_all_records_combined()
     return render(request, "sidemenu/cmf/cmf_records.html", {
         "records": all_records,
     })
 
-@permission_required(allowed_departments=['Laboratory', 'Information Technology'])
+@access_required('Formula Records')
 def formula_records(request):
     mb_dates = tbl_mb_extruder_formula.objects.aggregate(Min('date'), Max('date'))
     dc_dates = tbl_dc_extruder_formula.objects.aggregate(Min('date'), Max('date'))
@@ -148,7 +148,7 @@ def formula_records(request):
         "default_to": latest
     })
 
-@role_required
+@access_required('CMF Entry')
 def cmf_entry(request):
     form_data = {}
     attachments = []
@@ -263,7 +263,7 @@ def cmf_entry(request):
     }
     return render(request, "sidemenu/cmf/cmf_entry.html", context)
 
-@permission_required(allowed_departments=['Laboratory', 'Information Technology', 'Sales'])
+@access_required('RS Entry')
 def cmf_rs_entry(request):
     form_data = {}
 
@@ -406,7 +406,7 @@ def rs_record_detail(request, rs_id):
 
     return render(request, "modal/cmf-record/rs_record_detail.html", context)
 
-@permission_required(allowed_departments=['Laboratory', 'Information Technology'])
+@access_required('MB Formula')
 def cmf_mb_formula(request):
     form_data = {}
     ingredients = []
@@ -585,7 +585,7 @@ def cmf_mb_formula(request):
     }
     return render(request, "sidemenu/cmf/formula_mb.html", context)
 
-@permission_required(allowed_departments=['Laboratory', 'Information Technology'])
+@access_required('DC Formula')
 def cmf_dc_formula(request):
     form_data = {}
     material_rows = []
@@ -772,7 +772,7 @@ def cmf_dc_formula(request):
     }
     return render(request, "sidemenu/cmf/formula_dc.html", context)
 
-@permission_required(allowed_departments=['Laboratory', 'Information Technology'])
+@access_required('Pending Completed')
 def cmf_pending_completed(request):
     form_data = {}
     record_no = request.POST.get('record_no') or request.GET.get('no')
@@ -1043,7 +1043,7 @@ def cmf_pending_completed(request):
 
     return render(request, "sidemenu/cmf/pending_completed.html", {"form_data": form_data})
 
-@permission_required(allowed_departments=['Laboratory', 'Information Technology'])
+@access_required('Master Formula')
 def master_formula(request):
     form_id = request.GET.get('form_id')
     
@@ -1062,7 +1062,7 @@ def master_formula(request):
     context = master_formula_services.get_master_formula_context(form_id, request)
     return render(request, "sidemenu/formula/master_formula.html", context)
 
-@role_required
+@access_required('Formulation')
 def formulation(request):
     form_id = request.GET.get('form_id')
     
@@ -1081,7 +1081,7 @@ def formulation(request):
     context = formulation_services.get_formulation_context(form_id, request)
     return render(request, "sidemenu/formula/formulation.html", context)
 
-@role_required
+@access_required('Feedback')
 def feedback(request):
     feedback_no = request.GET.get('feedback_no') or request.POST.get('feedback_no')
 
@@ -1111,7 +1111,7 @@ def feedback(request):
     }
     return render(request, "sidemenu/feedback/feedback.html", context)
 
-@permission_required(allowed_roles=['ADMIN', 'HEAD'])
+@access_required(access_name='Audit Trail', allowed_roles=['ADMIN', 'HEAD'])
 def audit_trail(request):
     # 1. Get total record count
     record_count = tbl_audit_trail.objects.count()
@@ -1156,7 +1156,7 @@ def settings(request):
     return render(request, "settings/settings.html")
     # return redirect(f"{reverse('maintenance')}?feature=Settings")
 
-@permission_required(allowed_roles=['ADMIN'])
+@access_required(allowed_roles=['ADMIN', 'Admin'])
 def admin_password_requests(request):
     if not settings_services.has_password_requests_access(request.user):
         messages.error(request, "You don't have permission to view this page.")
