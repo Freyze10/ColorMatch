@@ -137,6 +137,15 @@
                 </a>
             </li>
             {% endif %}
+            {% if 'Permission Access' in user_permissions %}
+            <li class="nav-item">
+                <a href="{% url 'permission_access' %}" 
+                class="nav-link {% if request.resolver_match.url_name == 'permission_access' %}active{% endif %}">
+                    <i class="bi bi-shield-lock"></i>
+                    <span>Permission Access</span>
+                </a>
+            </li>
+            {% endif %}
         </ul>
     </div>
 
