@@ -15,7 +15,7 @@
 
     <div class="sidebar-menu">
         <ul class="nav flex-column mt-2">
-            {% if user.role.department in "Information Technology, Laboratory" %}
+            {% if 'Dashboard' in user_permissions %}
                 <li class="nav-item">
                     <a href="{% url 'dashboard' %}" 
                     class="nav-link {% if request.resolver_match.url_name == 'dashboard' %}active{% endif %}">
@@ -42,13 +42,15 @@
                 <div class="collapse" id="appsMenu">
                     <ul class="nav flex-column submenu" style="padding-left: 2rem;">
                         <!-- ... list items stay exactly as they are ... -->
+                         {% if 'CMF Records' in user_permissions %}
                         <li>
                             <a href="{% url 'cmf_records' %}"
                                 class="nav-link {% if request.resolver_match.url_name in 'cmf_records cmf_records_export_preview' %}active-sub{% endif %}">
                                 CMF Records
                             </a>
                         </li>
-                        {% if user.role.department in "Information Technology, Laboratory" %}
+                        {% endif %}
+                        {% if 'Formula Records' in user_permissions %}
                         <li>
                             <a href="{% url 'formula_records' %}"
                                 class="nav-link {% if request.resolver_match.url_name == 'formula_records' %}active-sub{% endif %}">
@@ -56,13 +58,15 @@
                             </a>
                         </li>
                         {% endif %}
+                        {% if 'CMF Entry' in user_permissions %}
                         <li>
                             <a href="{% url 'cmf_entry' %}"
                                 class="nav-link {% if request.resolver_match.url_name == 'cmf_entry' %}active-sub{% endif %}">
                                 CMF Entry
                             </a>
                         </li>
-                        {% if user.role.department in "Information Technology, Laboratory, Sales" %}
+                        {% endif %}
+                        {% if 'RS Entry' in user_permissions %}
                         <li>
                             <a href="{% url 'rs_entry' %}"
                                 class="nav-link {% if request.resolver_match.url_name == 'rs_entry' %}active-sub{% endif %}">
@@ -70,19 +74,23 @@
                             </a>
                         </li>
                         {% endif %}
-                        {% if user.role.department in "Information Technology, Laboratory" %}
+                        {% if 'MB Formula' in user_permissions %}
                         <li>
                             <a href="{% url 'mb_formula' %}"
                                 class="nav-link {% if request.resolver_match.url_name == 'mb_formula' %}active-sub{% endif %}">
                                 MB Formula
                             </a>
                         </li>
+                        {% endif %}
+                        {% if 'DC Formula' in user_permissions %}
                         <li>
                             <a href="{% url 'dc_formula' %}"
                                 class="nav-link {% if request.resolver_match.url_name == 'dc_formula' %}active-sub{% endif %}">
                                 DC Formula
                             </a>
                         </li>
+                        {% endif %}
+                        {% if 'Pending Completed' in user_permissions %}
                         <li>
                             <a href="{% url 'pending_completed' %}"
                                 class="nav-link {% if request.resolver_match.url_name == 'pending_completed' %}active-sub{% endif %}">
@@ -93,7 +101,7 @@
                     </ul>
                 </div>
             </li>
-            {% if user.role.department in "Information Technology, Laboratory" %}
+            {% if 'Master Formula' in user_permissions %}
             <li class="nav-item">
                 <a href="{% url 'master_formula' %}" 
                    class="nav-link {% if request.resolver_match.url_name == 'master_formula' %}active{% endif %}">
@@ -102,6 +110,7 @@
                 </a>
             </li>
             {% endif %}
+            {% if 'Formulation' in user_permissions %}
             <li class="nav-item">
                 <a href="{% url 'formulation' %}" 
                    class="nav-link {% if request.resolver_match.url_name == 'formulation' %}active{% endif %}">
@@ -109,6 +118,8 @@
                     <span>Formulation</span>
                 </a>
             </li>
+            {% endif %}
+            {% if 'Feedback' in user_permissions %}
             <li class="nav-item">
                 <a href="{% url 'feedback' %}" 
                    class="nav-link {% if request.resolver_match.url_name == 'feedback' %}active{% endif %}">
@@ -116,6 +127,8 @@
                     <span>Feedback</span>
                 </a>
             </li>
+            {% endif %}
+            {% if 'Audit Trail' in user_permissions %}
             <li class="nav-item">
                 <a href="{% url 'audit_trail' %}" 
                    class="nav-link {% if request.resolver_match.url_name == 'audit_trail' %}active{% endif %}">
@@ -123,6 +136,7 @@
                     <span>Audit Trail</span>
                 </a>
             </li>
+            {% endif %}
         </ul>
     </div>
 
