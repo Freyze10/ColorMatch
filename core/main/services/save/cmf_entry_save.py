@@ -27,6 +27,13 @@ def _handle_file_uploads(request, cmf_instance):
         )
     return len(files)
 
+def blank_to_none(val):
+    """Returns None if val is missing/empty/whitespace, otherwise the stripped value."""
+    if val is None:
+        return None
+    val = val.strip()
+    return val if val else None
+
 def save_cmf_complete_entry(request):
     data = request.POST
     
@@ -80,8 +87,9 @@ def save_cmf_complete_entry(request):
 
         tbl_cmf_dates.objects.create(
             form_made=format_date(data.get('date_created')),
-            date_required=data.get('required_date'),
-            date_received_lab=data.get('date_received'),
+            date_required=blank_to_none(data.get('required_date')),
+            date_received_lab=blank_to_none(data.get('date_received')),
+            submit_to_lab=blank_to_none(data.get('submit_to_lab')),
             due_date_lab=format_date(data.get('due_date')),
             cm_no=cmf_main
         )
@@ -153,7 +161,8 @@ def update_cmf_complete_entry(request, original_cmf_no):
             'is_low_cost': 'Low Cost', 'remarks': 'Remarks', 'sm': 'Salesman',
             'customer': 'Customer', 'finished_product': 'Finished Product', 'dosage': 'Dosage',
             'color_req': 'Color Requirement', 'form_made': 'Date Created', 
-            'date_required': 'Req. Date', 'date_received_lab': 'Date Received', 'due_date_lab': 'Due Date'
+            'date_required': 'Req. Date', 'date_received_lab': 'Date Received', 'due_date_lab': 'Due Date',
+            'submit_to_lab': 'Submit to Lab'
         }
         return mapping.get(field, field.replace('_', ' ').title())
 
@@ -222,12 +231,13 @@ def update_cmf_complete_entry(request, original_cmf_no):
                 ('form_made', data.get('date_created')),
                 ('date_required', data.get('required_date')),
                 ('date_received_lab', data.get('date_received')),
+                ('submit_to_lab', data.get('submit_to_lab')),
                 ('due_date_lab', data.get('due_date')),
             ]
             for field_name, new_date_str in date_comparisons:
                 db_val = getattr(old_dates_obj, field_name)
                 db_str = format_val(db_val)
-                input_str = format_val(new_date_str)
+                input_str = format_val(blank_to_none(new_date_str))
                 
                 if db_str != input_str:
                     diff_logs.append(f"{get_pretty_name(field_name)} ({db_str} -> {input_str})")
@@ -282,8 +292,9 @@ def update_cmf_complete_entry(request, original_cmf_no):
         tbl_cmf_color_req.objects.filter(cm_no=cmf_main).update(name=new_req_val)
         tbl_cmf_dates.objects.filter(cm_no=cmf_main).update(
             form_made=format_date(data.get('date_created')),
-            date_required=data.get('required_date'),
-            date_received_lab=data.get('date_received'),
+            date_required=blank_to_none(data.get('required_date')),
+            date_received_lab=blank_to_none(data.get('date_received')),
+            submit_to_lab=blank_to_none(data.get('submit_to_lab')),
             due_date_lab=format_date(data.get('due_date'))
         )
         tbl_cmf_formula.objects.filter(cm_no=cmf_main).update(**formula_map)

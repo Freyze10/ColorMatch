@@ -310,6 +310,7 @@ class tbl_cmf_dates(models.Model):
     form_made = models.DateField(blank=True, null=True)
     date_required = models.CharField(max_length=36, blank=True, null=True)
     date_received_lab = models.CharField(max_length=36, blank=True, null=True)
+    submit_to_lab = models.CharField(max_length=36, blank=True, null=True)
     due_date_lab = models.DateField(blank=True, null=True)
     cm_no = models.ForeignKey('tbl_cmf', to_field="cm_no", on_delete=models.CASCADE, db_column="cm_no", null=True, blank=True)
     # Add the RS link
