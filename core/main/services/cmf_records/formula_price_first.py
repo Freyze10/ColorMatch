@@ -1,24 +1,142 @@
-# formula_price_first
 import io
 import os
-import threading
 import re
 import json
-import win32com.client as win32
 import tempfile
 import uuid
-import pythoncom
 from decimal import Decimal
 from datetime import datetime, date
+
+# Cross-platform Excel libraries
+import openpyxl
+from openpyxl.styles import Font, Alignment
+import msoffcrypto
+
 from django.db.models import Max
 from django.http import HttpResponse, HttpResponseBadRequest, JsonResponse
-from main.models import tbl_cmf, tbl_cmf_formula, tbl_dc_extruder_formula, tbl_dc_extruder_materials, tbl_dc_extruder_version, tbl_mb_extruder_formula, tbl_mb_extruder_formula02, tbl_resins_selected
+from main.models import (
+    tbl_cmf, tbl_cmf_formula, tbl_dc_extruder_formula, 
+    tbl_dc_extruder_materials, tbl_dc_extruder_version, 
+    tbl_mb_extruder_formula, tbl_mb_extruder_formula02, 
+    tbl_resins_selected
+)
+
+# Configuration
+FORMULA_TEMPLATE_PATH = os.path.join('main', 'templates', 'print_excel', 'Formula.xlsx')
+FORMULA_TEMPLATE_PASSWORD = "maranatha101"
+
+COLUMN_ORDER = [
+    'date', 'customer', 'classification', 'prod_code', 'resin', 'mat_code',
+    'mat_conc', 'end_product', 'total', 'others', 'dosage', 'salesman_name',
+    'cmf_no', 'html', 'c', 'm', 'y', 'k', 'remarks'
+]
+DATA_START_ROW = 2 
+
+def _autofit_columns(ws):
+    for col in ws.columns:
+        max_length = 0
+        column = col[0].column_letter
+        for cell in col:
+            try:
+                if cell.value:
+                    length = len(str(cell.value))
+                    if length > max_length: max_length = length
+            except: pass
+        ws.column_dimensions[column].width = max_length + 3
+
+def _fill_formula_sheet_logic(template_abs_path, rows):
+    # --- 1. DECRYPT TEMPLATE ---
+    decrypted_tmp = io.BytesIO()
+    with open(template_abs_path, "rb") as f:
+        office_file = msoffcrypto.OfficeFile(f)
+        office_file.load_key(password=FORMULA_TEMPLATE_PASSWORD)
+        office_file.decrypt(decrypted_tmp)
+
+    # --- 2. LOAD & STYLE WORKBOOK ---
+    wb = openpyxl.load_workbook(decrypted_tmp)
+    ws = wb["Formula"] if "Formula" in wb.sheetnames else wb.active
+    
+    # Define Fonts
+    header_font = Font(name='Arial', size=14, bold=True)
+    content_font = Font(name='Arial', size=12, bold=True)
+    
+    # Define Alignments based on your screenshot requirements
+    align_center = Alignment(horizontal='center', vertical='center')
+    align_left = Alignment(horizontal='left', vertical='center')
+    align_right = Alignment(horizontal='right', vertical='center')
+
+    # Mapping columns to specific alignments to ensure consistency
+    # (Based on standard Excel report layouts)
+    COLUMN_ALIGNMENTS = {
+        'date': align_left,
+        'customer': align_left,
+        'classification': align_center,
+        'prod_code': align_left,
+        'resin': align_left,
+        'mat_code': align_center,
+        'mat_conc': align_right, # Numbers
+        'end_product': align_left,
+        'total': align_right,    # Numbers
+        'others': align_left,
+        'dosage': align_center,
+        'salesman_name': align_left,
+        'cmf_no': align_center,
+        'html': align_center,
+        'c': align_center,
+        'm': align_center,
+        'y': align_center,
+        'k': align_center,
+        'remarks': align_left,
+    }
+
+    # Apply Header Styling (Row 1)
+    for cell in ws[1]:
+        cell.font = header_font
+        cell.alignment = align_center # Headers always centered
+
+    # --- 3. FILL CONTENT ROWS ---
+    for r_idx, row_data in enumerate(rows):
+        excel_row = DATA_START_ROW + r_idx
+        for c_idx, field in enumerate(COLUMN_ORDER):
+            cell = ws.cell(row=excel_row, column=c_idx + 1)
+            val = row_data.get(field, "")
+            
+            # IMPROVED TYPE HANDLING: 
+            # Try to keep numbers as floats so Excel treats them as numbers
+            if val == "no data" or val == "None" or val == "":
+                cell.value = str(val)
+            else:
+                try:
+                    # If it's a number, convert to float for Excel
+                    cell.value = float(val)
+                except (ValueError, TypeError):
+                    cell.value = str(val)
+            
+            # Apply Content Styling
+            cell.font = content_font
+            
+            # APPLY EXPLICIT ALIGNMENT from our map
+            cell.alignment = COLUMN_ALIGNMENTS.get(field, align_left)
+
+    _autofit_columns(ws)
+
+    # --- 4. SAVE UNPROTECTED TO BUFFER ---
+    unprotected_buffer = io.BytesIO()
+    wb.save(unprotected_buffer)
+    unprotected_buffer.seek(0)
+
+    # --- 5. RE-ENCRYPT FOR OUTPUT ---
+    encrypted_buffer = io.BytesIO()
+    file_to_encrypt = msoffcrypto.OfficeFile(unprotected_buffer)
+    file_to_encrypt.encrypt(FORMULA_TEMPLATE_PASSWORD, encrypted_buffer)
+    
+    return encrypted_buffer.getvalue()
+
+# ... (Keep _build_price_first_row_list, export_formula_by_date, 
+#      and download_price_first_excel exactly as they were) ...
 
 def _build_price_first_row_list(items):
-    """
-    Shared helper to build the list of dictionaries for both 
-    the Modal Preview and the Bulk Export.
-    """
+    """Shared helper to build the list of data dictionaries from models."""
     results = []
     for item in items:
         f_id = item['id']
@@ -36,7 +154,6 @@ def _build_price_first_row_list(items):
                 version_data = tbl_dc_extruder_version.objects.filter(material__dc=header, version_no=max_v).select_related('material')
                 ingredients_list = [{'material': v.material.material, 'value': float(v.value or 0)} for v in version_data]
 
-        parent = header.cm_no or header.rs_no
         customer, dosage, end_product, salesman, matching_type = "", 0, "", "", ""
         
         if header.cm_no:
@@ -50,17 +167,13 @@ def _build_price_first_row_list(items):
             salesman = header.rs_no.sm_no.name if header.rs_no.sm_no else ""
             matching_type = header.rs_no.matching_type
 
-        # Resin formatting
         resins_list = list(tbl_resins_selected.objects.filter(
             cm_no=header.cm_no if header.cm_no else None,
             rs_no=header.rs_no if header.rs_no else None
         ).values_list('resin_no__abbreviation', flat=True))
         
-        if not resins_list: resin_str = ""
-        elif len(resins_list) == 1: resin_str = resins_list[0]
-        else: resin_str = ", ".join(resins_list[:-1]) + " and " + resins_list[-1]
+        resin_str = ", ".join(resins_list)
 
-        # Rematch logic
         others_val = "new matching"
         if matching_type == 'rematch' and header.cm_no:
             curr_cm = header.cm_no.cm_no
@@ -96,12 +209,11 @@ def _build_price_first_row_list(items):
                 'm': int(header.m) if header.m is not None else "no data",
                 'y': int(header.y) if header.y is not None else "no data",
                 'k': int(header.k) if header.k is not None else "no data",
-                'remarks': '' # Blank for bulk export
+                'remarks': ''
             })
     return results
 
 def get_price_first_data(request):
-    """View for the Modal Preview."""
     try:
         items = json.loads(request.GET.get('items', '[]'))
         data = _build_price_first_row_list(items)
@@ -110,171 +222,39 @@ def get_price_first_data(request):
         return HttpResponseBadRequest(str(e))
 
 def export_formula_by_date(request):
-    """View for the Bulk Export button (Direct download)."""
     date_from_str = request.GET.get('from')
     date_to_str = request.GET.get('to')
-
     try:
-        # Convert strings to date objects
         date_from = datetime.strptime(date_from_str, '%m/%d/%Y').date()
         date_to = datetime.strptime(date_to_str, '%m/%d/%Y').date()
-        
-        # Query headers in range
         mb_ids = tbl_mb_extruder_formula.objects.filter(date__range=[date_from, date_to]).values_list('mb_no', flat=True)
         dc_ids = tbl_dc_extruder_formula.objects.filter(date__range=[date_from, date_to]).values_list('dc_no', flat=True)
-        
         items = [{'type': 'MB', 'id': i} for i in mb_ids] + [{'type': 'DC', 'id': i} for i in dc_ids]
-        
-        if not items:
-            return HttpResponseBadRequest("No records found in this date range.")
-
-        # Build Data
+        if not items: return HttpResponseBadRequest("No records found.")
         row_dicts = _build_price_first_row_list(items)
-        
-        # Generate Excel via COM
         template_abs_path = os.path.abspath(FORMULA_TEMPLATE_PATH)
-        with tempfile.TemporaryDirectory() as tmpdir:
-            output_path = os.path.join(tmpdir, "Formula_Export.xlsx")
-            with _excel_lock:
-                _fill_formula_sheet_via_excel(template_abs_path, output_path, row_dicts)
-            
-            with open(output_path, 'rb') as f:
-                file_bytes = f.read()
-
+        file_bytes = _fill_formula_sheet_logic(template_abs_path, row_dicts)
         response = HttpResponse(file_bytes, content_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet')
-        response['Content-Disposition'] = f'attachment; filename="Formula_Export_{date_from_str.replace("/","-")}_to_{date_to_str.replace("/","-")}.xlsx"'
+        response['Content-Disposition'] = f'attachment; filename="Formula_Export_{date_from_str.replace("/","-")}.xlsx"'
         return response
-
     except Exception as e:
         return HttpResponseBadRequest(f"Export failed: {str(e)}")
 
-
-# Same reasoning as the Excel print exports — one COM instance at a time.
-_excel_lock = threading.Lock()
-
-FORMULA_TEMPLATE_PATH = os.path.join('main', 'templates', 'print_excel', 'Formula.xlsx')
-FORMULA_TEMPLATE_PASSWORD = "maranatha101"
-
-# Matches the "Formula" sheet's header row (A1:S1) exactly, in column order.
-COLUMN_ORDER = [
-    'date', 'customer', 'classification', 'prod_code', 'resin', 'mat_code',
-    'mat_conc', 'end_product', 'total', 'others', 'dosage', 'salesman_name',
-    'cmf_no', 'html', 'c', 'm', 'y', 'k', 'remarks'
-]
-
-DATA_START_ROW = 2  # row 1 is the header
-
-
-def _fill_formula_sheet_via_excel(template_abs_path, output_path, rows):
-    """
-    Opens the password-protected template directly in Excel via COM,
-    writes the Price First rows into the 'Formula' sheet (3rd tab)
-    starting at row 2, autofits columns, then saves a NEW file at
-    output_path — protected with the same password. Password args are
-    passed POSITIONALLY, not as keyword args — with late-bound COM
-    dispatch (DispatchEx), keyword arguments can silently fail to map
-    to the correct parameter, which caused Excel to open with no
-    password at all and pop its own blocking password dialog.
-    """
-    pythoncom.CoInitialize()
-    excel = None
-    wb = None
-    try:
-        excel = win32.DispatchEx("Excel.Application")
-        excel.Visible = False
-        excel.DisplayAlerts = False
-
-        # Workbooks.Open positional signature:
-        # (FileName, UpdateLinks, ReadOnly, Format, Password, ...)
-        wb = excel.Workbooks.Open(
-            template_abs_path,  # FileName
-            0,                  # UpdateLinks
-            False,              # ReadOnly
-            None,               # Format
-            FORMULA_TEMPLATE_PASSWORD,  # Password
-        )
-        ws = wb.Worksheets("Formula")
-        last_row = DATA_START_ROW
-        for r_idx, row in enumerate(rows):
-            excel_row = DATA_START_ROW + r_idx
-            last_row = excel_row
-            for c_idx, field in enumerate(COLUMN_ORDER):
-                col_letter = chr(ord('A') + c_idx)
-                ws.Range(f"{col_letter}{excel_row}").Value = row.get(field, "")
-
-        if rows:
-            last_col_letter = chr(ord('A') + len(COLUMN_ORDER) - 1)
-            data_range = f"A{DATA_START_ROW}:{last_col_letter}{last_row}"
-            
-            ws.Range(data_range).Font.Bold = True
-            ws.Rows(1).Font.Bold = True
-            
-        ws.Columns.AutoFit()
-
-        # SaveAs positional signature: (Filename, FileFormat, Password, ...)
-        wb.SaveAs(
-            output_path,                 # Filename
-            51,                          # FileFormat: xlOpenXMLWorkbook (.xlsx)
-            FORMULA_TEMPLATE_PASSWORD,   # Password
-        )
-
-    finally:
-        if wb is not None:
-            wb.Close(SaveChanges=False)
-        if excel is not None:
-            excel.Quit()
-        pythoncom.CoUninitialize()
-
-
 def download_price_first_excel(request):
-    """
-    Fills the 'Formula' sheet of the protected Formula.xlsx template
-    with the Price First modal's current rows (including user-typed
-    Remarks), autofits columns, and returns the result as a download.
-    The original template is opened read-only (via COM, password
-    supplied) and never modified.
-    """
-    if request.method != 'POST':
-        return HttpResponseBadRequest("POST required.")
-
+    if request.method != 'POST': return HttpResponseBadRequest("POST required.")
     try:
         payload = json.loads(request.body)
         rows = payload.get('rows', [])
-    except (json.JSONDecodeError, TypeError):
-        return HttpResponseBadRequest("Invalid JSON body.")
-
-    if not rows:
-        return HttpResponseBadRequest("No rows to export.")
-
-    # The frontend sends rows as flat arrays (one value per column, same
-    # order as COLUMN_ORDER) — convert each to a dict keyed by field name
-    # so _fill_formula_sheet_via_excel can look values up by field.
+    except: return HttpResponseBadRequest("Invalid JSON.")
+    if not rows: return HttpResponseBadRequest("No rows.")
     row_dicts = []
     for row in rows:
         row_dicts.append({field: (row[i] if i < len(row) else "") for i, field in enumerate(COLUMN_ORDER)})
-
     template_abs_path = os.path.abspath(FORMULA_TEMPLATE_PATH)
-    if not os.path.exists(template_abs_path):
-        return HttpResponseBadRequest("Formula.xlsx template not found on server.")
-
-    with tempfile.TemporaryDirectory() as tmpdir:
-        output_path = os.path.join(tmpdir, f"{uuid.uuid4().hex}.xlsx")
-
-        try:
-            with _excel_lock:
-                _fill_formula_sheet_via_excel(template_abs_path, output_path, row_dicts)
-        except Exception as e:
-            return HttpResponseBadRequest(f"Excel export failed: {str(e)}")
-
-        if not os.path.exists(output_path):
-            return HttpResponseBadRequest("Excel export failed: no output file produced.")
-
-        with open(output_path, 'rb') as f:
-            file_bytes = f.read()
-
-    response = HttpResponse(
-        file_bytes,
-        content_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
-    )
+    try:
+        file_bytes = _fill_formula_sheet_logic(template_abs_path, row_dicts)
+    except Exception as e:
+        return HttpResponseBadRequest(f"Excel export failed: {str(e)}")
+    response = HttpResponse(file_bytes, content_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet')
     response['Content-Disposition'] = 'attachment; filename="Formula.xlsx"'
     return response

@@ -5,6 +5,7 @@ core/main/templates/print-html/master_formula_print.html merge=ours
 core/main/templates/print-html/cmf_print.html merge=ours
 core/main/templates/sidemenu/formula/formulation_entry.html merge=ours
 
+
 core/static/js/cmf/formula.js merge=ours
 core/static/js/formula/master_formula.js merge=ours
 
@@ -12,5 +13,6 @@ core/main/services/print/print_mb_formula.py merge=ours
 core/main/services/print/print_dc_formula.py merge=ours
 core/main/services/print/print_cmf.py merge=ours
 core/main/services/formula/master_formula_services.py merge=ours
+core/main/services/cmf_records/formula_price_first.py merge=ours
 
 core/main/urls.py merge=ours

@@ -260,6 +260,7 @@ def _fetch_cmf_data(cm_no):
 
 # print_cmf_preview = xframe_options_exempt(print_cmf_preview)
 
+
 def get_cmf_print_context(cm_no):
     """Builds the full context dict for the HTML/CSS CMF print template."""
     data = _fetch_cmf_data(cm_no)
