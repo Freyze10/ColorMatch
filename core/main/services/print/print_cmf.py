@@ -1,18 +1,18 @@
 # print_cmf
 import os
-import tempfile
-import threading
-import uuid
+# import tempfile
+# import threading
+# import uuid
 from django.shortcuts import render
-import pythoncom
-import win32com.client as win32
-from django.contrib import messages
+# import pythoncom
+# import win32com.client as win32
+# from django.contrib import messages
 from django.http import HttpResponse, HttpResponseNotFound, HttpResponseServerError, JsonResponse
-from django.shortcuts import redirect
+# from django.shortcuts import redirect
 from django.views.decorators.clickjacking import xframe_options_exempt
 
 from main.utils.log_audit_trail import log_audit
-from main.services.print.print_util import _resize_pdf_to_fixed_size
+# from main.services.print.print_util import _resize_pdf_to_fixed_size
 from main.models import (
     tbl_cmf, tbl_cmf_dates, tbl_cmf_formula, tbl_cmf_color_req,
     tbl_resins_selected, tbl_cmf_process02, tbl_cmf_specification02,
@@ -21,7 +21,7 @@ from main.models import (
 
 # Excel COM automation isn't safe to run from multiple threads/requests at
 # once. Serialize access so only one conversion happens at a time.
-_excel_lock = threading.Lock()
+# _excel_lock = threading.Lock()
 
 TEMPLATE_PATH = os.path.join('main', 'templates', 'print_excel', 'new_cmf_template.xlsx')
 
@@ -56,209 +56,209 @@ def _fetch_cmf_data(cm_no):
     }
 
 
-def _fill_and_export_via_excel(template_abs_path, pdf_path, data):
-    """
-    Fills the Excel template using COM automation with specific coordinates 
-    and '/' character for checkboxes.
-    """
-    cmf = data['cmf']
-    dates = data['dates']
-    formula_info = data['formula_info']
-    color_req_obj = data['color_req_obj']
-    resins = data['resins']
-    process_list = data['process_list']
-    spec_list = data['spec_list']
-    final_prod_code = data['final_prod_code']
+# def _fill_and_export_via_excel(template_abs_path, pdf_path, data):
+#     """
+#     Fills the Excel template using COM automation with specific coordinates 
+#     and '/' character for checkboxes.
+#     """
+#     cmf = data['cmf']
+#     dates = data['dates']
+#     formula_info = data['formula_info']
+#     color_req_obj = data['color_req_obj']
+#     resins = data['resins']
+#     process_list = data['process_list']
+#     spec_list = data['spec_list']
+#     final_prod_code = data['final_prod_code']
 
-    pythoncom.CoInitialize()
-    excel = None
-    wb = None
-    try:
-        excel = win32.DispatchEx("Excel.Application")
-        excel.Visible = False
-        excel.DisplayAlerts = False
+#     pythoncom.CoInitialize()
+#     excel = None
+#     wb = None
+#     try:
+#         excel = win32.DispatchEx("Excel.Application")
+#         excel.Visible = False
+#         excel.DisplayAlerts = False
 
-        wb = excel.Workbooks.Open(template_abs_path)
-        ws = wb.Worksheets(1)
+#         wb = excel.Workbooks.Open(template_abs_path)
+#         ws = wb.Worksheets(1)
 
-        def set_cell(addr, value):
-            ws.Range(addr).Value = value
+#         def set_cell(addr, value):
+#             ws.Range(addr).Value = value
 
-        # Helper for checkbox behavior: returns '/' if condition is true, else empty string
-        check = lambda condition: '/' if condition else ''
+#         # Helper for checkbox behavior: returns '/' if condition is true, else empty string
+#         check = lambda condition: '/' if condition else ''
 
-        # --- GENERAL INFORMATION ---
-        set_cell('F6', cmf.cm_no)
-        set_cell('F8', formula_info.customer if formula_info else "")
-        set_cell('F10', dates.form_made.strftime('%m/%d/%Y') if dates and dates.form_made else "")
-        set_cell('F12', dates.date_required if dates else "")
-        set_cell('F14', cmf.sm.name if cmf.sm else "")
+#         # --- GENERAL INFORMATION ---
+#         set_cell('F6', cmf.cm_no)
+#         set_cell('F8', formula_info.customer if formula_info else "")
+#         set_cell('F10', dates.form_made.strftime('%m/%d/%Y') if dates and dates.form_made else "")
+#         set_cell('F12', dates.date_required if dates else "")
+#         set_cell('F14', cmf.sm.name if cmf.sm else "")
         
-        # Matching Type (Row 16)
-        set_cell('F16', check(cmf.matching_type == 'new'))
-        set_cell('I16', check(cmf.matching_type == 'rematch'))
+#         # Matching Type (Row 16)
+#         set_cell('F16', check(cmf.matching_type == 'new'))
+#         set_cell('I16', check(cmf.matching_type == 'rematch'))
         
-        # Product Status (Row 18)
-        set_cell('F18', check(cmf.product_status == 'existing'))
-        set_cell('L18', check(cmf.product_status == 'new'))
+#         # Product Status (Row 18)
+#         set_cell('F18', check(cmf.product_status == 'existing'))
+#         set_cell('L18', check(cmf.product_status == 'new'))
         
-        set_cell('F20', formula_info.finished_product if formula_info else "")
-        set_cell('F22', cmf.color_desc)
+#         set_cell('F20', formula_info.finished_product if formula_info else "")
+#         set_cell('F22', cmf.color_desc)
 
-        # --- COLOR REQUIREMENT ---
-        c_req_name = color_req_obj.name if color_req_obj else ""
-        standard_reqs = ['transparent', 'opaque', 'translucent', 'metallic', 'fluorescent', 'pearlescent']
-        req_map = {
-            'transparent': 'F24', 'opaque': 'I24', 'translucent': 'L24', 
-            'metallic': 'F26', 'fluorescent': 'I26', 'pearlescent': 'L26'
-        }
+#         # --- COLOR REQUIREMENT ---
+#         c_req_name = color_req_obj.name if color_req_obj else ""
+#         standard_reqs = ['transparent', 'opaque', 'translucent', 'metallic', 'fluorescent', 'pearlescent']
+#         req_map = {
+#             'transparent': 'F24', 'opaque': 'I24', 'translucent': 'L24', 
+#             'metallic': 'F26', 'fluorescent': 'I26', 'pearlescent': 'L26'
+#         }
 
-        # Clear standard req cells and 'Others' checkbox
-        for addr in req_map.values(): set_cell(addr, "")
-        set_cell('F28', "")
-        set_cell('H28', "")
+#         # Clear standard req cells and 'Others' checkbox
+#         for addr in req_map.values(): set_cell(addr, "")
+#         set_cell('F28', "")
+#         set_cell('H28', "")
 
-        if c_req_name in standard_reqs:
-            set_cell(req_map[c_req_name], "/")
-        elif c_req_name:
-            set_cell('F28', "/")           # "Others" checkbox
-            set_cell('H28', c_req_name)    # "Others" text value
+#         if c_req_name in standard_reqs:
+#             set_cell(req_map[c_req_name], "/")
+#         elif c_req_name:
+#             set_cell('F28', "/")           # "Others" checkbox
+#             set_cell('H28', c_req_name)    # "Others" text value
 
-        # --- SAMPLE COLORANT AVAILABLE ---
-        set_cell('F30', check(cmf.is_sample_available is True))
-        set_cell('I30', check(cmf.is_sample_available is False))
+#         # --- SAMPLE COLORANT AVAILABLE ---
+#         set_cell('F30', check(cmf.is_sample_available is True))
+#         set_cell('I30', check(cmf.is_sample_available is False))
 
-        # --- TYPE OF COLORANT ---
-        set_cell('F32', check(cmf.colorant_type == 'MB'))
-        set_cell('I32', check(cmf.colorant_type == 'DC'))
-        is_other_colorant = cmf.colorant_type not in ('MB', 'DC')
-        set_cell('L32', check(is_other_colorant))
-        set_cell('O32', cmf.colorant_type if is_other_colorant else "")
+#         # --- TYPE OF COLORANT ---
+#         set_cell('F32', check(cmf.colorant_type == 'MB'))
+#         set_cell('I32', check(cmf.colorant_type == 'DC'))
+#         is_other_colorant = cmf.colorant_type not in ('MB', 'DC')
+#         set_cell('L32', check(is_other_colorant))
+#         set_cell('O32', cmf.colorant_type if is_other_colorant else "")
 
-        # --- DOSAGE, QTY ORDER, RESIN ---
-        set_cell('F34', formula_info.dosage if formula_info else "")
-        ws.Range('F36').NumberFormat = "#,##0.00 \"KG\""
-        set_cell('F36', cmf.est_qty_order) # New Field
-        set_cell('F38', resins)
+#         # --- DOSAGE, QTY ORDER, RESIN ---
+#         set_cell('F34', formula_info.dosage if formula_info else "")
+#         ws.Range('F36').NumberFormat = "#,##0.00 \"KG\""
+#         set_cell('F36', cmf.est_qty_order) # New Field
+#         set_cell('F38', resins)
 
-        # --- PROCESS ---
-        set_cell('F40', check('injection' in process_list))
-        set_cell('I40', check('blow-molding' in process_list))
-        set_cell('L40', check('film' in process_list))
-        set_cell('F42', check('pipe-extrusion' in process_list))
+#         # --- PROCESS ---
+#         set_cell('F40', check('injection' in process_list))
+#         set_cell('I40', check('blow-molding' in process_list))
+#         set_cell('L40', check('film' in process_list))
+#         set_cell('F42', check('pipe-extrusion' in process_list))
         
-        standard_procs = ['injection', 'blow-molding', 'film', 'pipe-extrusion']
-        other_procs = [p for p in process_list if p not in standard_procs]
-        set_cell('I42', check(bool(other_procs))) # Others checkbox
-        set_cell('K42', ", ".join(other_procs) if other_procs else "") # Others value
+#         standard_procs = ['injection', 'blow-molding', 'film', 'pipe-extrusion']
+#         other_procs = [p for p in process_list if p not in standard_procs]
+#         set_cell('I42', check(bool(other_procs))) # Others checkbox
+#         set_cell('K42', ", ".join(other_procs) if other_procs else "") # Others value
 
-        # --- RESIN PROVIDED & MI ---
-        set_cell('F44', cmf.qty_resin_testing)
-        set_cell('F46', check(cmf.is_resin_provided is True))
-        set_cell('I46', check(cmf.is_resin_provided is False))
-        set_cell('F48', cmf.mi_c_resin)
+#         # --- RESIN PROVIDED & MI ---
+#         set_cell('F44', cmf.qty_resin_testing)
+#         set_cell('F46', check(cmf.is_resin_provided is True))
+#         set_cell('I46', check(cmf.is_resin_provided is False))
+#         set_cell('F48', cmf.mi_c_resin)
 
-        # --- COLOR GUIDE RETURN ---
-        set_cell('F50', check(cmf.is_guide_to_return is True))
-        set_cell('I50', check(cmf.is_guide_to_return is False))
+#         # --- COLOR GUIDE RETURN ---
+#         set_cell('F50', check(cmf.is_guide_to_return is True))
+#         set_cell('I50', check(cmf.is_guide_to_return is False))
 
-        # --- OTHER SPECIFICATIONS ---
-        set_cell('F52', check('Food Contact' in spec_list))
-        set_cell('I52', check('Sunlight Exposure' in spec_list))
+#         # --- OTHER SPECIFICATIONS ---
+#         set_cell('F52', check('Food Contact' in spec_list))
+#         set_cell('I52', check('Sunlight Exposure' in spec_list))
         
-        standard_specs = ['Food Contact', 'Sunlight Exposure']
-        other_specs = [s for s in spec_list if s not in standard_specs]
-        set_cell('F54', check(bool(other_specs))) # Others checkbox
-        set_cell('H54', ", ".join(other_specs) if other_specs else "") # Others value
+#         standard_specs = ['Food Contact', 'Sunlight Exposure']
+#         other_specs = [s for s in spec_list if s not in standard_specs]
+#         set_cell('F54', check(bool(other_specs))) # Others checkbox
+#         set_cell('H54', ", ".join(other_specs) if other_specs else "") # Others value
 
-        # --- TEMPERATURE & LOW COST ---
-        set_cell('F56', cmf.temperature)
-        set_cell('F58', check(cmf.is_low_cost is True))
-        set_cell('I58', check(cmf.is_low_cost is False))
+#         # --- TEMPERATURE & LOW COST ---
+#         set_cell('F56', cmf.temperature)
+#         set_cell('F58', check(cmf.is_low_cost is True))
+#         set_cell('I58', check(cmf.is_low_cost is False))
 
-        # --- REMARKS & PRODUCT CODE ---
-        set_cell('C63', cmf.remarks)
-        set_cell('D74', final_prod_code)
+#         # --- REMARKS & PRODUCT CODE ---
+#         set_cell('C63', cmf.remarks)
+#         set_cell('D74', final_prod_code)
 
-        # --- PAGE SETUP ---
-        ps = ws.PageSetup
-        ps.LeftMargin = 0
-        ps.RightMargin = 0
-        ps.TopMargin = 0
-        ps.BottomMargin = 0
-        ps.HeaderMargin = 0
-        ps.FooterMargin = 0
+#         # --- PAGE SETUP ---
+#         ps = ws.PageSetup
+#         ps.LeftMargin = 0
+#         ps.RightMargin = 0
+#         ps.TopMargin = 0
+#         ps.BottomMargin = 0
+#         ps.HeaderMargin = 0
+#         ps.FooterMargin = 0
 
-        ps.CenterHorizontally = True
-        ps.CenterVertically = False
+#         ps.CenterHorizontally = True
+#         ps.CenterVertically = False
         
-        ps.Zoom = False
-        ps.FitToPagesWide = 1
-        ps.FitToPagesTall = 1
+#         ps.Zoom = False
+#         ps.FitToPagesWide = 1
+#         ps.FitToPagesTall = 1
 
-        # Export to PDF (xlTypePDF = 0)
-        ws.ExportAsFixedFormat(0, pdf_path)
+#         # Export to PDF (xlTypePDF = 0)
+#         ws.ExportAsFixedFormat(0, pdf_path)
 
-    finally:
-        if wb is not None:
-            wb.Close(SaveChanges=False)
-        if excel is not None:
-            excel.Quit()
-        pythoncom.CoUninitialize()
-
-
-def print_cmf_preview(request, cm_no):
-    """
-    Fills the ORIGINAL Excel template directly via COM (preserving all
-    drawings/checkboxes/formatting), exports to PDF, resizes that PDF to
-    a fixed 8.5in x 6.5in page with no margin, and serves it inline for
-    browser preview. All temp files are cleaned up before returning.
-    """
-    try:
-        data = _fetch_cmf_data(cm_no)
-    except tbl_cmf.DoesNotExist:
-        messages.error(request, f"Error: CMF No. '{cm_no}' was not found.")
-        return redirect('cmf_entry')
-    except Exception as e:
-        messages.error(request, f"System Error: {str(e)}")
-        return redirect('cmf_entry')
-
-    template_abs_path = os.path.abspath(TEMPLATE_PATH)
-    if not os.path.exists(template_abs_path):
-        return HttpResponseServerError("Template file not found on server.")
-
-    with tempfile.TemporaryDirectory() as tmpdir:
-        raw_pdf_path = os.path.join(tmpdir, f"{uuid.uuid4().hex}_raw.pdf")
-        final_pdf_path = os.path.join(tmpdir, f"{uuid.uuid4().hex}_final.pdf")
-
-        try:
-            with _excel_lock:
-                _fill_and_export_via_excel(template_abs_path, raw_pdf_path, data)
-            _resize_pdf_to_fixed_size(
-                raw_pdf_path, final_pdf_path,
-                width_in=6.5, height_in=8.5,
-            )
-        except Exception as e:
-            return HttpResponseServerError(f"PDF export failed: {str(e)}")
-
-        import fitz as _fitz_debug
-        _doc = _fitz_debug.open(final_pdf_path)
-        print("FINAL PDF PAGE SIZE (pt):", _doc[0].rect)
-        _doc.close()
-        if not os.path.exists(final_pdf_path):
-            return HttpResponseServerError("PDF export failed: no output file produced.")
-
-        with open(final_pdf_path, 'rb') as f:
-            pdf_bytes = f.read()
-    # TemporaryDirectory context manager deletes both PDFs here, unconditionally.
-
-    response = HttpResponse(pdf_bytes, content_type='application/pdf')
-    response['Content-Disposition'] = 'inline'
-    response['X-Frame-Options'] = 'SAMEORIGIN'
-    return response
+#     finally:
+#         if wb is not None:
+#             wb.Close(SaveChanges=False)
+#         if excel is not None:
+#             excel.Quit()
+#         pythoncom.CoUninitialize()
 
 
-print_cmf_preview = xframe_options_exempt(print_cmf_preview)
+# def print_cmf_preview(request, cm_no):
+#     """
+#     Fills the ORIGINAL Excel template directly via COM (preserving all
+#     drawings/checkboxes/formatting), exports to PDF, resizes that PDF to
+#     a fixed 8.5in x 6.5in page with no margin, and serves it inline for
+#     browser preview. All temp files are cleaned up before returning.
+#     """
+#     try:
+#         data = _fetch_cmf_data(cm_no)
+#     except tbl_cmf.DoesNotExist:
+#         messages.error(request, f"Error: CMF No. '{cm_no}' was not found.")
+#         return redirect('cmf_entry')
+#     except Exception as e:
+#         messages.error(request, f"System Error: {str(e)}")
+#         return redirect('cmf_entry')
+
+#     template_abs_path = os.path.abspath(TEMPLATE_PATH)
+#     if not os.path.exists(template_abs_path):
+#         return HttpResponseServerError("Template file not found on server.")
+
+#     with tempfile.TemporaryDirectory() as tmpdir:
+#         raw_pdf_path = os.path.join(tmpdir, f"{uuid.uuid4().hex}_raw.pdf")
+#         final_pdf_path = os.path.join(tmpdir, f"{uuid.uuid4().hex}_final.pdf")
+
+#         try:
+#             with _excel_lock:
+#                 _fill_and_export_via_excel(template_abs_path, raw_pdf_path, data)
+#             _resize_pdf_to_fixed_size(
+#                 raw_pdf_path, final_pdf_path,
+#                 width_in=6.5, height_in=8.5,
+#             )
+#         except Exception as e:
+#             return HttpResponseServerError(f"PDF export failed: {str(e)}")
+
+#         import fitz as _fitz_debug
+#         _doc = _fitz_debug.open(final_pdf_path)
+#         print("FINAL PDF PAGE SIZE (pt):", _doc[0].rect)
+#         _doc.close()
+#         if not os.path.exists(final_pdf_path):
+#             return HttpResponseServerError("PDF export failed: no output file produced.")
+
+#         with open(final_pdf_path, 'rb') as f:
+#             pdf_bytes = f.read()
+#     # TemporaryDirectory context manager deletes both PDFs here, unconditionally.
+
+#     response = HttpResponse(pdf_bytes, content_type='application/pdf')
+#     response['Content-Disposition'] = 'inline'
+#     response['X-Frame-Options'] = 'SAMEORIGIN'
+#     return response
+
+
+# print_cmf_preview = xframe_options_exempt(print_cmf_preview)
 
 def get_cmf_print_context(cm_no):
     """Builds the full context dict for the HTML/CSS CMF print template."""
