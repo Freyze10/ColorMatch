@@ -113,7 +113,7 @@ def approve_request(request_id, admin_user, request):
     req_obj.decided_by = admin_user
     req_obj.decided_at = timezone.now()
     req_obj.save()
-
+    
     reset_path = reverse('reset_password', args=[req_obj.token])
     reset_link = request.build_absolute_uri(reset_path)
     # --- Signature definition ---
@@ -139,7 +139,6 @@ def approve_request(request_id, admin_user, request):
                 recipient_list=[req_obj.user.email],
                 fail_silently=False,
             )
-            print(sent_count)
             email_sent = sent_count > 0
         except Exception as e:
             print("EMAIL SEND FAILED:", e)
@@ -147,7 +146,7 @@ def approve_request(request_id, admin_user, request):
 
     if email_sent:
         return True, f"Approved. An email was sent to {req_obj.user.email}."
-    return True, f"Approved. Share this link with the user manually: {reset_link}"
+    return True, f"Approved. But Email Failed. Share this link with the user manually: {reset_link}"
 
 
 def reject_request(request_id, admin_user):
