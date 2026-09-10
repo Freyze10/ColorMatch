@@ -116,13 +116,25 @@ def approve_request(request_id, admin_user, request):
 
     reset_path = reverse('reset_password', args=[req_obj.token])
     reset_link = request.build_absolute_uri(reset_path)
-
+    # --- Signature definition ---
+    signature = (
+        "\n\n-- \n"
+        "I.T Support\n"
+        "Masterbatch Philippines, Incorporated\n"
+        "Email: mbpi.itsupport@gmail.com"
+    )
     email_sent = False
     if req_obj.user.email:
         try:
+            # Combining message + signature
+            email_body = (
+                f"Your password reset has been approved. "
+                f"Use this link to set a new password:\n\n{reset_link}\n\n"
+                f"This link can only be used once.{signature}"
+            )
             sent_count = send_mail(
                 subject="Password Reset Approved",
-                message=f"Your password reset has been approved. Use this link to set a new password:\n\n{reset_link}\n\nThis link can only be used once.",
+                message=email_body,
                 from_email=None,  # uses DEFAULT_FROM_EMAIL
                 recipient_list=[req_obj.user.email],
                 fail_silently=False,
