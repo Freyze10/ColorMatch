@@ -44,7 +44,28 @@ Permission Access Control
         </div>
     </div>
 </div>
+<style>
+    /* Ensure the table doesn't collapse */
+    .permission-table {
+        border-collapse: separate;
+        border-spacing: 0;
+    }
 
+    /* Target the first column of both thead and tbody */
+    .permission-table th:first-child,
+    .permission-table td:first-child {
+        position: sticky;
+        left: 0;
+        z-index: 2; /* Keeps it on top of other content */
+        background-color: white; /* Needs a background color to hide content scrolling behind it */
+        border-right: 1px solid #dee2e6; /* Optional: adds a nice separator line */
+    }
+
+    /* Add a subtle shadow when scrolling */
+    .table-responsive {
+        border: 1px solid #dee2e6;
+    }
+</style>
 <script>
 document.addEventListener('DOMContentLoaded', function () {
     function getCookie(name) {
