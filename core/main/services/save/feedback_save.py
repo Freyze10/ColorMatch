@@ -119,13 +119,16 @@ def get_feedback_form_data(feedback_no):
             'due_date': dates.due_date_lab.strftime('%m/%d/%Y') if dates and dates.due_date_lab else '',
             'finished_product': formula.finished_product if formula else '',
             'color_description': fb.cm_no.color_desc or '',
+            'set_pc': fb.pieces or '',
+            'quantity_kg': fb.quantity_given or '',
             'matching_type': fb.cm_no.matching_type or '',
             'sales_person': fb.cm_no.sm.name if fb.cm_no.sm else '',
             'current_status': 'Completed' if (pending and pending.is_completed) else 'Pending',
-            'pending_reason': pending.reason if pending else '',
+            'pending_reason': pending.reason if pending else 'Pending',
             'product_code': pending_info.code.product_code if pending_info and pending_info.code else "",
             'code_description': pending.code_details if pending else '',
             'date_submitted': pending.date_submitted.strftime('%m/%d/%Y') if pending and pending.date_submitted else '',
+            'lot_no': pending.lot_no if pending else '',
             'ar_number': pending.ar_no if pending else '',
             'ar_date': pending.ar_date.strftime('%m/%d/%Y') if pending and pending.ar_date else '',
             'record_type': 'cmf',
@@ -151,6 +154,8 @@ def get_feedback_form_data(feedback_no):
             'due_date': dates.due_date_lab.strftime('%m/%d/%Y') if dates and dates.due_date_lab else '',
             'finished_product': fb.rs_no.finished_product or '',
             'color_description': fb.rs_no.color_desc or '',
+            'set_pc': fb.pieces or '',
+            'quantity_kg': fb.quantity_given or '',
             'matching_type': fb.rs_no.matching_type or '',
             'sales_person': fb.rs_no.sm_no.name if fb.rs_no.sm_no else '',
             'current_status': 'Completed' if (pending and pending.is_completed) else 'Pending',
@@ -159,6 +164,7 @@ def get_feedback_form_data(feedback_no):
             'code_description': pending.code_details if pending else '',
             'date_submitted': pending.date_submitted.strftime('%m/%d/%Y') if pending and pending.date_submitted else '',
             'ar_number': pending.ar_no if pending else '',
+            'lot_no': pending.lot_no if pending else '',
             'ar_date': pending.ar_date.strftime('%m/%d/%Y') if pending and pending.ar_date else '',
             'record_type': 'rs',
             'feedback_status': fb.status or 'Pending',
@@ -170,7 +176,6 @@ def get_feedback_form_data(feedback_no):
     # --- Compute the allowed status choices for this record ---
     selected_names = _get_selected_option_names(tracking)
     form_data['status_choices'] = get_feedback_status_choices(selected_names)
-
     return form_data
 
 
