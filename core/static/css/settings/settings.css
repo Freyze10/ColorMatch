@@ -39,3 +39,7 @@
     border-radius: 0.375rem;
     padding: 6px 10px;
 }
+
+.table-responsive td {
+    white-space: nowrap;
+}
