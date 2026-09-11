@@ -9,7 +9,9 @@ from main.models import (
     tbl_mb_extruder_formula,
     tbl_dc_extruder_formula,
     tbl_cmf_pending_completed,
+    tbl_submitted_selected,
     tbl_user,
+    tbl_feedback_details,
 )
 
 COMPLETED_MARKER = "Status (Pending -> Completed)"
@@ -233,8 +235,24 @@ def get_employee_stats():
 # SAMPLE VS ORDER CHART (pie chart) — not wired to the DB yet, skip for now
 # =====================================================================
 
-# def get_sample_vs_order_data():
-#     pass
+def get_sample_vs_order_data():
+    """
+    Samples/Chips -> count of distinct tbl_cmf_pending_completed records
+    that have a tbl_submitted_selected row pointing to the "Sample" or
+    "Chips" option (Price-only submissions are excluded).
+
+    Orders -> count of tbl_feedback_details rows whose status is
+    "Ordered". Defaults to 0 if there are no matching rows for either.
+    """
+    samples_chips_count = tbl_submitted_selected.objects.filter(
+        option_id__name__in=["Sample", "Chips"]
+    ).values("completed_id").distinct().count()
+    orders_count = tbl_feedback_details.objects.filter(status__iexact="Ordered").count()
+
+    return [
+        {"category": "Samples/Chips", "value": samples_chips_count},
+        {"category": "Orders", "value": orders_count},
+    ]
 
 
 # =====================================================================
@@ -259,5 +277,6 @@ def get_dashboard_context():
         # employee performance table
         "employee_stats": get_employee_stats(),
 
-        # sample vs order chart -> not implemented yet
+        # sample vs order chart
+        "sample_order_chart_data": get_sample_vs_order_data(),
     }
