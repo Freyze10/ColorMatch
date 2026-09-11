@@ -2,6 +2,7 @@ from datetime import datetime
 
 from django.core.cache import cache
 from django.db import transaction
+from django.http import JsonResponse
 
 from main.utils.log_audit_trail import log_audit
 from main.models import (
@@ -233,6 +234,102 @@ def get_feedback_records():
 
     cache.set(CACHE_KEY, records_list, 3600)  # Cache for 1 hour
     return records_list
+
+
+# Column index -> record key, kept next to the view so it's obvious which
+# template <th> maps to which field. Index 0 is the hidden feedback_no
+# column — not searchable/sortable, so it's intentionally excluded here.
+FEEDBACK_SEARCHABLE_COLUMNS = {
+    1: 'matching_no',
+    2: 'customer',
+    3: 'prod_code',
+    4: 'color_desc',
+    5: 'finished_prod',
+    8: 'type',
+    9: 'status',
+    10: 'details',
+    11: 'package_details',
+}
+
+FEEDBACK_SORTABLE_COLUMNS = {
+    1: 'matching_no',
+    2: 'customer',
+    3: 'prod_code',
+    4: 'color_desc',
+    5: 'finished_prod',
+    6: 'required_date',
+    7: 'due_date',
+    8: 'type',
+    9: 'status',
+    10: 'details',
+    11: 'package_details',
+}
+
+
+def get_feedback_records_json(request):
+    """Server-side DataTables logic for Feedback records, built on the cached unified list."""
+    draw = int(request.GET.get('draw', 1))
+    start = int(request.GET.get('start', 0))
+    length = int(request.GET.get('length', 100))
+    global_search = request.GET.get('search[value]', '').strip()
+
+    all_records = get_feedback_records()
+    total_unfiltered = len(all_records)
+
+    # Normalize required_date to a display string up front, same as
+    # get_feedback_records() already does for due_date, so search/sort
+    # and the payload all see the same value.
+    for item in all_records:
+        rd = item.get('required_date')
+        item['required_date'] = rd.strftime('%m/%d/%Y') if hasattr(rd, 'strftime') else (rd or '---')
+
+    # --- Per-column search (DataTables sends one search box per <th>) ---
+    active_column_filters = {}
+    for idx, field in FEEDBACK_SEARCHABLE_COLUMNS.items():
+        val = request.GET.get(f'columns[{idx}][search][value]', '').strip()
+        if val:
+            active_column_filters[field] = val.lower()
+
+    if active_column_filters:
+        filtered = [
+            item for item in all_records
+            if all(query in str(item.get(field, '')).lower() for field, query in active_column_filters.items())
+        ]
+    elif global_search:
+        query = global_search.lower()
+        filtered = [
+            item for item in all_records
+            if any(query in str(item.get(field, '')).lower() for field in FEEDBACK_SEARCHABLE_COLUMNS.values())
+        ]
+    else:
+        filtered = all_records
+
+    # --- Sorting: read DataTables' order[0][column] / order[0][dir] ---
+    order_col_index = request.GET.get('order[0][column]')
+    order_dir = request.GET.get('order[0][dir]', 'desc')
+
+    sort_field = None
+    if order_col_index is not None:
+        sort_field = FEEDBACK_SORTABLE_COLUMNS.get(int(order_col_index))
+
+    if sort_field:
+        filtered.sort(
+            key=lambda item: (item.get(sort_field) is None, str(item.get(sort_field) or '')),
+            reverse=(order_dir == 'desc')
+        )
+    else:
+        # Fallback: original default (newest feedback first)
+        filtered.sort(key=lambda x: x.get('feedback_no') or 0, reverse=True)
+
+    total_filtered = len(filtered)
+    paginated_list = filtered[start:start + length]
+
+    return JsonResponse({
+        "draw": draw,
+        "recordsTotal": total_unfiltered,
+        "recordsFiltered": total_filtered,
+        "data": paginated_list,
+    })
 
 
 def save_feedback_entry(request, feedback_no):

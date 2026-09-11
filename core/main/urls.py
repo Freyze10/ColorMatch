@@ -1,5 +1,7 @@
 from django.urls import path
 
+from .services.save import feedback_save
+
 from .services.settings import settings_services
 
 from .services.export import export_audit_trail, export_feedback, export_formulation, export_master_formula
@@ -56,6 +58,7 @@ urlpatterns = [
     path('audit-trail/data/', audit_services.get_audit_trail_data, name='audit_trail_data'),
     path('master-formula/export/', export_master_formula.export_master_formula_excel, name='export_master_formula_excel'),
     path('formulation/export/', export_formulation.export_formulation_excel, name='export_formulation_excel'),
+    path('feedback/data/', feedback_save.get_feedback_records_json, name='feedback_records_data'),
     path('feedback/export/', export_feedback.export_feedback_excel, name='export_feedback_excel'),
     path('audit-trail/export/', export_audit_trail.export_audit_trail_excel, name='export_audit_trail_csv'),
     path('permission-access/toggle/', views.toggle_permission, name='toggle_permission'),
