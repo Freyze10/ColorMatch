@@ -52,6 +52,12 @@ def pending_role(request):
 
 
 def signin(request):
+    # 1. If user is already logged in, log them out first to ensure a fresh start
+    if request.user.is_authenticated:
+        logout(request)
+    
+    # 2. Clear all session data (this destroys old session cookies)
+    request.session.flush()
     next_url = request.GET.get('next', '') or request.POST.get('next', '')
 
     if request.method == 'POST':
@@ -61,6 +67,8 @@ def signin(request):
         user = authenticate(request, username=username, password=password)
         if user is not None:
             login(request, user)
+            # Create a new session specifically after successful login
+            request.session.cycle_key() 
             return redirect(next_url or 'dashboard')
 
         messages.error(request, "Incorrect username or password.")
