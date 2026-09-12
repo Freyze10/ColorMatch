@@ -1,7 +1,20 @@
+{% load static %}
 <div class="d-flex flex-column">
     <div class="row g-2 mb-4 align-items-center">
         <div class="col">
             <h5 class="fw-bold m-0 pc-title text-uppercase">Feedback Records</h5>
+        </div>
+        <div class="col-md-2">
+            <select class="form-select form-select-sm uniform-input" id="filterFeedbackCol">
+                <option value="all">All Columns</option>
+                <option value="Matching No.">Matching No.</option>
+                <option value="Customer">Customer</option>
+                <option value="Product Code">Product Code</option>
+                <option value="Color Description">Color Description</option>
+                <option value="Finished Product">Finished Product</option>
+                <option value="Type">Type</option>
+                <option value="Status">Status</option>
+            </select>
         </div>
         <div class="col-md-4">
             <div class="input-group input-group-sm">
@@ -12,7 +25,7 @@
             </div>
         </div>
         <div class="col-auto">
-            <button class="btn btn-sm btn-primary px-3 shadow-sm" onclick="window.location.reload()">
+            <button class="btn btn-sm btn-primary px-3 shadow-sm" id="btnRefreshFeedback">
                 <i class="bi bi-arrow-clockwise"></i> Refresh
             </button>
         </div>
@@ -20,10 +33,10 @@
 
     <div class="feedback-table-wrapper rounded-3 border">
         <div class="feedback-scroll-body" style="max-height: 70vh; overflow-y: auto;">
-            <table class="table table-hover align-middle mb-0" id="feedbackTable">
+            <table class="table table-hover align-middle mb-0 w-100" id="feedbackTable">
                 <thead class="sticky-top bg-white" style="z-index: 10;">
                     <tr class="small text-uppercase">
-                        <th class="d-none">ID</th>
+                        <th>ID</th>
                         <th class="ps-3">Matching No.</th>
                         <th>Customer</th>
                         <th>Product Code</th>
@@ -37,64 +50,19 @@
                         <th class="pe-3">Package Details</th>
                     </tr>
                 </thead>
-                <tbody class="extra-small">
-                    {% for record in feedback_records %}
-                    <tr class="record-row" data-mode="{{ record.mode }}" style="cursor: pointer;" title="Double-click to open feedback entry">
-                        <td class="d-none">{{ record.feedback_no }}</td>
-                        <td class="ps-3 fw-bold {% if record.mode == 'rs' %}text-primary{% else %}text-teal{% endif %}">
-                            {{ record.matching_no }}
-                        </td>
-                        <td>{{ record.customer }}</td>
-                        <td><code>{{ record.prod_code }}</code></td>
-                        <td>{{ record.color_desc }}</td>
-                        <td>{{ record.finished_prod }}</td>
-                        <td>{{ record.required_date }}</td>
-                        <td>{{ record.due_date }}</td>
-                        <td>{{ record.type }}</td>
-                        <td>
-                            {% with status_lower=record.status|lower %}
-                                {% if status_lower == 'pending' %}
-                                    <span class="badge bg-warning-subtle text-warning border border-warning">{{ record.status }}</span>
-                                {% elif status_lower == 'rematch' %}
-                                    <span class="badge bg-primary-subtle text-primary border border-primary">{{ record.status }}</span>
-                                {% elif status_lower == 'abandoned' %}
-                                    <span class="badge bg-danger-subtle text-danger border border-danger">{{ record.status }}</span>
-                                {% elif status_lower == 'ordered' %}
-                                    <span class="badge bg-dark-subtle text-dark border border-dark">{{ record.status }}</span>
-                                {% elif 'approved' in status_lower %}
-                                    <span class="badge bg-success-subtle text-success border border-success">{{ record.status }}</span>
-                                {% elif 'request' in status_lower %}
-                                    <span class="badge bg-info-subtle text-info border border-info">{{ record.status }}</span>
-                                {% else %}
-                                    <span class="badge bg-light text-dark border border-secondary">{{ record.status }}</span>
-                                {% endif %}
-                            {% endwith %}
-                        </td>
-                        <td class="text-truncate" style="max-width: 150px;" title="{{ record.details }}">
-                            {{ record.details }}
-                        </td>
-                        <td class="pe-3">{{ record.package_details }}</td>
-                    </tr>
-                    {% empty %}
-                    <tr>
-                        <td colspan="11" class="text-center py-5 text-muted">No feedback records found.</td>
-                    </tr>
-                    {% endfor %}
-                </tbody>
+                <tbody class="extra-small"></tbody>
             </table>
         </div>
     </div>
 
     <div class="mt-4 d-flex flex-column flex-md-row justify-content-between align-items-md-center gap-3">
-        <small class="text-muted fw-bold">Showing {{ record_count }} records</small>
-        
+        <small class="text-muted fw-bold" id="feedbackCountLabel">Loading...</small>
+
         <div class="d-flex align-items-center gap-2 position-relative">
-            <!-- Export Filter Toggle -->
             <button class="btn btn-sm btn-outline-secondary px-2" id="feedbackExportFilterBtn" type="button">
                 <i class="bi bi-sliders"></i>
             </button>
 
-            <!-- Date Range Panel -->
             <div id="feedbackExportPanel" class="feedback-export-panel shadow-lg border rounded-3 bg-white p-3 d-none">
                 <label class="extra-small fw-bold d-block mb-1 text-uppercase">Date Created Range</label>
                 <div class="d-flex align-items-center gap-2">
@@ -127,75 +95,46 @@
     }
 </style>
 
+<script src="{% static 'js/feedback/feedback_records.js' %}"></script>
 <script>
-    // Simple Search Filter
-    document.getElementById('feedbackSearch').addEventListener('input', function(e) {
-        const term = e.target.value.toLowerCase();
-        const rows = document.querySelectorAll('#feedbackTable tbody tr.record-row');
-        
-        rows.forEach(row => {
-            const text = row.innerText.toLowerCase();
-            row.style.display = text.includes(term) ? '' : 'none';
-        });
-    });
+    // Export panel toggle + trigger (unchanged from before)
     const filterBtn = document.getElementById('feedbackExportFilterBtn');
     const panel = document.getElementById('feedbackExportPanel');
     const exportBtn = document.getElementById('btnExportFeedback');
 
-    // Toggle Panel
     filterBtn.addEventListener('click', (e) => {
         e.stopPropagation();
         panel.classList.toggle('d-none');
     });
 
-    // Close panel on outside click
     document.addEventListener('click', (e) => {
         if (!panel.contains(e.target) && e.target !== filterBtn) {
             panel.classList.add('d-none');
         }
     });
 
-    // Trigger Export
     exportBtn.addEventListener('click', function() {
         const fromDate = document.getElementById('exportDateFrom').value.trim();
         const toDate = document.getElementById('exportDateTo').value.trim();
 
-        // 1. Determine the confirmation message
-        let confirmTitle = 'Export Feedback';
         let confirmMsg = 'Are you sure you want to export all feedback records?';
-
-        // If both dates are present, change the message to show the range
         if (fromDate && toDate) {
             confirmMsg = `Are you sure you want to export feedback records from ${fromDate} to ${toDate}?`;
         }
 
-        // 2. Trigger Preline Confirmation
-        Preline.confirm(
-            confirmTitle,
-            confirmMsg,
-            'success',
-            () => {
-                // 3. Show global loader
-                if (typeof showLoader === "function") showLoader();
+        Preline.confirm('Export Feedback', confirmMsg, 'success', () => {
+            if (typeof showLoader === "function") showLoader();
 
-                // 4. Construct URL
-                const baseUrl = "{% url 'export_feedback_excel' %}";
-                const params = new URLSearchParams();
-                
-                // Only add parameters if they actually have values
-                if (fromDate) params.append('from', fromDate);
-                if (toDate) params.append('to', toDate);
-                
-                const exportUrl = params.toString() ? `${baseUrl}?${params.toString()}` : baseUrl;
+            const baseUrl = "{% url 'export_feedback_excel' %}";
+            const params = new URLSearchParams();
+            if (fromDate) params.append('from', fromDate);
+            if (toDate) params.append('to', toDate);
 
-                // 5. Trigger download
-                window.location.href = exportUrl;
+            window.location.href = params.toString() ? `${baseUrl}?${params.toString()}` : baseUrl;
 
-                // 6. Hide loader after a delay
-                setTimeout(() => {
-                    if (typeof hideLoader === "function") hideLoader();
-                }, 3000);
-            }
-        );
+            setTimeout(() => {
+                if (typeof hideLoader === "function") hideLoader();
+            }, 3000);
+        });
     });
 </script>
