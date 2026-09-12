@@ -1111,11 +1111,11 @@ def feedback(request):
             messages.error(request, f"Feedback record with ID {feedback_no} not found.")
 
     # --- 3. LOAD RECORDS LIST ---
-    # records_list = feedback_save.get_feedback_records()
+    records_list = feedback_save.get_feedback_records()
 
     context = {
-        # 'feedback_records': records_list,
-        # 'record_count': len(records_list),
+        'feedback_records': records_list,
+        'record_count': len(records_list),
         'form_data': form_data,
     }
     return render(request, "sidemenu/feedback/feedback.html", context)
