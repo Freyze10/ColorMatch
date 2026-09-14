@@ -1,4 +1,3 @@
-
 jQuery(document).ready(function($) {
     const table = $('#feedbackTable').DataTable({
         serverSide: true,
@@ -15,10 +14,9 @@ jQuery(document).ready(function($) {
             }
         },
         columns: [
-            // { data: "feedback_no", className: "ps-3" },
             {
                 data: "matching_no",
-                className: "fw-bold",
+                className: "ps-3 fw-bold",
                 render: function(data, type, row) {
                     const colorClass = row.mode === 'rs' ? 'text-primary' : 'text-teal';
                     return `<span class="${colorClass}">${data}</span>`;
@@ -49,6 +47,7 @@ jQuery(document).ready(function($) {
             },
             {
                 data: "details",
+                orderable: false,
                 render: function(data) {
                     return `<div class="text-truncate" style="max-width: 150px;" title="${data || ''}">${data || '---'}</div>`;
                 }
@@ -57,7 +56,8 @@ jQuery(document).ready(function($) {
         ],
         dom: 'rtp',
         pageLength: 100,
-        ordering: false,
+        ordering: true,
+        order: [], // default sort: Due Date, ascending
         language: {
             processing: '<div class="d-flex justify-content-center py-4"><div class="spinner-border text-teal"></div></div>',
             paginate: {

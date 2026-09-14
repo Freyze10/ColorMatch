@@ -238,6 +238,21 @@ COLUMN_FIELD_MAP = {
 }
 
 
+# Index position matches the `columns` array in feedback_records.js (0-based)
+ORDER_COLUMN_MAP = {
+    '0': 'matching_no',
+    '1': 'customer',
+    '2': 'prod_code',
+    '3': 'color_desc',
+    '4': 'finished_prod',
+    '5': 'required_date',
+    '6': 'due_date',
+    '7': 'matching_type',
+    '8': 'status',
+    '9': 'comment',
+    '10': 'storage_details',
+}
+
 def get_feedback_records_data(request):
     """DataTables server-side endpoint for the Feedback Records table."""
     draw = int(request.GET.get('draw', 1))
@@ -268,7 +283,15 @@ def get_feedback_records_data(request):
 
     filtered_records = queryset.count()
 
-    page = queryset.order_by('-feedback_no')[start:start + length].values(
+    order_col = request.GET.get('order[0][column]')
+    order_dir = request.GET.get('order[0][dir]', 'asc')
+    if order_col is not None and order_col in ORDER_COLUMN_MAP:
+        sort_field = ORDER_COLUMN_MAP[order_col]
+        queryset = queryset.order_by(f"{'-' if order_dir == 'desc' else ''}{sort_field}")
+    else:
+        queryset = queryset.order_by('-feedback_no')
+
+    page = queryset[start:start + length].values(
         'feedback_no', 'matching_no', 'customer', 'prod_code', 'color_desc',
         'finished_prod', 'required_date', 'due_date', 'matching_type',
         'status', 'comment', 'storage_details', 'mode',
