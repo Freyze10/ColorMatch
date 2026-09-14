@@ -23,6 +23,10 @@
     --btn-dark-teal: #134e4a;
     --btn-success: #10b981;
     --btn-primary: #3b82f6;
+
+    --scrollbar-bg: #e2e8f0;
+    --scrollbar-thumb: #cbd5e1;
+    --scrollbar-thumb-hover: #94a3b8;
 }
 
 body.dark-mode {
@@ -49,6 +53,10 @@ body.dark-mode {
     --bs-tertiary-bg: #334155;
     --bs-secondary-bg: #1e293b;
     --bs-secondary-color: #94a3b8;
+
+    --scrollbar-bg: #0f172a;     
+    --scrollbar-thumb: #334155;   
+    --scrollbar-thumb-hover: #475569;
 }
 
 /* ===================================
@@ -72,6 +80,7 @@ body {
 /* ===================================
    3. GLOBAL FORM COMPONENTS (Uniform)
 =================================== */
+
 .uniform-input, 
 .input-group-text.uniform-input,
 select.uniform-input {
@@ -238,6 +247,33 @@ body.dark-mode .ts-dropdown .active {
 .bg-purple-subtle { background-color: #f3e8ff !important; }
 .text-purple { color: #7e22ce !important; }
 .border-purple-subtle { border-color: #e9d5ff !important; }
+
+/* Custom Scrollbar Styles */
+
+/* For Webkit Browsers (Chrome, Edge, Safari) */
+::-webkit-scrollbar {
+    width: 8px;
+    height: 8px;
+}
+
+::-webkit-scrollbar-track {
+    background: var(--scrollbar-bg);
+}
+
+::-webkit-scrollbar-thumb {
+    background: var(--scrollbar-thumb);
+    border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+    background: var(--scrollbar-thumb-hover);
+}
+
+/* Firefox */
+* {
+    scrollbar-width: thin;
+    scrollbar-color: var(--scrollbar-thumb) var(--scrollbar-bg);
+}
 /* ===================================
    5. SIDEBAR STRUCTURE
 =================================== */

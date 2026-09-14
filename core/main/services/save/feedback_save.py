@@ -2,7 +2,10 @@ from datetime import datetime
 
 from django.core.cache import cache
 from django.db import transaction
-
+from django.http import JsonResponse
+from django.db.models import Q, Value, CharField
+from django.db.models.functions import Coalesce
+from django.db.models.expressions import OuterRef, Subquery, Case, When
 from main.utils.log_audit_trail import log_audit
 from main.models import (
     tbl_feedback_details, tbl_cmf_pending_completed, tbl_cmf_formula,
@@ -174,60 +177,151 @@ def get_feedback_form_data(feedback_no):
     return form_data
 
 
-def get_feedback_records():
-    """Fetches the list of feedback records with unified metadata, using cache."""
-    cached_data = cache.get(CACHE_KEY)
-    if cached_data is not None:
-        return cached_data
+def get_feedback_queryset():
+    """
+    Base queryset for Feedback Records with every display field annotated
+    at the DB level via subqueries. Pagination/search/sort all run in SQL,
+    so a page load only touches `length` rows instead of the whole table.
+    """
+    mb_final_code = tbl_mb_extruder_formula.objects.filter(
+        cm_no=OuterRef('cm_no'), is_final=True
+    ).values('code__product_code')[:1]
 
-    feedback_qs = tbl_feedback_details.objects.all().select_related('cm_no', 'rs_no', 'code').order_by('-feedback_no')
+    dc_final_code = tbl_dc_extruder_formula.objects.filter(
+        cm_no=OuterRef('cm_no'), is_final=True
+    ).values('code__product_code')[:1]
 
-    records_list = []
-    for fb in feedback_qs:
-        item = {
-            'feedback_no': fb.feedback_no,
-            'status': fb.status,
-            'details': fb.comment or '---',
-            'package_details': fb.storage_details or '---',
+    cmf_formula = tbl_cmf_formula.objects.filter(cm_no=OuterRef('cm_no'))
+
+    cmf_dates_cm = tbl_cmf_dates.objects.filter(cm_no=OuterRef('cm_no'))
+    cmf_dates_rs = tbl_cmf_dates.objects.filter(rs_no=OuterRef('rs_no'))
+
+    rs_pending_code = tbl_cmf_pending_completed.objects.filter(
+        rs_no=OuterRef('rs_no')
+    ).values('code__product_code')[:1]
+
+    return tbl_feedback_details.objects.select_related('cm_no', 'rs_no', 'code').annotate(
+        matching_no=Coalesce('cm_no__cm_no', 'rs_no__rs_no'),
+        customer=Coalesce(Subquery(cmf_formula.values('customer')[:1]), 'rs_no__customer'),
+        color_desc=Coalesce('cm_no__color_desc', 'rs_no__color_desc'),
+        finished_prod=Coalesce(Subquery(cmf_formula.values('finished_product')[:1]), 'rs_no__finished_product'),
+        matching_type=Coalesce('cm_no__matching_type', 'rs_no__matching_type'),
+        required_date=Coalesce(
+            Subquery(cmf_dates_cm.values('date_required')[:1]),
+            Subquery(cmf_dates_rs.values('date_required')[:1]),
+        ),
+        due_date=Coalesce(
+            Subquery(cmf_dates_cm.values('due_date_lab')[:1]),
+            Subquery(cmf_dates_rs.values('due_date_lab')[:1]),
+        ),
+        prod_code=Coalesce(
+            Subquery(mb_final_code),
+            Subquery(dc_final_code),
+            Subquery(rs_pending_code),
+            'code__product_code',
+        ),
+        mode=Case(
+            When(cm_no__isnull=False, then=Value('cmf')),
+            default=Value('rs'),
+            output_field=CharField(),
+        ),
+    )
+
+COLUMN_FIELD_MAP = {
+    'Matching No.': 'matching_no',
+    'Customer': 'customer',
+    'Product Code': 'prod_code',
+    'Color Description': 'color_desc',
+    'Finished Product': 'finished_prod',
+    'Type': 'matching_type',
+    'Status': 'status',
+}
+
+
+# Index position matches the `columns` array in feedback_records.js (0-based)
+ORDER_COLUMN_MAP = {
+    '0': 'matching_no',
+    '1': 'customer',
+    '2': 'prod_code',
+    '3': 'color_desc',
+    '4': 'finished_prod',
+    '5': 'required_date',
+    '6': 'due_date',
+    '7': 'matching_type',
+    '8': 'status',
+    '9': 'comment',
+    '10': 'storage_details',
+}
+
+def get_feedback_records_data(request):
+    """DataTables server-side endpoint for the Feedback Records table."""
+    draw = int(request.GET.get('draw', 1))
+    start = int(request.GET.get('start', 0))
+    length = int(request.GET.get('length', 100))
+    search_value = request.GET.get('search[value]', '').strip()
+    col_choice = request.GET.get('column_choice', 'all')
+
+    queryset = get_feedback_queryset()
+    total_records = queryset.count()
+
+    if search_value:
+        field = COLUMN_FIELD_MAP.get(col_choice)
+        if field:
+            queryset = queryset.filter(**{f'{field}__icontains': search_value})
+        else:
+            queryset = queryset.filter(
+                Q(matching_no__icontains=search_value) |
+                Q(customer__icontains=search_value) |
+                Q(prod_code__icontains=search_value) |
+                Q(color_desc__icontains=search_value) |
+                Q(finished_prod__icontains=search_value) |
+                Q(matching_type__icontains=search_value) |
+                Q(status__icontains=search_value) |
+                Q(comment__icontains=search_value) |
+                Q(storage_details__icontains=search_value)
+            )
+
+    filtered_records = queryset.count()
+
+    order_col = request.GET.get('order[0][column]')
+    order_dir = request.GET.get('order[0][dir]', 'asc')
+    if order_col is not None and order_col in ORDER_COLUMN_MAP:
+        sort_field = ORDER_COLUMN_MAP[order_col]
+        queryset = queryset.order_by(f"{'-' if order_dir == 'desc' else ''}{sort_field}")
+    else:
+        queryset = queryset.order_by('-feedback_no')
+
+    page = queryset[start:start + length].values(
+        'feedback_no', 'matching_no', 'customer', 'prod_code', 'color_desc',
+        'finished_prod', 'required_date', 'due_date', 'matching_type',
+        'status', 'comment', 'storage_details', 'mode',
+    )
+
+    data = [
+        {
+            'feedback_no': row['feedback_no'],
+            'matching_no': row['matching_no'] or '---',
+            'customer': row['customer'] or '---',
+            'prod_code': row['prod_code'] or '---',
+            'color_desc': row['color_desc'] or '---',
+            'finished_prod': row['finished_prod'] or '---',
+            'required_date': row['required_date'] or '---',
+            'due_date': row['due_date'].strftime('%m/%d/%Y') if row['due_date'] else '---',
+            'type': row['matching_type'] or '---',
+            'status': row['status'],
+            'details': row['comment'] or '---',
+            'package_details': row['storage_details'] or '---',
+            'mode': row['mode'],
         }
+        for row in page
+    ]
 
-        if fb.cm_no:
-            final_formula = tbl_mb_extruder_formula.objects.filter(cm_no=fb.cm_no, is_final=True).select_related('code').first()
-            if not final_formula:
-                final_formula = tbl_dc_extruder_formula.objects.filter(cm_no=fb.cm_no, is_final=True).select_related('code').first()
-
-            formula = tbl_cmf_formula.objects.filter(cm_no=fb.cm_no).first()
-            dates = tbl_cmf_dates.objects.filter(cm_no=fb.cm_no).first()
-
-            item.update({
-                'matching_no': fb.cm_no.cm_no,
-                'customer': formula.customer if formula else '---',
-                'color_desc': fb.cm_no.color_desc or '---',
-                'finished_prod': formula.finished_product if formula else '---',
-                'required_date': dates.date_required if dates else '---',
-                'due_date': dates.due_date_lab.strftime('%m/%d/%Y') if dates and dates.due_date_lab else '---',
-                'type': fb.cm_no.matching_type or '---',
-                'mode': 'cmf',
-                'prod_code': final_formula.code.product_code if final_formula and final_formula.code else (fb.code.product_code if fb.code else '---')
-            })
-        elif fb.rs_no:
-            pending_info = tbl_cmf_pending_completed.objects.filter(rs_no=fb.rs_no).select_related('code').first()
-            dates = tbl_cmf_dates.objects.filter(rs_no=fb.rs_no).first()
-            item.update({
-                'matching_no': fb.rs_no.rs_no,
-                'customer': fb.rs_no.customer or '---',
-                'color_desc': fb.rs_no.color_desc or '---',
-                'prod_code': pending_info.code.product_code if pending_info and pending_info.code else "---",
-                'finished_prod': fb.rs_no.finished_product or '---',
-                'required_date': dates.date_required if dates else '---',
-                'due_date': dates.due_date_lab.strftime('%m/%d/%Y') if dates and dates.due_date_lab else '---',
-                'type': fb.rs_no.matching_type or '---',
-                'mode': 'rs'
-            })
-        records_list.append(item)
-
-    cache.set(CACHE_KEY, records_list, 3600)  # Cache for 1 hour
-    return records_list
+    return JsonResponse({
+        "draw": draw,
+        "recordsTotal": total_records,
+        "recordsFiltered": filtered_records,
+        "data": data,
+    })
 
 
 def save_feedback_entry(request, feedback_no):
