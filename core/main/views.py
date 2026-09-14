@@ -11,7 +11,7 @@ from django.db.models.functions import Concat
 from django.http import HttpResponse, JsonResponse
 from django.shortcuts import get_object_or_404, redirect, render
 from django.contrib import messages
-from datetime import date, datetime, timedelta
+from datetime import date, datetime, timedelta, time
 from django.urls import reverse
 from django.utils import timezone
 
@@ -69,6 +69,14 @@ def signin(request):
             login(request, user)
             # Create a new session specifically after successful login
             request.session.cycle_key() 
+            
+            # Expire the session at 11:59:59 PM of the login day
+            now = timezone.localtime()
+            end_of_day = datetime.combine(now.date(), time(23, 59, 59))
+            end_of_day = timezone.make_aware(end_of_day, timezone.get_current_timezone())
+            seconds_until_midnight = (end_of_day - now).total_seconds()
+            request.session.set_expiry(seconds_until_midnight)
+       
             return redirect(next_url or 'dashboard')
 
         messages.error(request, "Incorrect username or password.")
