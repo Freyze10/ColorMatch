@@ -2,10 +2,12 @@ import re
 from collections import defaultdict
 from datetime import timedelta
 
+from django.db.models.aggregates import Count
 from django.utils import timezone
 
 from main.models import (
     tbl_audit_trail,
+    tbl_master_formula_encode,
     tbl_mb_extruder_formula,
     tbl_dc_extruder_formula,
     tbl_cmf_pending_completed,
@@ -159,6 +161,45 @@ def get_pending_count():
 # EMPLOYEE PERFORMANCE TABLE (Matched / Rematches / Success % per person)
 # =====================================================================
 
+def _get_legacy_matched_counts():
+    """
+    Legacy encode records (`tbl_master_formula_encode.match_by`) stored the
+    matcher as a free-text field with many typos/variants (e.g. "ANNA",
+    "UPDATED BY: ANNA", "UPADTED BY: ANNA" all mean the same person). This
+    groups those variants the same way the manual SQL audit did, and maps
+    each group to the employee's canonical full name so the historical
+    count can be folded into that employee's `matched` total.
+    """
+    legacy_counts = defaultdict(int)
+    rows = (
+        tbl_master_formula_encode.objects
+        .values('match_by')
+        .annotate(total=Count('encode_id'))
+    )
+
+    for row in rows:
+        match_by = (row['match_by'] or '').strip().lower()
+        total = row['total']
+
+        if 'ann' in match_by or 'ana' in match_by:
+            canonical = 'anastasia solomon'
+        elif 'ernie' in match_by:
+            canonical = 'ernie pio'
+        elif match_by == 'geelyn rellin':
+            canonical = 'geelyn rellin'
+        elif match_by == 'jinky':
+            canonical = 'jinky vilacampa'
+        elif match_by == 'esa':
+            canonical = 'esa'
+        elif match_by == 'linzy jam bautista':
+            canonical = 'linzy jam bautista'
+        else:
+            continue  # KAREN, INDEX BY: KAREN, W19, blanks, etc. -> not mapped, skip
+
+        legacy_counts[canonical] += total
+
+    return legacy_counts
+
 def get_employee_stats():
     """
     Builds the Matched / Rematches / Success % row for every user in the
@@ -227,6 +268,24 @@ def get_employee_stats():
             "badge_class": badge_class,
         })
 
+    # temporarily add the past records
+    # --- fold legacy tbl_master_formula_encode counts into matched totals ---
+    legacy_counts = _get_legacy_matched_counts()
+    for emp in employee_stats:
+        key = emp["name"].strip().lower()
+        legacy_total = legacy_counts.get(key)
+        if legacy_total:
+            emp["matched"] += legacy_total
+            total = emp["matched"] + emp["rematches"]
+            emp["success_pct"] = round((emp["matched"] / total) * 100) if total else 0
+
+            if emp["success_pct"] >= 80:
+                emp["badge_class"] = "bg-success-subtle text-success border border-success"
+            elif emp["success_pct"] >= 60:
+                emp["badge_class"] = "bg-primary-subtle text-primary border border-primary"
+            else:
+                emp["badge_class"] = "bg-warning-subtle text-warning border border-warning"
+    # end
     employee_stats.sort(key=lambda e: e["matched"], reverse=True)
     return employee_stats
 
