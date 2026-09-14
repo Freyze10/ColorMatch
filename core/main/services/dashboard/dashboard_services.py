@@ -188,7 +188,7 @@ def _get_legacy_matched_counts():
         elif match_by == 'geelyn rellin':
             canonical = 'geelyn rellin'
         elif match_by == 'jinky':
-            canonical = 'jinky vilacampa'
+            canonical = 'jinky villacampa'
         elif match_by == 'esa':
             canonical = 'esa'
         elif match_by == 'linzy jam bautista':
