@@ -15,7 +15,7 @@ jQuery(document).ready(function($) {
             }
         },
         columns: [
-            { data: "feedback_no", className: "ps-3" },
+            // { data: "feedback_no", className: "ps-3" },
             {
                 data: "matching_no",
                 className: "fw-bold",
@@ -55,9 +55,6 @@ jQuery(document).ready(function($) {
             },
             { data: "package_details", className: "pe-3" }
         ],
-        // columnDefs: [
-        //     { target: 0, visible: false, searchable: false }
-        // ],
         dom: 'rtp',
         pageLength: 100,
         ordering: false,
