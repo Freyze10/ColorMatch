@@ -29,8 +29,27 @@
     {% block style %}{% endblock %}
     <link rel="stylesheet" href="{% static 'css/loader/global_loader.css' %}">
 
+    <!-- PWA Manifest -->
+    <link rel="manifest" href="{% static 'manifest.json' %}">
+    <!-- Mobile App Meta Tags -->
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black">
+    <meta name="apple-mobile-web-app-title" content="MBPI System">
+
     <script src="{% static 'js/jquery-3.7.1.min.js' %}"></script>
     <script src="{% static 'js/dataTables.min.js' %}"></script>
+    
+    <!-- Service Worker Registration -->
+    <script>
+    if ('serviceWorker' in navigator) {
+        window.addEventListener('load', () => {
+        navigator.serviceWorker.register('/static/sw.js')
+            .then(reg => console.log('Service Worker Registered'))
+            .catch(err => console.log('SW Registration Failed', err));
+        });
+    }
+    </script>
 </head>
 <body>
     
