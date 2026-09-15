@@ -1,0 +1,21 @@
+{
+  "name": "MBPI System",
+  "short_name": "MBPI",
+  "description": "MBPI Business Management System",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#0f172a",
+  "theme_color": "#0f172a",
+  "icons": [
+    {
+      "src": "/static/image/icon_logo/mbpi_no_bg.png",
+      "sizes": "192x192",
+      "type": "image/png"
+    },
+    {
+      "src": "/static/image/icon_logo/mbpi_no_bg.png",
+      "sizes": "512x512",
+      "type": "image/png"
+    }
+  ]
+}
