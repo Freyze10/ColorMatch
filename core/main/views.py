@@ -235,7 +235,7 @@ def cmf_entry(request):
                     'date_received': dates.date_received_lab if dates else "",
                     'submit_to_lab': dates.submit_to_lab if dates else "",
 
-                    'matchType': cmf.matching_type,
+                    'matchType': 'rematch' if cm_no_override else cmf.matching_type,
                     'product_status': cmf.product_status,
                     'est_qty_order': cmf.est_qty_order,
                     'salesman': cmf.sm.name if cmf.sm else "",
