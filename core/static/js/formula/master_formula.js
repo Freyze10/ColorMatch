@@ -79,7 +79,7 @@
                     'Any unsaved changes on this form will be lost. Do you want to continue?',
                     'warning',
                     () => {
-                        window.location.href = "{% url 'master_formula' %}?new_entry=true";
+                        window.location.href = "/master-formula/?new_entry=true";
                     }
                 );
             });
