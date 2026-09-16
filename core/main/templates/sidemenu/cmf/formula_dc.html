@@ -44,6 +44,7 @@ Formula DC
                                 {% else %}
                                     <select name="cmf_number" id="id_dc_cmf_number" class="form-select form-select-sm ts-select" required>
                                         <option value=""></option>
+                                        <option value="N/A" {% if form_data.cm_form_no == "N/A" %}selected{% endif %}>N/A</option>
                                         {% for cm_no in cmf_list %}
                                             <option value="{{ cm_no }}" {% if form_data.cm_form_no == cm_no %}selected{% endif %}>{{ cm_no }}</option>
                                         {% endfor %}
