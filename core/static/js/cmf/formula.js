@@ -354,12 +354,55 @@
         applyDcReadonlyLogic();
     }
     
-
+    
     //  Shared AJAX Auto-population Logic for MB and DC
     const cmfSelectMB = document.getElementById('id_mb_cmf_number');
     const cmfSelectDC = document.getElementById('id_dc_cmf_number');
     const isDC = !!cmfSelectDC;
     const cmfSelectEl = cmfSelectMB || cmfSelectDC;
+// Target fields map
+    const targetFieldIds = [
+        isDC ? 'id_dc_customer' : 'id_customer',
+        isDC ? 'id_dc_resin' : 'id_resin_used',
+        isDC ? 'id_dc_color' : 'id_color',
+        isDC ? 'id_dc_product_code' : 'id_product',
+        isDC ? 'id_dc_dosage' : 'id_dosage',
+        isDC ? 'id_dc_application' : 'id_application',
+        isDC ? 'id_dc_finished_product' : 'id_finished_product',
+        'id_lot_number'
+    ];
+
+    /**
+     * Enable or disable fields based on selection
+     */
+    function setFieldsEditable(isEditable) {
+        targetFieldIds.forEach(id => {
+            const el = document.getElementById(id);
+            if (!el) return;
+
+            if (isEditable) {
+                el.removeAttribute('readonly');
+                el.removeAttribute('disabled');
+                el.readOnly = false;
+                el.disabled = false;
+                // Clean up typical read-only/disabled styles (Tailwind/Preline)
+                el.classList.remove('readonly-gray');
+            } else {
+                el.setAttribute('readonly', 'readonly');
+                el.readOnly = true;
+                el.classList.add('readonly-gray');
+            }
+        });
+    }
+
+    /**
+     * Checks if the selected value is N/A
+     */
+    function isNA(val) {
+        if (!val) return false;
+        const clean = String(val).trim().toLowerCase();
+        return clean === 'n/a' || clean === 'N/A' || clean === 'na' || clean === 'none';
+    }
 
     async function fetchCmfDetails(cmfNo, matId = null) {
         const fields = {
@@ -442,6 +485,12 @@
                     cmfSelectEl.tomselect.on('change', function(value) {
                         if (!value) return;
 
+                        if (isNA(value)) {
+                            setFieldsEditable(true);
+                            return;
+                        }
+                        // --- If a valid CMF record is chosen, relock fields and prompt ---
+                        setFieldsEditable(false);
                        
                         Preline.confirm(
                             'Load Record Details?',
@@ -484,31 +533,6 @@
             }, 100);
         }
 
-        // 2. Handle Manual Selection Changes
-        if (cmfSelectEl.tagName === 'SELECT') {
-            const checkTSManual = setInterval(() => {
-                if (cmfSelectEl.tomselect) {
-                    clearInterval(checkTSManual);
-                    
-                    cmfSelectEl.tomselect.on('change', function(value) {
-                        if (!value) return;
-
-                        // Check if value was already populated by Django (for RS)
-                        // If it's a manual change by user, we always show confirmation
-                        if (window.Preline && typeof Preline.confirm === 'function') {
-                            Preline.confirm(
-                                'Load Record Details?',
-                                `Do you want to automatically fill the form with details from CMF #${value}?`,
-                                'info',
-                                () => fetchCmfDetails(value),
-                                () => {}
-                            );
-                        } else {
-                        }
-                    });
-                }
-            }, 100);
-        }
     };
 
     // Run when page is ready
