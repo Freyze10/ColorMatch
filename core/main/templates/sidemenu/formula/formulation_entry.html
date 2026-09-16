@@ -112,6 +112,7 @@
                                     <div class="input-group input-group-sm">
                                         <select name="cm_no" id="id_mf_cm_no" class="form-select form-select-sm ts-select" placeholder="Search CM#/RS#">
                                             <option value=""></option>
+                                            <option value="N/A" {% if form_data.cm_no == "N/A" %}selected{% endif %}>N/A</option>
                                             {% for no in matching_numbers %}
                                                 <option value="{{ no }}" {% if form_data.cm_no == no %}selected{% endif %}>{{ no }}</option>
                                             {% endfor %}

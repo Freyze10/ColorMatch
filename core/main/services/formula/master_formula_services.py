@@ -70,7 +70,7 @@ def get_master_formula_details(form_id):
         'mix_time': formula.mix_time or '',
         'resin': formula.resin or '',
         'application': formula.application or '',
-        'cm_no': formula.cm_no or '',
+        'cm_no': formula.cm_no or 'N/A',
         'colormatch_date': formula.colormatch_date.strftime('%m/%d/%Y') if formula.colormatch_date else '',
         'notes': formula.notes or '---',
         'html_code_hex': formula.html_code_hex or '',

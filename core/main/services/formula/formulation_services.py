@@ -55,7 +55,7 @@ def get_formulation_details(form_id):
         'mix_time': f.mix_time or '',
         'resin': f.resin or '',
         'application': f.application or '',
-        'cm_no': f.colormatch_no or '', 
+        'cm_no': f.colormatch_no or 'N/A', 
         'colormatch_date': f.colormatch_date.strftime('%m/%d/%Y') if f.colormatch_date else '',
         'notes': f.notes or '',
         'updated_by': encode.updated_by if encode else '',
