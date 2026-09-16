@@ -19,7 +19,7 @@ services:
   web:
     build: .
     container_name: colormatch_web
-    restart: always
+    restart: unless-stopped
     command: gunicorn --bind 0.0.0.0:8000 --workers 3 --threads 2 core.wsgi:application
     volumes:
       - .:/app
