@@ -233,50 +233,56 @@ SEARCHABLE_COLUMNS = {
 
 
 def get_all_formula_records():
-    # This remains the same as the parent 'tbl_dc_extruder_formula' hasn't changed
-    # It still pulls code, cm_no, rs_no, and header details.
-    mb_qs = tbl_mb_extruder_formula.objects.select_related('code', 'cm_no', 'rs_no')
-    dc_qs = tbl_dc_extruder_formula.objects.select_related('code', 'cm_no', 'rs_no')
+    # Only select_related 'code' and 'cm_no' since 'rs_no' has been removed
+    mb_qs = tbl_mb_extruder_formula.objects.select_related('code', 'cm_no')
+    dc_qs = tbl_dc_extruder_formula.objects.select_related('code', 'cm_no')
 
     combined_results = []
 
+    # MB Formulas
     for f in mb_qs:
-        color = f.cm_no.color_desc if f.cm_no else (f.rs_no.color_desc if f.rs_no else "---")
-        if f.cm_no:
-            record_type, record_no = 'cmf', f.cm_no.cm_no
-        elif f.rs_no:
-            record_type, record_no = 'rs', f.rs_no.pk
-        else:
-            record_type, record_no = '', ''
+        color = f.cm_no.color_desc if f.cm_no and f.cm_no.color_desc else "---"
+        record_type = 'cmf' if f.cm_no else ''
+        record_no = f.cm_no.cm_no if f.cm_no else ''
+        cmf_no = f.cm_no.cm_no if f.cm_no else "N/A"
 
         combined_results.append({
-            "id": f.mb_no, "type": "MB", "date": f.date,
-            "cmf_no": f.cm_no.cm_no if f.cm_no else (f.rs_no.rs_no if f.rs_no else "N/A"),
-            "record_type": record_type, "record_no": record_no,
+            "id": f.mb_no,
+            "type": "MB",
+            "date": f.date,
+            "cmf_no": cmf_no,
+            "record_type": record_type,
+            "record_no": record_no,
             "product_code": f.code.product_code if f.code else "---",
-            "color": color, "mixing": f.mixing_time or "---",
-            "matched_by": f.matched_by or "---", "lot_no": f.lot_no or "N/A",
+            "color": color,
+            "mixing": f.mixing_time or "---",
+            "matched_by": f.matched_by or "---",
+            "lot_no": f.lot_no or "N/A",
             "html": f.html or "#ffffff"
         })
 
+    # DC Formulas
     for f in dc_qs:
-        color = f.cm_no.color_desc if f.cm_no else (f.rs_no.color_desc if f.rs_no else "---")
-        if f.cm_no:
-            record_type, record_no = 'cmf', f.cm_no.cm_no
-        elif f.rs_no:
-            record_type, record_no = 'rs', f.rs_no.pk
-        else:
-            record_type, record_no = '', ''
+        color = f.cm_no.color_desc if f.cm_no and f.cm_no.color_desc else "---"
+        record_type = 'cmf' if f.cm_no else ''
+        record_no = f.cm_no.cm_no if f.cm_no else ''
+        cmf_no = f.cm_no.cm_no if f.cm_no else "N/A"
 
         combined_results.append({
-            "id": f.dc_no, "type": "DC", "date": f.date,
-            "cmf_no": f.cm_no.cm_no if f.cm_no else (f.rs_no.rs_no if f.rs_no else "N/A"),
-            "record_type": record_type, "record_no": record_no,
+            "id": f.dc_no,
+            "type": "DC",
+            "date": f.date,
+            "cmf_no": cmf_no,
+            "record_type": record_type,
+            "record_no": record_no,
             "product_code": f.code.product_code if f.code else "---",
-            "color": color, "mixing": f.mixing_time or "---",
-            "matched_by": f.matched_by or "---", "lot_no": "N/A",
+            "color": color,
+            "mixing": f.mixing_time or "---",
+            "matched_by": f.matched_by or "---",
+            "lot_no": "N/A",
             "html": f.html or "#ffffff"
         })
+
     return combined_results
 
 # Maps a DataTables column index to the dict key to sort/filter by.
