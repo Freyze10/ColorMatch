@@ -9,7 +9,7 @@ from main.services.save.utils import to_bool, format_date, clean_numeric
 from main.utils.log_audit_trail import log_audit
 from main.models import (
     tbl_cmf, tbl_cmf_color_req, tbl_cmf_dates, tbl_cmf_formula, 
-    tbl_cmf_process, tbl_cmf_process02, tbl_cmf_scanned, tbl_resin, tbl_resins_selected,
+    tbl_cmf_process, tbl_cmf_process02, tbl_cmf_scanned, tbl_generated_prod_code, tbl_resin, tbl_resins_selected,
     tbl_cmf_specification, tbl_cmf_specification02, tbl_cmf_salesman,
     tbl_cmf_pending_completed, tbl_feedback_details
 )
@@ -116,9 +116,28 @@ def save_cmf_complete_entry(request):
             if s_name:
                 s_ref, _ = tbl_cmf_specification.objects.get_or_create(name=s_name.strip())
                 tbl_cmf_specification02.objects.create(cm_no=cmf_main, spec_no=s_ref)
-        
-        tbl_cmf_pending_completed.objects.create(cm_no=cmf_main)
-        tbl_feedback_details.objects.create(cm_no=cmf_main)
+        # --- RESOLVE PRODUCT CODE ---
+        prod_code_val = (data.get('product_code') or '').strip()
+        code_obj = None
+
+        if prod_code_val and prod_code_val.lower() not in ('none', 'null', 'n/a'):
+            # A. If submitted from TomSelect (For RS), it passes the numeric code_no ID
+            if prod_code_val.isdigit():
+                code_obj = tbl_generated_prod_code.objects.filter(code_no=int(prod_code_val)).first()
+            
+            # B. If submitted from the text input (product code string)
+            if not code_obj:
+                code_obj = tbl_generated_prod_code.objects.filter(product_code=prod_code_val).first()
+
+        tbl_cmf_pending_completed.objects.create(
+            cm_no=cmf_main,
+            code_no=code_obj,
+            is_completed=False
+        )
+        tbl_feedback_details.objects.create(
+            cm_no=cmf_main,
+            code_no=code_obj
+        )
 
         num_files = _handle_file_uploads(request, cmf_main)
         
@@ -162,7 +181,7 @@ def update_cmf_complete_entry(request, original_cmf_no):
             'customer': 'Customer', 'finished_product': 'Finished Product', 'dosage': 'Dosage',
             'color_req': 'Color Requirement', 'form_made': 'Date Created', 
             'date_required': 'Req. Date', 'date_received_lab': 'Date Received', 'due_date_lab': 'Due Date',
-            'submit_to_lab': 'Submit to Lab'
+            'submit_to_lab': 'Submit to Lab', 'product_code': 'Product Code'
         }
         return mapping.get(field, field.replace('_', ' ').title())
 
@@ -276,6 +295,26 @@ def update_cmf_complete_entry(request, original_cmf_no):
         if curr_specs != new_specs_str:
             diff_logs.append(f"Specifications ({curr_specs or 'None'} -> {new_specs_str or 'None'})")
 
+        # --- F. RESOLVE & TRACK PRODUCT CODE ---
+        prod_code_val = (data.get('product_code') or '').strip()
+        new_code_obj = None
+
+        if prod_code_val and prod_code_val.lower() not in ('none', 'null', 'n/a'):
+            # 1. From TomSelect (passes code_no ID)
+            if prod_code_val.isdigit():
+                new_code_obj = tbl_generated_prod_code.objects.filter(code_no=int(prod_code_val)).first()
+            
+            # 2. From Text input (passes product code string)
+            if not new_code_obj:
+                new_code_obj = tbl_generated_prod_code.objects.filter(product_code=prod_code_val).first()
+
+        old_tracking = tbl_cmf_pending_completed.objects.filter(cm_no=old_cmf).select_related('code').first()
+        old_code_str = old_tracking.code.product_code if (old_tracking and old_tracking.code) else "---"
+        new_code_str = new_code_obj.product_code if new_code_obj else "---"
+
+        if old_code_str != new_code_str:
+            diff_logs.append(f"Product Code ({old_code_str} -> {new_code_str})")
+
         # --- 3. DATABASE EXECUTION ---
         if renaming:
             if tbl_cmf.objects.filter(cm_no=new_cmf_no).exists(): raise Exception("Duplicate No.")
@@ -314,6 +353,16 @@ def update_cmf_complete_entry(request, original_cmf_no):
         for name in new_specs_list:
             s_ref, _ = tbl_cmf_specification.objects.get_or_create(name=name)
             tbl_cmf_specification02.objects.create(cm_no=cmf_main, spec_no=s_ref)
+
+        # Update or Create Product Code on Tracking & Feedback
+        tbl_cmf_pending_completed.objects.update_or_create(
+            cm_no=cmf_main,
+            defaults={'code': new_code_obj}
+        )
+        tbl_feedback_details.objects.update_or_create(
+            cm_no=cmf_main,
+            defaults={'code': new_code_obj}
+        )
 
         num_files = _handle_file_uploads(request, cmf_main)
         if num_files > 0:
