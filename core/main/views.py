@@ -303,21 +303,40 @@ def cmf_rs_entry(request):
     else:
         record_id = request.GET.get('no')
         if record_id:
-            rs_instance = tbl_rs.objects.filter(id=record_id).first()
+            rs_instance = tbl_rs.objects.filter(id=record_id).select_related('cm_no', 'sm_no', 'approved_by').first()
             if rs_instance:
                 form_data = rs_entry_save.build_form_data(rs_instance)
             else:
                 messages.error(request, f"RS record with ID {record_id} not found.")
+
     allowed_departments = ['Laboratory', 'Information Technology', 'Sales']
-    is_allowed = request.user.role.department in allowed_departments or request.user.is_superuser
+    user_dept = request.user.role.department if getattr(request.user, 'role', None) else ""
+    is_allowed = user_dept in allowed_departments or request.user.is_superuser
+
+    # Active lab personnel / users for the "Approved By" dropdown
+    lab_personnel = (
+        User.objects.filter(is_active=True)
+        .annotate(full_name=Concat('first_name', Value(' '), 'last_name'))
+        .values('id', 'full_name', 'username')
+        .order_by('first_name')
+    )
+
+    # CMF list for linking
+    cmf_list = (
+        tbl_cmf.objects.exclude(cm_no__isnull=True)
+        .exclude(cm_no='')
+        .values('cm_no')
+        .order_by('-cm_no')
+    )
 
     context = {
         "customers": cmf_records_services.get_customer_list(), 
         "salesman": cmf_records_services.get_salesman_list(),
-        "primary_color": cmf_records_services.get_color_list(),
-        "resin": cmf_records_services.get_resin_list(),
+        "cmf_list": cmf_list,
+        "lab_personnel": lab_personnel,
         "form_data": form_data,
-        'is_allowed': is_allowed,
+        "is_allowed": is_allowed,
+        "is_edit": bool(form_data.get('original_rs_id')),
     }
     return render(request, "sidemenu/cmf/rs_entry.html", context)
 

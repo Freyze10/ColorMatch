@@ -108,64 +108,6 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     }
 
-    // function openPrintPreview(cmNo) {
-    //     // 1. Show the global loader immediately
-    //     showLoader();
-
-    //     const previewUrl = `/cmf/print/${encodeURIComponent(cmNo)}/preview`;
-
-    //     const dialog = document.createElement('dialog');
-    //     // Added z-index in style to ensure it doesn't overlap the loader if the loader's z-index is lower
-    //     dialog.className = 'p-0 border-0 rounded-3 shadow-lg';
-    //     dialog.style.width = '90vw';
-    //     dialog.style.height = '90vh';
-    //     dialog.style.maxWidth = '1200px';
-    //     dialog.style.zIndex = '1050'; // Standard Bootstrap Modal z-index
-
-    //     dialog.innerHTML = `
-    //         <div class="d-flex flex-column w-100 h-100">
-    //             <div class="d-flex justify-content-end gap-2 p-2 bg-dark">
-    //                 <button id="cmfPreviewPrintBtn" class="btn btn-primary btn-sm">
-    //                     <i class="bi bi-printer"></i> Print
-    //                 </button>
-    //                 <button id="cmfPreviewCloseBtn" class="btn btn-secondary btn-sm">
-    //                     Close
-    //                 </button>
-    //             </div>
-    //             <iframe id="cmfPreviewFrame" src="${previewUrl}" class="flex-grow-1 w-100 border-0"></iframe>
-    //         </div>
-    //     `;
-    //     document.body.appendChild(dialog);
-
-    //     const iframe = dialog.querySelector('#cmfPreviewFrame');
-
-    //     // 2. Hide loader only when the IFRAME has finished loading the content
-    //     iframe.addEventListener('load', function() {
-    //         hideLoader();
-    //         // Optional: Show the dialog only after it's loaded to prevent a "white flash"
-    //         dialog.showModal();
-    //     });
-
-    //     // Handle Print Button
-    //     dialog.querySelector('#cmfPreviewPrintBtn').addEventListener('click', function() {
-    //         iframe.contentWindow.print();
-
-    //         fetch(`/cmf/log-print/${encodeURIComponent(cmNo)}/`)
-    //         .then(response => {
-    //             if (!response.ok) console.error('Audit logging failed');
-    //         })
-    //         .catch(err => console.error('Error logging CMF print:', err));
-    //     });
-
-    //     // Handle Close Button
-    //     dialog.querySelector('#cmfPreviewCloseBtn').addEventListener('click', function() {
-    //         dialog.close();
-    //     });
-
-    //     dialog.addEventListener('close', function() {
-    //         dialog.remove();
-    //     });
-    // }
 
     if (printBtn) {
         printBtn.addEventListener('click', function() {
