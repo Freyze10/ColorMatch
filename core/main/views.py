@@ -274,6 +274,7 @@ def cmf_entry(request):
         "salesman": cmf_records_services.get_salesman_list(),
         "primary_color": cmf_records_services.get_color_list(),
         "resin": cmf_records_services.get_resin_list(),
+        "codes": cmf_records_services.get_color_code_list(),
         "form_data": form_data,
         "attachments": attachments,
         'is_allowed': is_allowed,

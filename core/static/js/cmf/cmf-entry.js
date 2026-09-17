@@ -7,6 +7,11 @@ document.addEventListener('DOMContentLoaded', function() {
     const newBtn = document.querySelector('.btn-new');
     const printBtn = document.querySelector('.btn-cmf-print');
     const refreshBtn = document.getElementById('refreshBtn');
+    const toggleForRs = document.getElementById('toggleForRs');
+    const inputWrapper = document.getElementById('product_code_input_wrapper');
+    const selectWrapper = document.getElementById('product_code_select_wrapper');
+    const productCodeInput = document.getElementById('id_product_code_input');
+    const productCodeSelect = document.getElementById('id_product_code_select');
 
     // Works on any page — CMF Entry, RS Entry, or anywhere else these
     // buttons appear — since it finds whichever <form> actually wraps
@@ -19,6 +24,59 @@ document.addEventListener('DOMContentLoaded', function() {
     const searchInput = document.getElementById('recordSearchInput');
     const searchFieldSelect = document.getElementById('searchFieldSelect');
     const recordsTbody = document.getElementById('recordsTbody');
+
+     // --- TOGGLE "FOR RS" LOGIC ---
+    const updateForRsState = () => {
+        const isForRs = toggleForRs && toggleForRs.checked;
+
+        if (isForRs) {
+            // 1. Hide the readonly input, show the TomSelect dropdown
+            if (inputWrapper) inputWrapper.style.display = 'none';
+            if (selectWrapper) selectWrapper.style.display = 'block';
+
+            // 2. Disable input so it won't submit; Enable TomSelect
+            if (productCodeInput) productCodeInput.disabled = true;
+
+            if (productCodeSelect) {
+                productCodeSelect.disabled = false;
+                if (productCodeSelect.tomselect) {
+                    productCodeSelect.tomselect.enable();
+                }
+            }
+        } else {
+            // 1. Show the readonly input, hide the TomSelect dropdown
+            if (inputWrapper) inputWrapper.style.display = 'block';
+            if (selectWrapper) selectWrapper.style.display = 'none';
+
+            // 2. Enable input; Disable TomSelect so it won't submit
+            if (productCodeInput) productCodeInput.disabled = false;
+
+            if (productCodeSelect) {
+                productCodeSelect.disabled = true;
+                if (productCodeSelect.tomselect) {
+                    productCodeSelect.tomselect.disable();
+                }
+            }
+        }
+
+        // Reset Save button in case regular validation disabled it
+        if (saveBtn) saveBtn.disabled = false;
+
+        // Re-run the appropriate validation when toggled
+        if (cmfInput && cmfInput.value.trim().length >= 3) {
+            if (isForRs) {
+                validateRsCmf(true);
+            } else {
+                validateCmf(true);
+            }
+        }
+    };
+
+    if (toggleForRs) {
+        toggleForRs.addEventListener('change', updateForRsState);
+        // Initial run on load (respects whether 'For RS' was checked on reload)
+        setTimeout(updateForRsState, 100);
+    }
 
     // --- 3. NUMERIC INPUT FORMATTING LOGIC ---
     const restrictToNumbers = (e) => {
@@ -264,17 +322,33 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     }
 
+    // --- 8. RS-SPECIFIC CMF VALIDATION (Prepared Placeholder) ---
+    async function validateRsCmf(isBlur = false) {
+        const query = cmfInput.value.trim();
+        if (query.length < 3) return;
 
-    // Debounced version for the 'input' event (real-time typing)
+        // Prepared for custom RS validation logic
+        console.log(`[validateRsCmf] Checking CMF #${query} for RS mode (isBlur: ${isBlur})`);
+    }
+
+    // Debounced input handler (dispatches based on "For RS" toggle)
     const handleCmfInput = debounce(() => {
-        validateCmf(false);
+        if (toggleForRs && toggleForRs.checked) {
+            validateRsCmf(false);
+        } else {
+            validateCmf(false);
+        }
     }, 800);
 
-    // Attach to the input event
+    // Attach listeners to cmfInput
     if (cmfInput) {
         cmfInput.addEventListener('input', handleCmfInput);
         cmfInput.addEventListener('blur', () => {
-            validateCmf(true);
+            if (toggleForRs && toggleForRs.checked) {
+                validateRsCmf(true);
+            } else {
+                validateCmf(true);
+            }
         });
     }
 });

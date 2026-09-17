@@ -7,7 +7,7 @@ from django.http import JsonResponse
 from main.utils.log_audit_trail import log_audit
 from ...models import (
     tbl_cmf, tbl_cmf_formula, tbl_cmf_dates, 
-    tbl_cmf_pending_completed, tbl_cmf_salesman, tbl_customer, tbl_dc_extruder_formula, tbl_dc_extruder_materials, tbl_dc_extruder_version, tbl_internal_color_code, tbl_mb_extruder_formula, tbl_mb_extruder_formula02, tbl_resin, tbl_rm_incoming, tbl_rs
+    tbl_cmf_pending_completed, tbl_cmf_salesman, tbl_customer, tbl_dc_extruder_formula, tbl_dc_extruder_materials, tbl_dc_extruder_version, tbl_generated_prod_code, tbl_internal_color_code, tbl_mb_extruder_formula, tbl_mb_extruder_formula02, tbl_resin, tbl_rm_incoming, tbl_rs
 )
 
 def get_salesman_list():
@@ -30,6 +30,13 @@ def get_resin_list():
     if not data:
         data = list(tbl_resin.objects.filter(is_deleted=False).order_by('abbreviation'))
         cache.set('resin_list', data, 86400)
+    return data
+
+def get_color_code_list():
+    data = cache.get('code_list')
+    if not data:
+        data = list(tbl_generated_prod_code.objects.all().order_by('code_no'))
+        cache.set('code_list', data, 86400)
     return data
 
 def get_customer_list():
