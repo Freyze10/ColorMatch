@@ -427,13 +427,7 @@ class tbl_rs(models.Model):
     rs_no = models.CharField(max_length=50, blank=True, null=True)
     customer = models.CharField(max_length=150, blank=True, null=True)
     quantity_required = models.DecimalField(max_digits=12, decimal_places=6, null=True, blank=True)
-    dosage = models.DecimalField(max_digits=12, decimal_places=6, null=True, blank=True)
-    finished_product = models.CharField(max_length=150, blank=True, null=True)
-    matching_type = models.CharField(max_length=50, blank=True, null=True)
     sm_no = models.ForeignKey(tbl_cmf_salesman, on_delete=models.SET_NULL, null=True, blank=True, db_column="sm_no")
-    primary_color = models.CharField(max_length=100, blank=True, null=True)
-    color_desc = models.TextField(blank=True, null=True)
-    colorant_type = models.CharField(max_length=50, blank=True, null=True)
     user = models.ForeignKey(tbl_user, on_delete=models.SET_NULL, null=True, blank=True, db_column="user_id")
 
     approved_by = models.ForeignKey(tbl_user, on_delete=models.SET_NULL, null=True, blank=True, db_column="approved_by", related_name="rs_approved")

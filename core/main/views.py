@@ -432,7 +432,7 @@ def cmf_mb_formula(request):
     if request.method == "POST":
         try:
             saved_record = mb_formula_save.save_mb_complete_formula(request)
-            parent_display = saved_record.cm_no.cm_no if saved_record.cm_no else saved_record.rs_no.rs_no
+            parent_display = saved_record.cm_no.cm_no if saved_record.cm_no else f"MB #{saved_record.mb_no}"
             messages.success(request, f"Successfully saved MB Formula for {parent_display}")
             cache.delete('cmf_records_list')
             return redirect('mb_formula')
@@ -442,13 +442,12 @@ def cmf_mb_formula(request):
 
     else:
         record_no = request.GET.get('no')
-        record_type = request.GET.get('type', 'cmf')
         formula_id = request.GET.get('formula_id')
 
-        cmf = None  # only set when record_type == 'cmf'
-        rs = None   # only set when record_type == 'rs'
+        cmf = None
 
-        if record_no and record_type == 'cmf':
+        # 1. Load details from CMF if provided
+        if record_no:
             cmf = tbl_cmf.objects.filter(cm_no=record_no).first()
             if cmf:
                 colorant_mismatch = cmf.colorant_type != "MB"
@@ -481,51 +480,14 @@ def cmf_mb_formula(request):
             else:
                 messages.error(request, f"CMF No. {record_no} not found.")
 
-        if record_no and record_type == 'rs':
-            rs = tbl_rs.objects.filter(id=record_no).first()
-            if rs:
-                colorant_mismatch = rs.colorant_type != "MB"
-
-                # Resin — same pattern as CMF, filtered via the rs_no FK on tbl_resins_selected
-                resins_list = tbl_resins_selected.objects.filter(
-                    rs_no=rs
-                ).values_list('resin_no__abbreviation', flat=True)
-                resin_used_str = ", ".join(resins_list)
-
-                # Process — same pattern as CMF, but tbl_cmf_process02 links directly via rs_no
-                # here rather than through a formula record (RS has no tbl_cmf_formula row)
-                processes = tbl_cmf_process02.objects.filter(
-                    rs_no=rs
-                ).values_list('process_no__name', flat=True)
-                application_str = ", ".join(processes)
-
-                # Product code lives on tbl_cmf_pending_completed for RS records
-                pending = tbl_cmf_pending_completed.objects.filter(rs_no=rs).select_related('code').first()
-
-                form_data = {
-                    'cm_form_no': rs.rs_no,
-                    'record_id': rs.pk,
-                    'customer': rs.customer or "",
-                    'resin_used': resin_used_str,
-                    'dosage': rs.dosage or getattr(rs, 'dosage', '') or '',
-                    'finished_product': rs.finished_product or "",
-                    'color': rs.primary_color or "",
-                    'product': pending.code.product_code if pending else "",
-                    'application': application_str,
-                    'record_type': 'rs',
-                }
-            else:
-                messages.error(request, f"RS record with ID {record_no} not found.")
-
-        # --- Load a SPECIFIC historical MB formula, if one was clicked ---
-        # tbl_mb_extruder_formula has both cm_no and rs_no FKs, so the filter
-        # needs to match whichever side actually resolved above.
+        # 2. Load a SPECIFIC historical MB formula, if formula_id is clicked
         if formula_id:
-            header = None
+            # Query directly by pk (and cm_no if cmf exists)
+            filter_kwargs = {'pk': formula_id}
             if cmf:
-                header = tbl_mb_extruder_formula.objects.filter(pk=formula_id, cm_no=cmf).first()
-            elif rs:
-                header = tbl_mb_extruder_formula.objects.filter(pk=formula_id, rs_no=rs).first()
+                filter_kwargs['cm_no'] = cmf
+                
+            header = tbl_mb_extruder_formula.objects.filter(**filter_kwargs).first()
 
             if header:
                 form_data.update({
@@ -561,10 +523,13 @@ def cmf_mb_formula(request):
                 ingredients = ingredients[:10]
             else:
                 messages.error(request, f"Formula record not found for ID {formula_id}.")
-    
+
+    # Fill default rows if empty
     if not ingredients:
         ingredients = [{'material': '', 'value': '', 'weight': ''}] * 10
-    user_list  = (
+
+    # User list dropdown
+    user_list = (
         User.objects.filter(is_active=True)
         .exclude(first_name="")
         .annotate(full_name=Concat('first_name', Value(' '), 'last_name'))
@@ -573,24 +538,15 @@ def cmf_mb_formula(request):
         .order_by('full_name')
     )
 
-    # 1. Get CMF numbers
+    # Purely CMF numbers (no RS)
     cmf_nos = list(
         tbl_cmf.objects.filter(colorant_type='MB')
         .exclude(cm_no__isnull=True)
         .exclude(cm_no='')
         .values_list('cm_no', flat=True)
+        .distinct()
     )
-    
-    # 2. Get RS numbers where colorant_type is MB
-    rs_nos = list(
-        tbl_rs.objects.filter(colorant_type='MB')
-        .exclude(rs_no__isnull=True)
-        .exclude(rs_no='')
-        .values_list('rs_no', flat=True)
-    )
-    
-    # 3. Combine, unique (set), and sort descending
-    combined_list = sorted(list(set(cmf_nos + rs_nos)), reverse=True)
+    combined_list = sorted(cmf_nos, reverse=True)
 
     context = {
         "form_data": form_data,
@@ -611,7 +567,7 @@ def cmf_dc_formula(request):
     if request.method == "POST":
         try:
             saved_record = dc_formula_save.save_dc_complete_formula(request)
-            parent_display = saved_record.cm_no.cm_no if saved_record.cm_no else saved_record.rs_no.rs_no
+            parent_display = saved_record.cm_no.cm_no if saved_record.cm_no else f"DC #{saved_record.dc_no}"
             messages.success(request, f"Successfully saved DC Formula for {parent_display}")
             cache.delete('cmf_records_list')
             return redirect('dc_formula')
@@ -621,23 +577,26 @@ def cmf_dc_formula(request):
 
     else:
         record_no = request.GET.get('no')
-        record_type = request.GET.get('type', 'cmf')
         formula_id = request.GET.get('formula_id')
 
-        cmf = None  # only set when record_type == 'cmf'
-        rs = None   # only set when record_type == 'rs'
+        cmf = None
 
-        if record_no and record_type == 'cmf':
+        # 1. Load details from CMF if provided
+        if record_no:
             cmf = tbl_cmf.objects.filter(cm_no=record_no).first()
             if cmf:
                 colorant_mismatch = cmf.colorant_type != "DC"
 
                 formula_info = tbl_cmf_formula.objects.filter(cm_no=record_no).first()
 
-                resins_list = tbl_resins_selected.objects.filter(cm_no=record_no).values_list('resin_no__abbreviation', flat=True)
+                resins_list = tbl_resins_selected.objects.filter(
+                    cm_no=record_no
+                ).values_list('resin_no__abbreviation', flat=True)
                 resin_str = ", ".join(resins_list)
 
-                processes = tbl_cmf_process02.objects.filter(cmf_formula_no__cm_no=record_no).values_list('process_no__name', flat=True)
+                processes = tbl_cmf_process02.objects.filter(
+                    cmf_formula_no__cm_no=record_no
+                ).values_list('process_no__name', flat=True)
                 app_str = ", ".join(processes)
 
                 form_data = {
@@ -654,46 +613,13 @@ def cmf_dc_formula(request):
             else:
                 messages.error(request, f"CMF No. {record_no} not found.")
 
-        elif record_no and record_type == 'rs':
-            rs = tbl_rs.objects.filter(pk=record_no).first()
-            if rs:
-                colorant_mismatch = rs.colorant_type != "DC"
-
-                # Resin — same pattern as CMF, filtered via the rs_no FK on tbl_resins_selected
-                resins_list = tbl_resins_selected.objects.filter(rs_no=rs).values_list('resin_no__abbreviation', flat=True)
-                resin_str = ", ".join(resins_list)
-
-                # Process — tbl_cmf_process02 links directly via rs_no for RS records
-                # (no tbl_cmf_formula row to go through, unlike CMF)
-                processes = tbl_cmf_process02.objects.filter(rs_no=rs).values_list('process_no__name', flat=True)
-                app_str = ", ".join(processes)
-                # Product code lives on tbl_cmf_pending_completed for RS records
-                pending = tbl_cmf_pending_completed.objects.filter(rs_no=rs).select_related('code').first()
-
-                form_data = {
-                    'cm_form_no': rs.rs_no,
-                    'record_id': rs.pk,
-                    'customer': rs.customer or "",
-                    'resin': resin_str,
-                    'dosage': getattr(rs, 'dosage', '') or '',
-                    'finished_product': rs.finished_product or "",
-                    'color': rs.primary_color or "",
-                    'product_code': pending.code.product_code if pending else "",
-                    'application': app_str,
-                    'record_type': 'rs',
-                }
-            else:
-                messages.error(request, f"RS record with ID {record_no} not found.")
-
-        # --- Load a SPECIFIC historical DC formula, if one was clicked ---
-        # tbl_dc_extruder_formula has both cm_no and rs_no FKs, so the filter
-        # needs to match whichever side actually resolved above.
+        # 2. Load a SPECIFIC historical DC formula, if formula_id is clicked
         if formula_id:
-            header = None
+            filter_kwargs = {'pk': formula_id}
             if cmf:
-                header = tbl_dc_extruder_formula.objects.filter(pk=formula_id, cm_no=cmf).first()
-            elif rs:
-                header = tbl_dc_extruder_formula.objects.filter(pk=formula_id, rs_no=rs).first()
+                filter_kwargs['cm_no'] = cmf
+
+            header = tbl_dc_extruder_formula.objects.filter(**filter_kwargs).first()
 
             if header:
                 form_data.update({
@@ -721,9 +647,7 @@ def cmf_dc_formula(request):
                     'matcher_id': header.matcher.id if header.matcher else "",
                 })
 
-                # Build the material_rows grid: one row per material, each
-                # holding a 10-slot list of version values (None where
-                # that material has no entry for that particular version).
+                # Build the material_rows grid: one row per material with 10 version slots
                 dc_materials = list(
                     tbl_dc_extruder_materials.objects.filter(dc=header).order_by('material_id')
                 )
@@ -740,17 +664,19 @@ def cmf_dc_formula(request):
                         'versions': [version_map.get(v) for v in range(1, 11)],
                     })
 
-                # Pad to 10 rows for the fixed-size grid.
+                # Pad to 10 rows for the fixed grid
                 while len(material_rows) < 10:
                     material_rows.append({'material': '', 'versions': [None] * 10})
                 material_rows = material_rows[:10]
             else:
                 messages.error(request, f"Formula record not found for ID {formula_id}.")
 
+    # Fallback to default 10 empty rows
     if not material_rows:
         material_rows = [{'material': '', 'versions': [None] * 10} for _ in range(10)]
 
-    user_list  = (
+    # Active user dropdown list
+    user_list = (
         User.objects.filter(is_active=True)
         .exclude(first_name="")
         .annotate(full_name=Concat('first_name', Value(' '), 'last_name'))
@@ -759,25 +685,18 @@ def cmf_dc_formula(request):
         .order_by('full_name')
     )
 
-    # 1. Get CMF numbers
+    # Get purely DC CMF numbers
     cmf_nos = list(
         tbl_cmf.objects.filter(colorant_type='DC')
         .exclude(cm_no__isnull=True)
         .exclude(cm_no='')
         .values_list('cm_no', flat=True)
+        .distinct()
     )
-    
-    # 2. Get RS numbers where colorant_type is DC
-    rs_nos = list(
-        tbl_rs.objects.filter(colorant_type='DC')
-        .exclude(rs_no__isnull=True)
-        .exclude(rs_no='')
-        .values_list('rs_no', flat=True)
-    )
-    
-    # 3. Combine, unique (set), and sort descending
-    combined_list = sorted(list(set(cmf_nos + rs_nos)), reverse=True)
+    combined_list = sorted(cmf_nos, reverse=True)
+
     coding_materials = tbl_coding_materials.objects.filter(is_deleted=False).order_by('name')
+
     context = {
         "form_data": form_data,
         "materials": cmf_records_services.get_raw_material_codes(),
