@@ -172,10 +172,7 @@ class tbl_resins_selected(models.Model):
         'tbl_cmf', to_field="cm_no", on_delete=models.CASCADE,
         db_column="cm_no", null=True, blank=True   # <- now nullable
     )
-    rs_no = models.ForeignKey(
-        'tbl_rs', on_delete=models.CASCADE,
-        db_column="rs_id", null=True, blank=True   # <- new
-    )
+    # rs_no removed
     resin_no = models.ForeignKey('tbl_resin', on_delete=models.CASCADE, db_column="resin_no")
 
     class Meta:
@@ -281,7 +278,7 @@ class tbl_cmf_color_req(models.Model):
     color_req_no = models.AutoField(primary_key=True)
     name = models.CharField(max_length=100, blank=True, null=True)
     cm_no = models.ForeignKey(tbl_cmf, to_field="cm_no", on_delete=models.CASCADE, null=True, blank=True, db_column="cm_no")
-    rs_no = models.ForeignKey('tbl_rs', on_delete=models.CASCADE, null=True, blank=True, db_column="rs_id")
+    # rs_no removed
 
     class Meta:
         db_table = "tbl_cmf_color_req"
@@ -342,7 +339,7 @@ class tbl_cmf_process02(models.Model):
         tbl_cmf_formula, on_delete=models.CASCADE,
         db_column="cmf_formula_no", null=True, blank=True   # <- now nullable
     )
-    rs_no = models.ForeignKey('tbl_rs', on_delete=models.CASCADE, null=True, blank=True, db_column="rs_id")
+    # rs_no removed
     process_no = models.ForeignKey(tbl_cmf_process, on_delete=models.SET_NULL, null=True, blank=True, db_column="process_no")
 
     class Meta:
@@ -438,6 +435,8 @@ class tbl_rs(models.Model):
     color_desc = models.TextField(blank=True, null=True)
     colorant_type = models.CharField(max_length=50, blank=True, null=True)
     user = models.ForeignKey(tbl_user, on_delete=models.SET_NULL, null=True, blank=True, db_column="user_id")
+
+    approved_by = models.ForeignKey(tbl_user, on_delete=models.SET_NULL, null=True, blank=True, db_column="approved_by", related_name="rs_approved")
     cm_no = models.ForeignKey(tbl_cmf, to_field="cm_no", on_delete=models.SET_NULL, null=True, blank=True, db_column="cm_no")
 
     class Meta:
@@ -493,7 +492,7 @@ class tbl_mb_extruder_formula(models.Model):
     is_final = models.BooleanField(default=False)
     in_master_formula = models.BooleanField(default=False)
     cm_no = models.ForeignKey(tbl_cmf, to_field="cm_no", on_delete=models.SET_NULL, null=True, blank=True, db_column="cm_no")
-    rs_no = models.ForeignKey('tbl_rs', on_delete=models.SET_NULL, blank=True, null=True, db_column='rs_id')
+    # rs_no removed
     L = models.DecimalField(max_digits=10, decimal_places=3, blank=True, null=True)
     A = models.DecimalField(max_digits=10, decimal_places=3, blank=True, null=True)
     B = models.DecimalField(max_digits=10, decimal_places=3, blank=True, null=True)
@@ -537,7 +536,7 @@ class tbl_dc_extruder_formula(models.Model):
     cm_no = models.ForeignKey(tbl_cmf, to_field="cm_no", on_delete=models.SET_NULL, null=True, blank=True, db_column="cm_no")
     is_final = models.BooleanField(default=False)
     in_master_formula = models.BooleanField(default=False)
-    rs_no = models.ForeignKey('tbl_rs', on_delete=models.SET_NULL, blank=True, null=True, db_column='rs_id')
+    # rs_no removed
     material_code = models.ForeignKey(tbl_coding_materials, on_delete=models.SET_NULL, null=True, blank=True, db_column="lab_material_no")
     L = models.DecimalField(max_digits=10, decimal_places=3, blank=True, null=True)
     A = models.DecimalField(max_digits=10, decimal_places=3, blank=True, null=True)
