@@ -319,7 +319,8 @@ def cmf_rs_entry(request):
         "form_data": form_data,
         'is_allowed': is_allowed,
     }
-    return render(request, "sidemenu/cmf/rs_entry.html", context)
+    return redirect(f"{reverse('maintenance')}?feature=RS Entry")
+    # return render(request, "sidemenu/cmf/rs_entry.html", context)
 
 def _build_dc_formula_list(dc_qs):
     """
