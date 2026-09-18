@@ -182,16 +182,13 @@
                         <div class="row g-2 align-items-center mb-2">
                             <div class="col-5"><label class="extra-small fw-bold required-label">Weighed by:</label></div>
                             <div class="col-7">
-                                <select name="weighed_by" id="id_dc_weighed_by" class="form-select form-select-sm ts-select" placeholder="Select personnel..." required>
-                                    <option value=""></option>
-                                    {% for u in users %}
-                                        <!-- Both value and display text use the full_name string -->
-                                        <option value="{{ u.full_name }}" 
-                                            {% if form_data.weighed_by == u.full_name %}selected{% endif %}>
-                                            {{ u.full_name }}
-                                        </option>
-                                    {% endfor %}
-                                </select>
+                                <input type="text" 
+                                    name="weighed_by" 
+                                    id="id_dc_weighed_by" 
+                                    value="{{ form_data.weighed_by|default:'' }}" 
+                                    class="form-control form-control-sm uniform-input" 
+                                    placeholder="Enter personnel name..." 
+                                    required>
                             </div>
                         </div>
                     <div class="row g-2 align-items-center">
