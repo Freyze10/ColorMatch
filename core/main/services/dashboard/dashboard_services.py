@@ -217,7 +217,7 @@ def get_employee_stats():
     # NOTE: adjust this regex if tbl_role.name doesn't literally contain
     # these words.
     eligible_users = tbl_user.objects.filter(
-        role__department__iregex=r'(laboratory|information technology)'
+        role__department__iregex=r'(laboratory)'
     )
 
     all_rows = _formula_rows(["cm_no_id", "matcher_id"])
