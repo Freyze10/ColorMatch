@@ -307,7 +307,7 @@
                 iframe.contentWindow.focus();
                 iframe.contentWindow.print();
 
-                const csrfToken = document.querySelector('#formulaForm [name=csrfmiddlewaretoken]')?.value;
+                const csrfToken = document.querySelector('[name=csrfmiddlewaretoken]')?.value;
                 fetch(`/${urlPrefix}/log-print/${formulaId}/`, {
                     method: 'POST',
                     headers: { 'X-CSRFToken': csrfToken }
