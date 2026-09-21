@@ -32,6 +32,7 @@ def get_formulation_details(request):
         prefix = cmf.in_code_no.code if cmf.in_code_no else ""
         
         if prefix:
+            #TODO: for N/A primary Color, new logic for AD code
             # We look for the pattern: Prefix + Fixed (A) + 5 Digits + Fixed (E)
             # Adjust the 'A' and 'E' if your fixed characters are different
             # Regex: ^[Prefix]A(\d{5})E$
