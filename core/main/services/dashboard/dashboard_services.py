@@ -182,7 +182,7 @@ def _get_legacy_matched_counts():
         total = row['total']
 
         if 'ann' in match_by or 'ana' in match_by:
-            canonical = 'anastasia solomon'
+            canonical = 'ana solomon'
         elif 'ernie' in match_by:
             canonical = 'ernie pio'
         elif match_by == 'geelyn rellin':
