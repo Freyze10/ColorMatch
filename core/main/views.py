@@ -6,7 +6,7 @@ from django.core.management import call_command
 from django.contrib.auth import authenticate, login, logout, get_user_model, update_session_auth_hash 
 from django.contrib.auth.models import User
 from django.db import transaction
-from django.db.models import Max, Min, Value
+from django.db.models import Q, Max, Min, Value
 from django.db.models.functions import Concat
 from django.http import HttpResponse, JsonResponse
 from django.shortcuts import get_object_or_404, redirect, render
@@ -548,14 +548,27 @@ def cmf_mb_formula(request):
     if not ingredients:
         ingredients = [{'material': '', 'value': '', 'weight': ''}] * 10
 
-    # User list dropdown
+    # Filter only active users from the Laboratory department
+    # 1. Define the specific lab personnel
+    allowed_personnel = [
+        ("Jinky", "Villacampa"),
+        ("Linzy Jam", "Bautista"),
+        ("Ana", "Solomon"),
+        ("ernie", "pio"),
+        ("Geelyn", "Rellin"),
+    ]
+    # 2. Build the filter query
+    name_query = Q()
+    for first, last in allowed_personnel:
+        name_query |= Q(first_name__iexact=first, last_name__iexact=last)
+
+    # 3. Query only these specific users
     user_list = (
         User.objects.filter(is_active=True)
-        .exclude(first_name="")
+        .filter(name_query)
         .annotate(full_name=Concat('first_name', Value(' '), 'last_name'))
         .values('id', 'full_name')
-        .distinct()
-        .order_by('full_name')
+        .order_by('first_name')
     )
 
     # Purely CMF numbers (no RS)
@@ -695,14 +708,27 @@ def cmf_dc_formula(request):
     if not material_rows:
         material_rows = [{'material': '', 'versions': [None] * 10} for _ in range(10)]
 
-    # Active user dropdown list
+    # Filter only active users from the Laboratory department
+    # 1. Define the specific lab personnel
+    allowed_personnel = [
+        ("Jinky", "Villacampa"),
+        ("Linzy Jam", "Bautista"),
+        ("Ana", "Solomon"),
+        ("ernie", "pio"),
+        ("Geelyn", "Rellin"),
+    ]
+    # 2. Build the filter query
+    name_query = Q()
+    for first, last in allowed_personnel:
+        name_query |= Q(first_name__iexact=first, last_name__iexact=last)
+
+    # 3. Query only these specific users
     user_list = (
         User.objects.filter(is_active=True)
-        .exclude(first_name="")
+        .filter(name_query)
         .annotate(full_name=Concat('first_name', Value(' '), 'last_name'))
         .values('id', 'full_name')
-        .distinct()
-        .order_by('full_name')
+        .order_by('first_name')
     )
 
     # Get purely DC CMF numbers
