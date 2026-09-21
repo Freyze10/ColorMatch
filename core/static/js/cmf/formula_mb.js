@@ -1,7 +1,10 @@
 /**
  * formula_mb.js
  * Logic specific to Masterbatch (MB) Formula.
- * Calculation: [Supposed Total Weight] * ([Row %] / 100) = [Row Weight]
+ * - Calculation: [Supposed Total Weight] * ([Row %] / 100) = [Row Weight]
+ * - Row locking: a row is only editable once every row above it is complete
+ *   (material + percent + weight).
+ * - Enter key moves to the next field, like Tab.
  */
 (function () {
     const table = document.querySelector('.js-formula-table');
@@ -12,6 +15,11 @@
     if (!table || !supposedWeightInput) return;
 
     const form = table.closest('form');
+
+    // ------------------------------------------------------------------
+    // CALCULATIONS
+    // ------------------------------------------------------------------
+
     /**
      * Calculates a single row's weight based on the supposed total weight and the row's percent
      */
@@ -19,13 +27,16 @@
         const percentInput = row.querySelector('.js-percent-input');
         const weightInput = row.querySelector('.js-weight-input');
         const masterWeight = parseFloat(supposedWeightInput.value) || 0;
-        const percent = parseFloat(percentInput.value) || 0;
 
-        if (masterWeight > 0 && percent >= 0) {
-            const calculatedWeight = masterWeight * (percent / 100);
-            weightInput.value = calculatedWeight.toFixed(6);
-        } else if (percent === 0) {
+        // No percent typed in this row -> no weight (don't fill empty rows with 0.000000)
+        if (percentInput.value.trim() === '') {
             weightInput.value = "";
+            return;
+        }
+
+        if (masterWeight > 0) {
+            const percent = parseFloat(percentInput.value) || 0;
+            weightInput.value = (masterWeight * (percent / 100)).toFixed(6);
         }
     }
 
@@ -44,7 +55,6 @@
             totalWgt += parseFloat(input.value) || 0;
         });
 
-        // Update Footer UI
         if (summaryTotalPercent) {
             summaryTotalPercent.value = totalPct.toFixed(6);
             // Visual Validation: Red if not 100%
@@ -58,12 +68,13 @@
             summaryTotalWeight.style.color = (totalWgt.toFixed(2) !== masterWgt.toFixed(2)) ? "#dc3545" : "#198754";
         }
     }
+
     // ------------------------------------------------------------------
     // SEQUENTIAL ROW LOCKING
     // ------------------------------------------------------------------
- 
+
     const getRows = () => Array.from(table.querySelectorAll('tbody tr'));
- 
+
     function getRowValues(row) {
         return [
             row.querySelector('.js-material-select')?.value.trim() || '',
@@ -71,14 +82,13 @@
             row.querySelector('.js-weight-input')?.value.trim() || ''
         ];
     }
- 
+
     const isRowComplete = (row) => getRowValues(row).every(v => v !== '');
-    const rowHasData = (row) => getRowValues(row).some(v => v !== '');
- 
+
     function setRowLocked(row, locked) {
         if (row.dataset.locked === String(locked)) return; // nothing changed
         row.dataset.locked = String(locked);
- 
+
         const select = row.querySelector('.js-material-select');
         if (select) {
             if (select.tomselect) {
@@ -87,7 +97,7 @@
                 select.disabled = locked;
             }
         }
- 
+
         row.querySelectorAll('.js-percent-input, .js-weight-input').forEach(input => {
             input.readOnly = locked;
             input.style.backgroundColor = locked ? '#f8f9fa' : '';
@@ -96,16 +106,16 @@
             else input.removeAttribute('tabindex');
         });
     }
- 
+
     /**
-     * Row N is editable only if all rows above it are complete
-     * (or if it already contains data, so nothing gets stuck locked).
+     * Row N is editable only if every row above it is complete
+     * (material + percent + weight). Row 1 is always editable.
      */
     function updateRowLocks() {
         let previousRowsComplete = true;
- 
+
         getRows().forEach(row => {
-            setRowLocked(row, !previousRowsComplete && !rowHasData(row));
+            setRowLocked(row, !previousRowsComplete);
             previousRowsComplete = previousRowsComplete && isRowComplete(row);
         });
     }
@@ -113,7 +123,7 @@
     // ------------------------------------------------------------------
     // ENTER KEY = TAB
     // ------------------------------------------------------------------
- 
+
     /**
      * Ordered list of fields the cursor can land on.
      * Tom Select fields are represented by their original <select>.
@@ -126,12 +136,12 @@
             return !el.readOnly && el.tabIndex >= 0;
         });
     }
- 
+
     function focusNextField(current) {
         const fields = getFocusableFields();
         const next = fields[fields.indexOf(current) + 1];
         if (!next) return;
- 
+
         if (next.tomselect) {
             next.tomselect.focus();
         } else {
@@ -139,20 +149,20 @@
             if (typeof next.select === 'function') next.select();
         }
     }
- 
+
     // Capture phase so this runs before Tom Select handles the key
     form.addEventListener('keydown', function (e) {
         if (e.key !== 'Enter' || e.shiftKey || e.isComposing) return;
- 
+
         const target = e.target;
         if (target.tagName === 'TEXTAREA' || target.tagName === 'BUTTON') return;
- 
+
         // Material dropdowns in the table
         const wrapper = target.closest('.ts-wrapper');
         if (wrapper) {
             const select = wrapper.previousElementSibling;
             if (!select || !select.classList.contains('js-material-select')) return; // leave other dropdowns alone
- 
+
             const ts = select.tomselect;
             if (ts.isOpen) {
                 // Let Tom Select pick the highlighted option first, then move on
@@ -163,12 +173,16 @@
             }
             return;
         }
- 
+
         // Plain inputs
         if (target.tagName !== 'INPUT') return;
         e.preventDefault();
         focusNextField(target);
     }, true);
+
+    // ------------------------------------------------------------------
+    // EVENTS
+    // ------------------------------------------------------------------
 
     // EVENT 1: User changes the Supposed Total Weight
     supposedWeightInput.addEventListener('input', function () {
@@ -177,25 +191,25 @@
         updateSummaryTotals();
         updateRowLocks();
     });
- 
+
     // EVENT 2: User changes a Percentage in a row
     table.addEventListener('input', function (e) {
         if (e.target.classList.contains('js-percent-input')) {
             calculateRowWeight(e.target.closest('tr'));
             updateSummaryTotals();
         }
- 
+
         // EVENT 3: Manual weight edit
         if (e.target.classList.contains('js-weight-input')) {
             updateSummaryTotals();
         }
- 
+
         updateRowLocks();
     });
- 
+
     // EVENT 4: Material picked/cleared (Tom Select fires change on the original select)
     table.addEventListener('change', updateRowLocks);
- 
+
     // Run once on page load (in case of existing data)
     updateSummaryTotals();
     updateRowLocks();
