@@ -30,13 +30,13 @@ document.addEventListener('DOMContentLoaded', function () {
         processing: true,
         searching: false,   // we drive filtering ourselves via the row above
         pageLength: 1000,
-        lengthMenu: [100, 500, 1000, 5000],
         order: [[1, 'desc']], // CMF No., descending — same default as before
-        // Drop DataTables' own "Showing X to Y of Z entries" text — that's
-        // what #recordCounter is for — and put the page-number buttons on
-        // the left instead of the default bottom-right.
+        // Drop DataTables' own "Showing X to Y of Z entries" text and its
+        // built-in page-length control — #recordCounter and #pageLengthSelect
+        // (in the Filter Status row) replace them — and put the page-number
+        // buttons on the left instead of the default bottom-right.
         layout: {
-            topStart: 'pageLength',
+            topStart: null,
             topEnd: null,
             bottomStart: 'paging',
             bottomEnd: null
@@ -98,6 +98,14 @@ document.addEventListener('DOMContentLoaded', function () {
         });
     }
     applyColumnVisibility();
+
+    // --- PAGE LENGTH (custom select, placed before "Filter Status:") ---
+    const pageLengthSelect = document.getElementById('pageLengthSelect');
+    if (pageLengthSelect) {
+        pageLengthSelect.addEventListener('change', function () {
+            table.page.len(parseInt(this.value, 10)).draw('page');
+        });
+    }
 
     let searchDebounce;
     function reloadTable() {

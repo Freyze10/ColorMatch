@@ -89,6 +89,7 @@ Color Matching Records
     <div class="mt-2 py-3 px-2">
         <div class="d-flex flex-column flex-md-row justify-content-between align-items-md-center gap-3">
             <div class="d-flex flex-column flex-sm-row align-items-sm-center gap-2 gap-sm-3">
+                
                 <span class="small fw-bold">Filter Status:</span>
                 <div class="d-flex flex-wrap gap-3">
                     <div class="form-check">
@@ -101,6 +102,12 @@ Color Matching Records
                     </div>
                 </div>
                 <div class="vr d-none d-sm-block"></div>
+                <select class="form-select form-select-sm uniform-input" id="pageLengthSelect" style="width: 80px;">
+                    <option value="100">100</option>
+                    <option value="500">500</option>
+                    <option value="1000" selected>1000</option>
+                    <option value="5000">5000</option>
+                </select>
                 <small class="text-muted" id="recordCounter">Showing 0 records</small>
             </div>
 
