@@ -1,4 +1,4 @@
-document.addEventListener('DOMContentLoaded', function() {
+document.addEventListener('DOMContentLoaded', function () {
 
     // --- DOM ELEMENTS ---
     const completedCheckbox = document.getElementById('completed');
@@ -9,51 +9,127 @@ document.addEventListener('DOMContentLoaded', function() {
     const recordCounter = document.getElementById('recordCounter');
     const contextMenu = document.getElementById('customContextMenu');
     const menuTitle = document.getElementById('contextMenuTitle');
-    const recordsTbody = document.getElementById('recordsTbody');
+    const tableEl = document.querySelector('.cmf-records-table');
 
+    if (!tableEl) return;
+
+    // Maps the "logical" column ids used by the status filter (unchanged
+    // from before) to the DataTable column POSITION — 0-based, left to
+    // right as drawn in <thead>. Must match the <th> order in the template.
+    const COL_POS = {
+        id: 0, 0: 1, 1: 2, 2: 3, 3: 4, 4: 5, 5: 6, 6: 7,
+        7: 8, 13: 9, 8: 10, 9: 11, 10: 12, 11: 13, 12: 14
+    };
     const COLS_BOTH = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 13];
     const COLS_COMPLETED = [0, 1, 2, 3, 4, 7, 8, 10, 11];
     const COLS_PENDING = [0, 1, 2, 3, 4, 5, 6, 7, 12];
 
-    function applyFilters() {
+    // --- DATATABLE (server-side) ---
+    const table = new DataTable(tableEl, {
+        serverSide: true,
+        processing: true,
+        searching: false,   // we drive filtering ourselves via the row above
+        pageLength: 1000,
+        lengthMenu: [100, 500, 1000, 5000],
+        order: [[1, 'desc']], // CMF No., descending — same default as before
+        // Drop DataTables' own "Showing X to Y of Z entries" text — that's
+        // what #recordCounter is for — and put the page-number buttons on
+        // the left instead of the default bottom-right.
+        layout: {
+            topStart: 'pageLength',
+            topEnd: null,
+            bottomStart: 'paging',
+            bottomEnd: null
+        },
+        language: {
+            emptyTable: "No records found in database.",
+            zeroRecords: "No matching records found."
+        },
+        ajax: {
+            url: '/cmf/records/data/',
+            data: function (d) {
+                d.status_completed = completedCheckbox ? completedCheckbox.checked : true;
+                d.status_pending = pendingCheckbox ? pendingCheckbox.checked : true;
+                d.search_col = searchFieldSelect ? searchFieldSelect.value : 'all';
+                d.search_term = searchInput ? searchInput.value.trim() : '';
+            }
+        },
+        columns: [
+            { data: 'id', visible: false, searchable: false },
+            { data: 'no', className: 'ps-3 fw-bold' },
+            { data: 'customer' },
+            { data: 'primary_color' },
+            { data: 'description' },
+            { data: 'product' },
+            { data: 'required_date' },
+            { data: 'target_date' },
+            { data: 'type' },
+            { data: 'colorant_type' },
+            { data: 'code' },
+            {
+                data: 'status',
+                render: function (val) {
+                    const cls = val === 'Completed'
+                        ? 'bg-success-subtle text-success border border-success'
+                        : 'bg-warning-subtle text-warning-emphasis border border-warning';
+                    return `<span class="badge ${cls}">${val}</span>`;
+                }
+            },
+            { data: 'submitted_date' },
+            { data: 'ar_no' },
+            { data: 'reason', className: 'pe-3' }
+        ],
+        drawCallback: function () {
+            const info = this.api().page.info();
+            if (recordCounter) recordCounter.textContent = `Showing ${info.recordsDisplay} records`;
+        }
+    });
+
+    // --- COLUMN VISIBILITY (per Completed/Pending checkboxes) ---
+    function applyColumnVisibility() {
         const showCompleted = completedCheckbox ? completedCheckbox.checked : true;
         const showPending = pendingCheckbox ? pendingCheckbox.checked : true;
-        const searchTerm = searchInput ? searchInput.value.trim().toLowerCase() : '';
-        const searchColIndex = searchFieldSelect ? searchFieldSelect.value : 'all';
+        const activeCols = showCompleted && showPending ? COLS_BOTH : (showCompleted ? COLS_COMPLETED : COLS_PENDING);
 
-        let activeCols = showCompleted && showPending ? COLS_BOTH : (showCompleted ? COLS_COMPLETED : COLS_PENDING);
-
-        for (let i = 0; i <= 12; i++) {
-            const isVisible = activeCols.includes(i);
-            document.querySelectorAll(`[data-col-index="${i}"]`).forEach(cell => {
-                cell.style.display = isVisible ? '' : 'none';
-            });
-        }
-
-        let visibleCount = 0;
-        document.querySelectorAll('.record-row').forEach(row => {
-            let matchesStatus = (showCompleted && row.dataset.status === 'Completed') || (showPending && row.dataset.status === 'Pending');
-            let matchesSearch = searchTerm === '' || (searchColIndex === 'all' ? row.textContent.toLowerCase().includes(searchTerm) : row.querySelector(`[data-col-index="${searchColIndex}"]`).textContent.toLowerCase().includes(searchTerm));
-
-            if (matchesStatus && matchesSearch) {
-                row.style.display = '';
-                visibleCount++;
-            } else {
-                row.style.display = 'none';
-            }
+        Object.keys(COL_POS).forEach(function (logicalKey) {
+            if (logicalKey === 'id') return; // stays hidden regardless of filters
+            const key = isNaN(logicalKey) ? logicalKey : parseInt(logicalKey, 10);
+            table.column(COL_POS[logicalKey]).visible(activeCols.includes(key));
         });
-        if (recordCounter) recordCounter.textContent = `Showing ${visibleCount} records`;
+    }
+    applyColumnVisibility();
+
+    let searchDebounce;
+    function reloadTable() {
+        applyColumnVisibility();
+        table.ajax.reload();
     }
 
+    if (completedCheckbox) completedCheckbox.addEventListener('change', reloadTable);
+    if (pendingCheckbox) pendingCheckbox.addEventListener('change', reloadTable);
+    if (searchFieldSelect) searchFieldSelect.addEventListener('change', reloadTable);
+    if (searchInput) {
+        searchInput.addEventListener('input', function () {
+            clearTimeout(searchDebounce);
+            searchDebounce = setTimeout(reloadTable, 300);
+        });
+    }
+    if (refreshBtn) refreshBtn.addEventListener('click', () => table.ajax.reload(null, false));
+
     // --- CONTEXT MENU (Right Click) ---
+    // Delegated on the <tbody> element itself (not the rows), so it keeps
+    // working after DataTables replaces the rows on every redraw.
+    const recordsTbody = tableEl.querySelector('tbody');
     if (recordsTbody && contextMenu) {
         recordsTbody.addEventListener('contextmenu', function (e) {
-            const tr = e.target.closest('.record-row');
+            const tr = e.target.closest('tr');
             if (!tr) return;
+            const rowData = table.row(tr).data();
+            if (!rowData) return;
             e.preventDefault();
 
-            const recordId = tr.cells[0].innerText.trim();   // hidden real ID — used for lookups
-            const recordNo = tr.cells[1].innerText.trim();    // visible No. — used for display only
+            const recordId = rowData.id;   // hidden real ID — used for lookups
+            const recordNo = rowData.no;   // visible No. — used for display only
 
             menuTitle.innerText = recordNo;
 
@@ -74,31 +150,19 @@ document.addEventListener('DOMContentLoaded', function() {
         document.addEventListener('click', () => contextMenu.style.display = 'none');
     }
 
-    if (completedCheckbox) completedCheckbox.addEventListener('change', applyFilters);
-    if (pendingCheckbox) pendingCheckbox.addEventListener('change', applyFilters);
-    if (searchInput) searchInput.addEventListener('input', applyFilters);
-    if (searchFieldSelect) searchFieldSelect.addEventListener('change', applyFilters);
-    if (refreshBtn) refreshBtn.addEventListener('click', () => window.location.reload());
-
-    applyFilters();
-
     const syncLegacyBtn = document.getElementById('syncLegacyBtn');
 
     if (syncLegacyBtn) {
-        syncLegacyBtn.addEventListener('click', function() {
+        syncLegacyBtn.addEventListener('click', function () {
             Preline.confirm(
                 'Sync Legacy Data?',
                 'This will mirror the latest formulas and production records from the legacy server. This process may take a minute.',
                 'info',
                 () => {
-                    // 1. Show the global loading cubes (from our previous step)
                     if (typeof showLoader === 'function') {
                         showLoader();
                     }
-                    
-                    // 2. Redirect to the sync action URL
-                    // Note: Ensure this URL matches your urls.py path
-                    window.location.href = "/legacy/sync/"; 
+                    window.location.href = "/legacy/sync/";
                 }
             );
         });
@@ -111,7 +175,7 @@ document.addEventListener('DOMContentLoaded', function() {
     const exportDateTo = document.getElementById('exportDateTo');
     const exportIncludeRs = document.getElementById('exportIncludeRs');
     const exportExcelBtn = document.getElementById('exportExcelBtn');
-    
+
     function formatDateMMDDYYYY(date) {
         const mm = String(date.getMonth() + 1).padStart(2, '0');
         const dd = String(date.getDate()).padStart(2, '0');
@@ -120,7 +184,6 @@ document.addEventListener('DOMContentLoaded', function() {
     }
 
     if (exportFilterBtn && exportFilterPanel) {
-        // Set defaults: To = today, From = 7 days ago
         const today = new Date();
         const sevenDaysAgo = new Date();
         sevenDaysAgo.setDate(today.getDate() - 7);
@@ -133,14 +196,12 @@ document.addEventListener('DOMContentLoaded', function() {
             exportFilterPanel.classList.toggle('d-none');
         });
 
-        // Close the panel when clicking anywhere outside it
         document.addEventListener('click', function (e) {
             if (!exportFilterPanel.contains(e.target) && e.target !== exportFilterBtn) {
                 exportFilterPanel.classList.add('d-none');
             }
         });
 
-        // Prevent clicks inside the panel (e.g. on the date pickers) from closing it
         exportFilterPanel.addEventListener('click', function (e) {
             e.stopPropagation();
         });
@@ -182,6 +243,5 @@ document.addEventListener('DOMContentLoaded', function() {
             );
         });
     }
-
 
 });

@@ -143,10 +143,8 @@ def maintenance(request):
 
 @access_required('CMF Records')
 def cmf_records(request):
-    all_records = cmf_records_services.get_all_records_combined()
-    return render(request, "sidemenu/cmf/cmf_records.html", {
-        "records": all_records,
-    })
+    # all_records = cmf_records_services.get_all_records_combined()
+    return render(request, "sidemenu/cmf/cmf_records.html")
 
 def rs_records(request):
     all_records = rs_records_services.get_rs_records()

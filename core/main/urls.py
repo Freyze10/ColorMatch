@@ -46,6 +46,7 @@ urlpatterns = [
     # export
     path('cmf/records/export/', views.cmf_records_export_preview, name='cmf_records_export_preview'),
     # ajax
+    path('cmf/records/data/', cmf_records_services.cmf_records_data, name='cmf_records_data'),
     path('cmf/mb-dc-formula/', mb_dc_formulation_services.get_formulation_details, name='mb_dc_lookup_details'),
     path('cmf/formula-records/data/', cmf_records_services.formula_records_data, name='formula_records_data'),
     path('cmf/formula-records/price-first/', formula_price_first.get_price_first_data, name='get_price_first_data'),

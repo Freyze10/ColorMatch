@@ -5,6 +5,13 @@
 Color Matching Records
 {% endblock navigation %}
 
+{% block extra_head %}
+<!-- DataTables (standalone build — no jQuery dependency). Self-host these
+     two files under your static/vendor/ folder if this app runs on a
+     network without reliable internet access. -->
+<link rel="stylesheet" href="https://cdn.datatables.net/2.1.8/css/dataTables.dataTables.min.css">
+{% endblock %}
+
 {% block content %}
 
 <div class="d-flex flex-column">
@@ -52,7 +59,7 @@ Color Matching Records
     <!-- TABLE CARD -->
     <div class="card border-0 shadow-sm rounded-3 cmf-table-card">
         <div class="cmf-scroll-body">
-            <table class="table table-hover align-middle mb-0 cmf-records-table">
+            <table class="table table-hover align-middle mb-0 cmf-records-table" style="width: 100%;">
                 <thead>
                     <tr class="small text-uppercase">
                         <th class="d-none" data-col-index="id">ID</th>
@@ -72,43 +79,8 @@ Color Matching Records
                         <th class="pe-3" data-col-index="12">Reason</th>
                     </tr>
                 </thead>
-
-                <tbody class="small" id="recordsTbody">
-                    {% for record in records %}
-                    <tr class="record-row" data-status="{{ record.status }}">
-                        <td class="d-none" data-col-index="id">{{ record.id }}</td>
-                        <td class="ps-3 fw-bold" data-col-index="0">{{ record.no }}</td>
-                        <td data-col-index="1">{{ record.customer }}</td>
-                        <td data-col-index="2">{{ record.primary_color}}</td>
-                        <td data-col-index="3">{{ record.description }}</td>
-                        <td data-col-index="4">{{ record.product }}</td>
-                        <td data-col-index="5">{{ record.required_date }}</td>
-                        <td data-col-index="6">{{ record.target_date }}</td>
-                        <td data-col-index="7">{{ record.type }}</td>
-                        <td data-col-index="13">{{ record.colorant_type }}</td>
-                        <td data-col-index="8">{{ record.code }}</td>
-                        <td data-col-index="9">
-                            <span class="badge
-                                {% if record.status == 'Completed' %}
-                                    bg-success-subtle text-success border border-success
-                                {% else %}
-                                    bg-warning-subtle text-warning-emphasis border border-warning
-                                {% endif %}">
-                                {{ record.status }}
-                            </span>
-                        </td>
-                        <td data-col-index="10">{{ record.submitted_date }}</td>
-                        <td data-col-index="11">{{ record.ar_no }}</td>
-                        <td class="pe-3" data-col-index="12">{{ record.reason }}</td>
-                    </tr>
-                    {% empty %}
-                    <tr id="emptyRow">
-                        <td colspan="14" class="text-center py-5 text-muted">
-                            No records found in database.
-                        </td>
-                    </tr>
-                    {% endfor %}
-                </tbody>
+                <!-- Rows are drawn by DataTables via AJAX — nothing to render server-side here. -->
+                <tbody class="small" id="recordsTbody"></tbody>
             </table>
         </div>
     </div>
@@ -228,6 +200,7 @@ Color Matching Records
 {% endblock %}
 
 {% block scripts %}
+<script src="https://cdn.datatables.net/2.1.8/js/dataTables.min.js"></script>
 <script src="{% static 'js/cmf/cmf_records.js' %}"></script>
 <script src="{% static 'js/modal/cmf-record/cmf_record_detail.js' %}"></script>
 {% endblock %}
