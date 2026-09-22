@@ -216,6 +216,16 @@ CMF Entry
                                     <input type="text" name="est_qty_order" value="{{ form_data.est_qty_order|default:'' }}" class="form-control uniform-input est-qty-input text-end" placeholder="0.00" required>
                                     <span class="input-group-text extra-small fw-bold bg-light">KG</span>
                                 </div>
+                                <label class="fw-bold extra-small required-label">Est. Qty Per Order:</label>
+                                <input type="hidden" name="qty_resin_test" id="id_qty_resin_test_hidden" value="{{ form_data.qty_resin_test|default:'' }}">
+                                
+                                <div class="input-group input-group-sm">
+                                    <input type="text" id="id_qty_resin_num" class="form-control uniform-input qty-resin-input" placeholder="Amount" required>
+                                    <select id="id_qty_resin_unit" class="form-select uniform-input" style="max-width: 80px;">
+                                        <option value="KG">KG</option>
+                                        <option value="G">MT</option>
+                                    </select>
+                                </div>
                             </div>
                         </div>
 
