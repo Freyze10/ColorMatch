@@ -143,7 +143,7 @@ CMF Entry
                                 </select>
                             </div>
                             <div class="col-8">
-                                <label class="fw-bold extra-small required-label">Description:</label>
+                                <label class="fw-bold extra-small required-label">Color Description:</label>
                                 <input type="text" name="color_description" value="{{ form_data.color_description|default:'' }}" class="form-control form-control-sm uniform-input" placeholder="Enter color description..." required>
                             </div>
                         </div>
@@ -182,14 +182,14 @@ CMF Entry
                         <!-- Sample Colorant Available + Colorant Type -->
                         <div class="row g-2 mb-2">
                             <div class="col-5">
-                                <label class="fw-bold extra-small d-block mb-1 required-label">Sample Colorant Available:</label>
+                                <label class="fw-bold extra-small d-block mb-1 required-label">Is Sample Colorant Available:</label>
                                 <div class="d-flex gap-3">
                                     <div class="form-check form-check-inline"><input class="form-check-input visible-check" type="radio" value="Y" name="sampleColorant" id="sample_yes" {% if form_data.sampleColorant == 'Y' %}checked{% endif %} required><label class="form-check-label extra-small" for="sample_yes">Y</label></div>
                                     <div class="form-check form-check-inline"><input class="form-check-input visible-check" type="radio" value="N" name="sampleColorant" id="sample_no" {% if form_data.sampleColorant == 'N' %}checked{% endif %} required><label class="form-check-label extra-small" for="sample_no">N</label></div>
                                 </div>
                             </div>
                             <div class="col-7">
-                                <label class="fw-bold extra-small d-block mb-1 required-label">Colorant Type:</label>
+                                <label class="fw-bold extra-small d-block mb-1 required-label">Type of Colorant:</label>
                                 <div class="d-flex flex-wrap align-items-center gap-3">
                                     <div class="form-check"><input class="form-check-input visible-check" type="radio" value="MB" name="colorantType" id="colorant_mb" {% if form_data.colorantType == 'MB' %}checked{% endif %} required><label class="form-check-label extra-small" for="colorant_mb">MB</label></div>
                                     <div class="form-check"><input class="form-check-input visible-check" type="radio" value="DC" name="colorantType" id="colorant_dc" {% if form_data.colorantType == 'DC' %}checked{% endif %} required><label class="form-check-label extra-small" for="colorant_dc">DC</label></div>
@@ -211,7 +211,7 @@ CMF Entry
                                 <input type="text" name="dosage" value="{{ form_data.dosage|default:'' }}" class="form-control form-control-sm uniform-input dosage-input" placeholder="Enter Dosage" required>
                             </div>
                             <div class="col-6">
-                                <label class="fw-bold extra-small required-label">Est. Qty Order:</label>
+                                <label class="fw-bold extra-small required-label">Est. Qty Per Order:</label>
                                 <div class="input-group input-group-sm">
                                     <input type="text" name="est_qty_order" value="{{ form_data.est_qty_order|default:'' }}" class="form-control uniform-input est-qty-input text-end" placeholder="0.00" required>
                                     <span class="input-group-text extra-small fw-bold bg-light">KG</span>
@@ -221,7 +221,7 @@ CMF Entry
 
                         <!-- Resin Type -->
                         <div class="mb-2">
-                            <label class="fw-bold extra-small required-label">Resin Type:</label>
+                            <label class="fw-bold extra-small required-label">Resin:</label>
                             <select class="form-select form-select-sm ts-select" name="resin" placeholder="Select resin" multiple required>
                                 <option value=""></option>
                                 {% for r in resin %}
@@ -273,7 +273,7 @@ CMF Entry
                                 </div>
                             </div>
                             <div class="col-5">
-                                <label class="fw-bold extra-small d-block required-label">Customer Resin Provided:</label>
+                                <label class="fw-bold extra-small d-block required-label">Customer Provided Resin:</label>
                                 <div class="form-check form-check-inline"><input class="form-check-input visible-check" value="Y" type="radio" name="customerResin" id="resin_yes" {% if form_data.customerResin == 'Y' %}checked{% endif %} required><label class="form-check-label extra-small" for="resin_yes">Y</label></div>
                                 <div class="form-check form-check-inline"><input class="form-check-input visible-check" value="N" type="radio" name="customerResin" id="resin_no" {% if form_data.customerResin == 'N' %}checked{% endif %} required><label class="form-check-label extra-small" for="resin_no">N</label></div>
                             </div>
@@ -282,11 +282,11 @@ CMF Entry
                         <!-- MI Customer Resin + Color Guide to be Returned -->
                         <div class="row g-2 mb-2">
                             <div class="col-6">
-                                <label class="fw-bold extra-small required-label">MI Customer Resin:</label>
+                                <label class="fw-bold extra-small required-label">MI Customer's Resin:</label>
                                 <input type="text" name="mi_customer_resin" value="{{ form_data.mi_customer_resin|default:'N/A' }}" class="form-control form-control-sm uniform-input" required>
                             </div>
                             <div class="col-6">
-                                <label class="fw-bold extra-small d-block mb-1 required-label">Color Guide to be Returned:</label>
+                                <label class="fw-bold extra-small d-block mb-1 required-label">Is Color Guide to be Returned:</label>
                                 <div class="d-flex gap-3 mt-1">
                                     <div class="form-check form-check-inline mb-0">
                                         <input class="form-check-input visible-check" type="radio" name="color_guide_return" value="Y" id="color_guide_yes" {% if form_data.color_guide_return == 'Y' %}checked{% endif %} required>
@@ -329,7 +329,7 @@ CMF Entry
                                 <input type="text" name="processing_temp" value="{{ form_data.processing_temp|default:'N/A' }}" class="form-control form-control-sm uniform-input temp-input" required>
                             </div>
                             <div class="col-6">
-                                <label class="fw-bold extra-small d-block mb-1 required-label">Is Low Cost?</label>
+                                <label class="fw-bold extra-small d-block mb-1 required-label">Low Cost?</label>
                                 <div class="d-flex gap-3 mt-1">
                                     <div class="form-check form-check-inline mb-0">
                                         <input class="form-check-input visible-check" type="radio" name="is_low_cost" value="Y" id="low_cost_yes" {% if form_data.is_low_cost == 'Y' %}checked{% endif %} required>
