@@ -249,12 +249,11 @@ class tbl_cmf(models.Model):
         blank=True, 
         null=True
     )
-    est_qty_order = models.DecimalField(
-        max_digits=10, 
-        decimal_places=2, 
+    est_qty_order = models.CharField(
+        max_length=100, 
         blank=True, 
         null=True,
-        help_text="Estimated quantity in KG"
+        help_text="Estimated quantity in KG/MT"
     )
     # ----
     color_desc = models.TextField(blank=True, null=True)
