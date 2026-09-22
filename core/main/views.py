@@ -217,6 +217,18 @@ def cmf_entry(request):
                     tbl_cmf_process02.objects.filter(cmf_formula_no=formula_info)
                     .values_list('process_no__name', flat=True)
                 ) if formula_info else []
+                STANDARD_PROCESSES = {'injection', 'blow-molding', 'film', 'pipe-extrusion'}
+                selected_processes = []
+                other_process_val = ""
+
+                for p in process_names:
+                    p_clean = p.strip().lower()
+                    if p_clean in STANDARD_PROCESSES:
+                        selected_processes.append(p_clean)
+                    else:
+                        selected_processes.append('others')
+                        other_process_val = p.strip()
+
                 spec_names = list(
                     tbl_cmf_specification02.objects.filter(cm_no=cmf)
                     .values_list('spec_no__name', flat=True)
@@ -273,7 +285,8 @@ def cmf_entry(request):
 
                     # plain lists — NOT a QueryDict, template must use "in form_data.resin" (not .getlist.resin)
                     'resin': [str(rid) for rid in resin_ids],
-                    'process': process_names,
+                    'process': selected_processes,
+                    'otherProcess': other_process_val,
                     'specification': spec_names,
                 }
                 # show the "View Files" button, and to populate its modal.
