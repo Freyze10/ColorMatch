@@ -247,7 +247,7 @@ class tbl_cmf(models.Model):
         null=True
     )
     est_qty_order = models.DecimalField(
-        max_digits=6, 
+        max_digits=10, 
         decimal_places=2, 
         blank=True, 
         null=True,
