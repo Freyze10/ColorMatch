@@ -419,6 +419,23 @@ class tbl_submitted_selected(models.Model):
     def __str__(self):
         return f"{self.completed_id.completed_id} - {self.option_id.name}"
 
+class tbl_field_note(models.Model):
+    id = models.AutoField(primary_key=True)
+    note = models.TextField(blank=True, null=True)
+    field = models.CharField(max_length=50)  # Stores "dosage", "resin", etc.
+    cmf_formula_no = models.ForeignKey(
+        'tbl_cmf_formula',
+        on_delete=models.CASCADE,
+        db_column="cmf_formula_no",
+        related_name="field_notes"
+    )
+
+    class Meta:
+        db_table = "tbl_field_note"
+        unique_together = ('cmf_formula_no', 'field')  # Ensures 1 note per field per formula
+
+    def __str__(self):
+        return f"{self.field}: {self.note}"
 
 # ==========================================
 # 4. RS & FEEDBACK

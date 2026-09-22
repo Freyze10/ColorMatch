@@ -32,6 +32,36 @@ document.addEventListener('DOMContentLoaded', function() {
         input.addEventListener('keypress', restrictToNumbers);
     });
 
+    // --- DOSAGE & DOSAGE NOTE SYNC LOGIC ---
+    const dosageInput = document.querySelector('input[name="dosage"]');
+    const dosageNoteInput = document.querySelector('input[name="dosage_note"]');
+
+    if (dosageInput && dosageNoteInput) {
+        // If the form loaded with an existing note that is different from dosage, treat as already edited
+        let isDosageNoteUserEdited = Boolean(
+            dosageNoteInput.value.trim() !== '' &&
+            dosageNoteInput.value.trim() !== dosageInput.value.trim()
+        );
+
+        // 1. Sync value from dosage to dosage note while not manually edited
+        dosageInput.addEventListener('input', function() {
+            if (!isDosageNoteUserEdited) {
+                dosageNoteInput.value = this.value;
+            }
+        });
+
+        // 2. Detect when user manually changes the dosage note
+        dosageNoteInput.addEventListener('input', function() {
+            // User typed something custom: stop auto-syncing
+            isDosageNoteUserEdited = true;
+
+            // (Optional): If the user clears the note completely, resume auto-syncing
+            if (this.value.trim() === '') {
+                isDosageNoteUserEdited = false;
+            }
+        });
+    }
+
     // --- POPULATE QTY RESIN ON LOAD ---
     const hiddenField = document.getElementById('id_qty_resin_test_hidden');
     const numInput = document.getElementById('id_qty_resin_num');
@@ -85,7 +115,7 @@ document.addEventListener('DOMContentLoaded', function() {
             if (estNum && estHidden && estUnit) {
                 estHidden.value = `${estNum.value.trim()} ${estUnit.value}`;
             }
-            
+
             const hiddenInput = entryForm.querySelector(
                 '[name="original_cmf_no"], [name="original_rs_no"], [name="record_no"]'
             );

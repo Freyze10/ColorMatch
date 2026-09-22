@@ -9,7 +9,7 @@ from main.services.save.utils import to_bool, format_date, clean_numeric
 from main.utils.log_audit_trail import log_audit
 from main.models import (
     tbl_cmf, tbl_cmf_color_req, tbl_cmf_dates, tbl_cmf_formula, 
-    tbl_cmf_process, tbl_cmf_process02, tbl_cmf_scanned, tbl_resin, tbl_resins_selected,
+    tbl_cmf_process, tbl_cmf_process02, tbl_cmf_scanned, tbl_field_note, tbl_resin, tbl_resins_selected,
     tbl_cmf_specification, tbl_cmf_specification02, tbl_cmf_salesman,
     tbl_cmf_pending_completed, tbl_feedback_details
 )
@@ -100,6 +100,22 @@ def save_cmf_complete_entry(request):
             dosage=clean_numeric(data.get('dosage')),
             cm_no=cmf_main
         )
+        dosage_note = (data.get('dosage_note') or '').strip()
+        resin_note = (data.get('resin_note') or '').strip()
+
+        if dosage_note:
+            tbl_field_note.objects.create(
+                cmf_formula_no=formula_obj,
+                field='dosage',
+                note=dosage_note
+            )
+
+        if resin_note:
+            tbl_field_note.objects.create(
+                cmf_formula_no=formula_obj,
+                field='resin',
+                note=resin_note
+            )
 
         for p_name in selected_processes:
             p_name = data.get('otherProcess') if p_name == "others" else p_name
@@ -162,7 +178,8 @@ def update_cmf_complete_entry(request, original_cmf_no):
             'customer': 'Customer', 'finished_product': 'Finished Product', 'dosage': 'Dosage',
             'color_req': 'Color Requirement', 'form_made': 'Date Created', 
             'date_required': 'Req. Date', 'date_received_lab': 'Date Received', 'due_date_lab': 'Due Date',
-            'submit_to_lab': 'Submit to Lab'
+            'submit_to_lab': 'Submit to Lab', 'dosage_note': 'Dosage Note',
+            'resin_note': 'Resin Note',
         }
         return mapping.get(field, field.replace('_', ' ').title())
 
@@ -255,6 +272,23 @@ def update_cmf_complete_entry(request, original_cmf_no):
             if curr_f_val != new_f_val:
                 diff_logs.append(f"{get_pretty_name(f_field)} ({curr_f_val} -> {new_f_val})")
 
+        # --- Track Dosage Note & Resin Note differences ---
+        old_dosage_note = tbl_field_note.objects.filter(cmf_formula_no=formula_obj, field='dosage').first()
+        old_resin_note = tbl_field_note.objects.filter(cmf_formula_no=formula_obj, field='resin').first()
+
+        new_dosage_note = (data.get('dosage_note') or '').strip()
+        new_resin_note = (data.get('resin_note') or '').strip()
+
+        curr_dn_str = format_val(old_dosage_note.note if old_dosage_note else "")
+        new_dn_str = format_val(new_dosage_note)
+        if curr_dn_str != new_dn_str:
+            diff_logs.append(f"Dosage Note ({curr_dn_str} -> {new_dn_str})")
+
+        curr_rn_str = format_val(old_resin_note.note if old_resin_note else "")
+        new_rn_str = format_val(new_resin_note)
+        if curr_rn_str != new_rn_str:
+            diff_logs.append(f"Resin Note ({curr_rn_str} -> {new_rn_str})")
+            
         # --- E. TRACK JUNCTIONS ---
         # Resins
         curr_resins = ", ".join(sorted(tbl_resins_selected.objects.filter(cm_no=old_cmf).values_list('resin_no__abbreviation', flat=True)))
@@ -298,7 +332,25 @@ def update_cmf_complete_entry(request, original_cmf_no):
             due_date_lab=format_date(data.get('due_date'))
         )
         tbl_cmf_formula.objects.filter(cm_no=cmf_main).update(**formula_map)
-        
+        # --- UPDATE / SYNC FIELD NOTES ---
+        if new_dosage_note:
+            tbl_field_note.objects.update_or_create(
+                cmf_formula_no=formula_obj,
+                field='dosage',
+                defaults={'note': new_dosage_note}
+            )
+        else:
+            tbl_field_note.objects.filter(cmf_formula_no=formula_obj, field='dosage').delete()
+
+        if new_resin_note:
+            tbl_field_note.objects.update_or_create(
+                cmf_formula_no=formula_obj,
+                field='resin',
+                defaults={'note': new_resin_note}
+            )
+        else:
+            tbl_field_note.objects.filter(cmf_formula_no=formula_obj, field='resin').delete()
+            
         # Junctions
         tbl_cmf_process02.objects.filter(cmf_formula_no__cm_no=cmf_main).delete()
         for name in new_procs_list:
