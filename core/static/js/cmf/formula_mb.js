@@ -5,6 +5,7 @@
  * - Row locking: a row is only editable once every row above it is complete
  *   (material + percent + weight).
  * - Enter key moves to the next field, like Tab.
+ * - All percent/weight values are formatted to 4 decimal places, uniformly.
  */
 (function () {
     const table = document.querySelector('.js-formula-table');
@@ -15,6 +16,7 @@
     if (!table || !supposedWeightInput) return;
 
     const form = table.closest('form');
+    const DECIMALS = 4;
 
     // ------------------------------------------------------------------
     // CALCULATIONS
@@ -28,7 +30,7 @@
         const weightInput = row.querySelector('.js-weight-input');
         const masterWeight = parseFloat(supposedWeightInput.value) || 0;
 
-        // No percent typed in this row -> no weight (don't fill empty rows with 0.000000)
+        // No percent typed in this row -> no weight (don't fill empty rows with 0.0000)
         if (percentInput.value.trim() === '') {
             weightInput.value = "";
             return;
@@ -36,7 +38,7 @@
 
         if (masterWeight > 0) {
             const percent = parseFloat(percentInput.value) || 0;
-            weightInput.value = (masterWeight * (percent / 100)).toFixed(6);
+            weightInput.value = (masterWeight * (percent / 100)).toFixed(DECIMALS);
         }
     }
 
@@ -56,16 +58,16 @@
         });
 
         if (summaryTotalPercent) {
-            summaryTotalPercent.value = totalPct.toFixed(6);
+            summaryTotalPercent.value = totalPct.toFixed(DECIMALS);
             // Visual Validation: Red if not 100%
-            summaryTotalPercent.style.color = (totalPct.toFixed(2) !== "100.00") ? "#dc3545" : "#198754";
+            summaryTotalPercent.style.color = (totalPct.toFixed(DECIMALS) !== (100).toFixed(DECIMALS)) ? "#dc3545" : "#198754";
         }
 
         if (summaryTotalWeight) {
-            summaryTotalWeight.value = totalWgt.toFixed(6);
+            summaryTotalWeight.value = totalWgt.toFixed(DECIMALS);
             // Visual Validation: Red if doesn't match supposed weight
             const masterWgt = parseFloat(supposedWeightInput.value) || 0;
-            summaryTotalWeight.style.color = (totalWgt.toFixed(2) !== masterWgt.toFixed(2)) ? "#dc3545" : "#198754";
+            summaryTotalWeight.style.color = (totalWgt.toFixed(DECIMALS) !== masterWgt.toFixed(DECIMALS)) ? "#dc3545" : "#198754";
         }
     }
 
