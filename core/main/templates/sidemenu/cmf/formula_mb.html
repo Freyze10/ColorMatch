@@ -244,7 +244,7 @@
                                 </td>
                                 <td class="pe-4 py-1">
                                     <!-- Added js-weight-input -->
-                                    <input type="number" step="any" name="weight_{{ forloop.counter }}" class="table-input text-end weight-input js-weight-input" placeholder="0.00" value="{{ ing.weight|default:'' }}">
+                                    <input type="number" step="any" name="weight_{{ forloop.counter }}" class="table-input text-end weight-input js-weight-input" placeholder="0.0000" value="{{ ing.weight|default:'' }}">
                                 </td>
                             </tr>
                             {% endfor %}
@@ -265,7 +265,7 @@
                                     <div class="d-flex flex-column align-items-end">
                                         <span class="text-muted" style="font-size: 0.6rem; font-weight: 800;">TOTAL WEIGHT</span>
                                         <!-- Uses class instead of ID -->
-                                        <input type="text" class="form-control form-control-sm border-0 bg-transparent text-end fw-bold p-0 js-total-weight-summary" readonly value="0.00">
+                                        <input type="text" class="form-control form-control-sm border-0 bg-transparent text-end fw-bold p-0 js-total-weight-summary" readonly value="0.0000">
                                     </div>
                                 </td>
                             </tr>
