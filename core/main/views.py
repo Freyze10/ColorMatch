@@ -117,6 +117,16 @@ def signup(request):
             last_name=last_name,
         )
         login(request, user)
+        # Create a new session specifically after successful login
+        request.session.cycle_key() 
+        
+        # Expire the session at 11:59:59 PM of the login day
+        now = timezone.localtime()
+        end_of_day = datetime.combine(now.date(), time(23, 59, 59))
+        end_of_day = timezone.make_aware(end_of_day, timezone.get_current_timezone())
+        seconds_until_midnight = (end_of_day - now).total_seconds()
+        request.session.set_expiry(seconds_until_midnight)
+    
         return redirect('dashboard')
 
     return render(request, 'login/signup.html')
