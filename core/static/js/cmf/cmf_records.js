@@ -3,14 +3,9 @@ document.addEventListener('DOMContentLoaded', function() {
     // --- DOM ELEMENTS ---
     const completedCheckbox = document.getElementById('completed');
     const pendingCheckbox = document.getElementById('pending');
-    const modeToggle = document.getElementById('modeToggle');
     const refreshBtn = document.getElementById('refreshBtn');
     const searchInput = document.getElementById('recordSearchInput');
     const searchFieldSelect = document.getElementById('searchFieldSelect');
-    const modeLabelCmf = document.getElementById('modeLabelCmf');
-    const modeLabelRs = document.getElementById('modeLabelRs');
-    const tableHeaderNo = document.getElementById('tableHeaderNo');
-    const optNoLabel = document.getElementById('optNoLabel');
     const recordCounter = document.getElementById('recordCounter');
     const contextMenu = document.getElementById('customContextMenu');
     const menuTitle = document.getElementById('contextMenuTitle');
@@ -21,24 +16,10 @@ document.addEventListener('DOMContentLoaded', function() {
     const COLS_PENDING = [0, 1, 2, 3, 4, 5, 6, 7, 12];
 
     function applyFilters() {
-        const isRsMode = modeToggle ? modeToggle.checked : false;
-        const currentMode = isRsMode ? 'rs' : 'cmf';
         const showCompleted = completedCheckbox ? completedCheckbox.checked : true;
         const showPending = pendingCheckbox ? pendingCheckbox.checked : true;
         const searchTerm = searchInput ? searchInput.value.trim().toLowerCase() : '';
         const searchColIndex = searchFieldSelect ? searchFieldSelect.value : 'all';
-
-        if (isRsMode) {
-            modeLabelCmf.className = "extra-small fw-bold text-muted";
-            modeLabelRs.className = "extra-small fw-bold text-teal";
-            tableHeaderNo.textContent = "RS No.";
-            if (optNoLabel) optNoLabel.textContent = "RS No.";
-        } else {
-            modeLabelCmf.className = "extra-small fw-bold text-teal";
-            modeLabelRs.className = "extra-small fw-bold text-muted";
-            tableHeaderNo.textContent = "CMF No.";
-            if (optNoLabel) optNoLabel.textContent = "CMF No.";
-        }
 
         let activeCols = showCompleted && showPending ? COLS_BOTH : (showCompleted ? COLS_COMPLETED : COLS_PENDING);
 
@@ -51,11 +32,10 @@ document.addEventListener('DOMContentLoaded', function() {
 
         let visibleCount = 0;
         document.querySelectorAll('.record-row').forEach(row => {
-            const matchesMode = row.dataset.mode === currentMode;
             let matchesStatus = (showCompleted && row.dataset.status === 'Completed') || (showPending && row.dataset.status === 'Pending');
             let matchesSearch = searchTerm === '' || (searchColIndex === 'all' ? row.textContent.toLowerCase().includes(searchTerm) : row.querySelector(`[data-col-index="${searchColIndex}"]`).textContent.toLowerCase().includes(searchTerm));
 
-            if (matchesMode && matchesStatus && matchesSearch) {
+            if (matchesStatus && matchesSearch) {
                 row.style.display = '';
                 visibleCount++;
             } else {
@@ -74,30 +54,18 @@ document.addEventListener('DOMContentLoaded', function() {
 
             const recordId = tr.cells[0].innerText.trim();   // hidden real ID — used for lookups
             const recordNo = tr.cells[1].innerText.trim();    // visible No. — used for display only
-            const mode = tr.dataset.mode; // "cmf" or "rs"
 
             menuTitle.innerText = recordNo;
 
             const linkCmfEntry = document.getElementById('linkCmfEntry');
-            const linkRsEntry = document.getElementById('linkRsEntry');
             const linkMbFormula = document.getElementById('linkMbFormula');
             const linkDcFormula = document.getElementById('linkDcFormula');
             const linkPendingCompleted = document.getElementById('linkPendingCompleted');
-            
-            if (mode === 'rs') {
-                linkCmfEntry.classList.add('d-none');
-                linkRsEntry.classList.remove('d-none');
-                linkRsEntry.href = `/cmf/rs-entry/?no=${encodeURIComponent(recordId)}&type=rs`;
-                
-            } else {
-                linkRsEntry.classList.add('d-none');
-                linkCmfEntry.classList.remove('d-none');
-                linkCmfEntry.href = `/cmf/entry/?no=${encodeURIComponent(recordId)}&type=cmf`;
 
-            }
-            linkMbFormula.href = `/cmf/mb-formula/?no=${encodeURIComponent(recordId)}&type=${mode}`;
-            linkDcFormula.href = `/cmf/dc-formula/?no=${encodeURIComponent(recordId)}&type=${mode}`;
-            linkPendingCompleted.href = `/cmf/pending-completed/?no=${encodeURIComponent(recordId)}&type=${mode}`;
+            linkCmfEntry.href = `/cmf/entry/?no=${encodeURIComponent(recordId)}&type=cmf`;
+            linkMbFormula.href = `/cmf/mb-formula/?no=${encodeURIComponent(recordId)}&type=cmf`;
+            linkDcFormula.href = `/cmf/dc-formula/?no=${encodeURIComponent(recordId)}&type=cmf`;
+            linkPendingCompleted.href = `/cmf/pending-completed/?no=${encodeURIComponent(recordId)}&type=cmf`;
 
             contextMenu.style.top = `${e.clientY}px`;
             contextMenu.style.left = `${e.clientX}px`;
@@ -108,7 +76,6 @@ document.addEventListener('DOMContentLoaded', function() {
 
     if (completedCheckbox) completedCheckbox.addEventListener('change', applyFilters);
     if (pendingCheckbox) pendingCheckbox.addEventListener('change', applyFilters);
-    if (modeToggle) modeToggle.addEventListener('change', applyFilters);
     if (searchInput) searchInput.addEventListener('input', applyFilters);
     if (searchFieldSelect) searchFieldSelect.addEventListener('change', applyFilters);
     if (refreshBtn) refreshBtn.addEventListener('click', () => window.location.reload());

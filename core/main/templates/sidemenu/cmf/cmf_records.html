@@ -15,7 +15,7 @@ Color Matching Records
         <div class="col-md-2">
             <select class="form-select form-select-sm uniform-input" id="searchFieldSelect">
                 <option value="all" selected>All Fields</option>
-                <option value="0" id="optNoLabel">CMF No.</option>
+                <option value="0">CMF No.</option>
                 <option value="1">Customer</option>
                 <option value="2">Primary Color</option>
                 <option value="3">Color Description</option>
@@ -40,16 +40,6 @@ Color Matching Records
             </div>
         </div>
 
-        <!-- CMF / RS Toggle Switch -->
-        <div class="col-auto d-flex align-items-center gap-2">
-            <span class="extra-small fw-bold text-teal" id="modeLabelCmf">CMF</span>
-            <label class="teal-toggle-switch mb-0">
-                <input type="checkbox" id="modeToggle">
-                <span class="teal-toggle-slider"></span>
-            </label>
-            <span class="extra-small fw-bold text-muted" id="modeLabelRs">RS</span>
-        </div>
-
         <div class="col-auto">
             <button class="btn btn-sm btn-primary shadow-sm px-3" id="refreshBtn" type="button">
                 <i class="bi bi-arrow-clockwise"></i>
@@ -66,7 +56,7 @@ Color Matching Records
                 <thead>
                     <tr class="small text-uppercase">
                         <th class="d-none" data-col-index="id">ID</th>
-                        <th class="ps-3" data-col-index="0" id="tableHeaderNo">CMF No.</th>
+                        <th class="ps-3" data-col-index="0">CMF No.</th>
                         <th data-col-index="1">Customer</th>
                         <th data-col-index="2">Primary Color</th>
                         <th data-col-index="3">Color Description</th>
@@ -85,7 +75,7 @@ Color Matching Records
 
                 <tbody class="small" id="recordsTbody">
                     {% for record in records %}
-                    <tr class="record-row" data-mode="{{ record.mode }}" data-status="{{ record.status }}">
+                    <tr class="record-row" data-status="{{ record.status }}">
                         <td class="d-none" data-col-index="id">{{ record.id }}</td>
                         <td class="ps-3 fw-bold" data-col-index="0">{{ record.no }}</td>
                         <td data-col-index="1">{{ record.customer }}</td>
@@ -224,9 +214,6 @@ Color Matching Records
     </div>
     <a class="dropdown-item extra-small py-2" href="#" id="linkCmfEntry">
         <i class="bi bi-pencil-square me-2 text-teal"></i> Go to CMF Entry
-    </a>
-    <a class="dropdown-item extra-small py-2 d-none" href="#" id="linkRsEntry">
-        <i class="bi bi-pencil-square me-2 text-teal"></i> Go to RS Entry
     </a>
     <a class="dropdown-item extra-small py-2" href="#" id="linkMbFormula">
         <i class="bi bi-gear-wide-connected me-2 text-teal"></i> Go to MB Formula
