@@ -15,6 +15,7 @@ from datetime import date, datetime, timedelta, time
 from django.urls import reverse
 from django.utils import timezone
 
+from main.services.cmf_records import rs_records_services
 from main.services.settings import settings_services
 from main.services.save import feedback_save
 from main.services.dashboard.dashboard_services import get_dashboard_context
@@ -143,6 +144,12 @@ def maintenance(request):
 @access_required('CMF Records')
 def cmf_records(request):
     all_records = cmf_records_services.get_all_records_combined()
+    return render(request, "sidemenu/cmf/cmf_records.html", {
+        "records": all_records,
+    })
+
+def rs_records(request):
+    all_records = rs_records_services.get_rs_records()
     return render(request, "sidemenu/cmf/cmf_records.html", {
         "records": all_records,
     })
