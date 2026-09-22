@@ -213,11 +213,15 @@ CMF Entry
 
                         <!-- Dosage + Est. Qty Order -->
                         <div class="row g-2 mb-2">
-                            <div class="col-6">
+                            <div class="col-4">
                                 <label class="fw-bold extra-small required-label">Dosage (%):</label>
                                 <input type="text" name="dosage" value="{{ form_data.dosage|default:'' }}" class="form-control form-control-sm uniform-input dosage-input" placeholder="Enter Dosage" required>
                             </div>
-                            <div class="col-6">
+                            <div class="col-4">
+                                <label class="fw-bold extra-small">Dosage Note:</label>
+                                <input type="text" name="dosage_note" value="{{ form_data.dosage_note|default:'' }}" class="form-control form-control-sm uniform-input" placeholder="Enter note">
+                            </div>
+                            <div class="col-4">
                                 <label class="fw-bold extra-small required-label">Est. Qty Per Order:</label>
                                 
                                 <!-- Hidden field that submits the combined string (e.g., "50.00 KG") -->
@@ -236,14 +240,25 @@ CMF Entry
                         </div>
 
                         <!-- Resin Type -->
-                        <div class="mb-2">
-                            <label class="fw-bold extra-small required-label">Resin:</label>
-                            <select class="form-select form-select-sm ts-select" name="resin" placeholder="Select resin" multiple required>
-                                <option value=""></option>
-                                {% for r in resin %}
-                                    <option value="{{ r.resin_no }}" {% if r.resin_no|stringformat:"s" in form_data.resin %}selected{% endif %}>{{ r.abbreviation }}</option>
-                                {% endfor %}
-                            </select>
+                        <div class="row g-2 mb-2">
+                            <div class="col-7">
+                                <label class="fw-bold extra-small required-label">Resin:</label>
+                                <select class="form-select form-select-sm ts-select" name="resin" placeholder="Select resin" multiple required>
+                                    <option value=""></option>
+                                    {% for r in resin %}
+                                        <option value="{{ r.resin_no }}" {% if r.resin_no|stringformat:"s" in form_data.resin %}selected{% endif %}>{{ r.abbreviation }}</option>
+                                    {% endfor %}
+                                </select>
+                            </div>
+                            <div class="col-5">
+                                <label class="fw-bold extra-small">Resin Note:</label>
+                                <input type="text" 
+                                    name="resin_note" 
+                                    id="id_resin_note" 
+                                    value="{{ form_data.resin_note|default:'' }}" 
+                                    class="form-control form-control-sm uniform-input" 
+                                    placeholder="Optional...">
+                            </div>
                         </div>
 
                         <!-- Process -->

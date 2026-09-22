@@ -26,7 +26,7 @@ from main.decorators import access_required, role_required
 from main.models import (
     tbl_access_point, tbl_audit_trail, tbl_cmf, tbl_cmf_dates, tbl_cmf_formula, tbl_cmf_pending_completed, 
     tbl_cmf_process02, tbl_cmf_process02, tbl_cmf_scanned, tbl_cmf_specification02, tbl_coding_materials, tbl_dc_extruder_formula, 
-    tbl_dc_extruder_materials, tbl_feedback_details, tbl_generated_prod_code, tbl_internal_color_code, tbl_master_formula, tbl_master_formula_encode, tbl_master_formula_info, tbl_mb_extruder_formula, 
+    tbl_dc_extruder_materials, tbl_feedback_details, tbl_field_note, tbl_generated_prod_code, tbl_internal_color_code, tbl_master_formula, tbl_master_formula_encode, tbl_master_formula_info, tbl_mb_extruder_formula, 
     tbl_mb_extruder_formula02, tbl_resin, tbl_cmf_salesman, tbl_resins_selected, 
     tbl_cmf_color_req, tbl_cmf_specification, tbl_cmf_process, tbl_role, tbl_role_permissions, tbl_rs, tbl_submitted_option, tbl_submitted_selected
 )
@@ -209,7 +209,10 @@ def cmf_entry(request):
                 dates = tbl_cmf_dates.objects.filter(cm_no=cmf).first()
                 formula_info = tbl_cmf_formula.objects.filter(cm_no=cmf).first()
                 color_req = tbl_cmf_color_req.objects.filter(cm_no=cmf).first()
-        
+        # Fetch notes for this formula
+                dosage_note_obj = tbl_field_note.objects.filter(cmf_formula_no=formula_info, field='dosage').first() if formula_info else None
+                resin_note_obj = tbl_field_note.objects.filter(cmf_formula_no=formula_info, field='resin').first() if formula_info else None
+
                 resin_ids = list(
                     tbl_resins_selected.objects.filter(cm_no=cmf).values_list('resin_no_id', flat=True)
                 )
@@ -282,7 +285,9 @@ def cmf_entry(request):
                     'is_low_cost': 'Y' if cmf.is_low_cost else ('N' if cmf.is_low_cost is False else ''),
                     'remarks': cmf.remarks,
                     'product_code': "" if cm_no_override else final_prod_code,
-
+                    'dosage_note': dosage_note_obj.note if dosage_note_obj else "",
+                    'resin_note': resin_note_obj.note if resin_note_obj else "",
+                    
                     # plain lists — NOT a QueryDict, template must use "in form_data.resin" (not .getlist.resin)
                     'resin': [str(rid) for rid in resin_ids],
                     'process': selected_processes,
