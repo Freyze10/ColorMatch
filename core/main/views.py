@@ -183,6 +183,7 @@ def formula_records(request):
 def cmf_entry(request):
     form_data = {}
     attachments = []
+    ar_no = ""
     if request.method == "POST":
         original_cmf_no = request.POST.get('original_cmf_no', '').strip()
         is_new = request.POST.get('is_new', '1')
@@ -224,6 +225,12 @@ def cmf_entry(request):
         # Fetch notes for this formula
                 dosage_note_obj = tbl_field_note.objects.filter(cmf_formula_no=formula_info, field='dosage').first() if formula_info else None
                 resin_note_obj = tbl_field_note.objects.filter(cmf_formula_no=formula_info, field='resin').first() if formula_info else None
+
+                # --- CHECK IF COMPLETED & GET AR_NO ---
+                if not cm_no_override:
+                    pending_obj = tbl_cmf_pending_completed.objects.filter(cm_no=cmf).first()
+                    if pending_obj and pending_obj.is_completed:
+                        ar_no = pending_obj.ar_no or ""
 
                 resin_ids = list(
                     tbl_resins_selected.objects.filter(cm_no=cmf).values_list('resin_no_id', flat=True)
@@ -294,6 +301,7 @@ def cmf_entry(request):
                     'is_low_cost': 'Y' if cmf.is_low_cost else ('N' if cmf.is_low_cost is False else ''),
                     'remarks': cmf.remarks,
                     'product_code': selected_code_display if selected_code_display else ("" if cm_no_override else final_prod_code),
+                    "ar_no": ar_no,
                     'dosage_note': dosage_note_obj.note if dosage_note_obj else "",
                     'resin_note': resin_note_obj.note if resin_note_obj else "",
                     

@@ -410,8 +410,9 @@ CMF Entry
                             <input type="text" 
                                 id="id_product_code_input" 
                                 name="product_code" 
-                                value="{{ form_data.product_code|default:'' }}" 
-                                class="form-control form-control-sm uniform-input readonly-gray fw-bold" 
+                                value="{{ form_data.product_code|default:'' }}{% if form_data.product_code and form_data.ar_no %},  AR No: {{ form_data.ar_no }}{% endif %}" 
+                                class="form-control form-control-sm uniform-input readonly-gray fw-bold"
+                                style="color: #dc3545 !important;" 
                                 readonly>
                         </div>
 
