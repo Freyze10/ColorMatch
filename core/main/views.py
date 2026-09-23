@@ -349,7 +349,7 @@ def cmf_rs_entry(request):
 
     # Active lab personnel / users for the "Approved By" dropdown
     lab_personnel = (
-        User.objects.filter(is_active=True)
+        User.objects.filter(is_active=True, role__department__iexact='Laboratory')
         .annotate(full_name=Concat('first_name', Value(' '), 'last_name'))
         .values('id', 'full_name', 'username')
         .order_by('first_name')

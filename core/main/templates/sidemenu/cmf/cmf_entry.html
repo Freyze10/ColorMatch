@@ -24,8 +24,15 @@ CMF Entry
                         <div class="d-flex justify-content-between align-items-center mb-3">
                             <h6 class="cmf-section-title mb-0">General Information</h6>
                             <div class="form-check form-switch mb-0 d-flex align-items-center gap-2">
-                                <input class="form-check-input" type="checkbox" role="switch" id="toggleForRs" name="is_for_rs" value="1" {% if form_data.is_for_rs %}checked{% endif %}>
+                                <input class="form-check-input" type="checkbox" role="switch" id="toggleForRs" name="is_for_rs" value="1" 
+                                    {% if form_data.is_for_rs %}checked{% endif %} 
+                                    {% if form_data.is_new == '0' %}disabled{% endif %}>
                                 <label class="form-check-label fw-bold extra-small text-teal" for="toggleForRs">For RS</label>
+
+                                <!-- Hidden input safeguard: ensures the value still submits even if disabled -->
+                                {% if form_data.is_new == '0' and form_data.is_for_rs %}
+                                    <input type="hidden" name="is_for_rs" value="1">
+                                {% endif %}    
                             </div>
                         </div>
                         
