@@ -13,4 +13,7 @@ core/main/services/print/print_dc_formula.py merge=ours
 core/main/services/print/print_cmf.py merge=ours
 core/main/services/formula/master_formula_services.py merge=ours
 
-core/main/urls.py merge=ours
+
+
+# Protect migrations during merge
+core/main/migrations/* merge=ours
