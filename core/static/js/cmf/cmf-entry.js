@@ -24,9 +24,11 @@ document.addEventListener('DOMContentLoaded', function() {
     const searchInput = document.getElementById('recordSearchInput');
     const searchFieldSelect = document.getElementById('searchFieldSelect');
     const recordsTbody = document.getElementById('recordsTbody');
+    const originalCmfInput = document.querySelector('input[name="original_cmf_no"]');
+    const isNewInput = document.querySelector('input[name="is_new"]');
 
      // --- TOGGLE "FOR RS" LOGIC ---
-    const updateForRsState = () => {
+    const updateForRsState = (triggerValidation = false) => {
         const isForRs = toggleForRs && toggleForRs.checked;
 
         if (isForRs) {
@@ -62,8 +64,8 @@ document.addEventListener('DOMContentLoaded', function() {
         // Reset Save button in case regular validation disabled it
         if (saveBtn) saveBtn.disabled = false;
 
-        // Re-run the appropriate validation when toggled
-        if (cmfInput && cmfInput.value.trim().length >= 3) {
+        // ONLY re-validate if it was manually toggled, NEVER on page load
+        if (triggerValidation && cmfInput && cmfInput.value.trim().length >= 3) {
             if (isForRs) {
                 validateRsCmf(true);
             } else {
@@ -73,9 +75,9 @@ document.addEventListener('DOMContentLoaded', function() {
     };
 
     if (toggleForRs) {
-        toggleForRs.addEventListener('change', updateForRsState);
+        toggleForRs.addEventListener('change', updateForRsState(true));
         // Initial run on load (respects whether 'For RS' was checked on reload)
-        setTimeout(updateForRsState, 100);
+        setTimeout(updateForRsState(false), 100);
     }
 
     // --- 3. NUMERIC INPUT FORMATTING LOGIC ---
@@ -321,7 +323,12 @@ document.addEventListener('DOMContentLoaded', function() {
     async function validateCmf(isBlur = false) {
         const query = cmfInput.value.trim();
         if (query.length < 3) return;
-
+        const originalNo = originalCmfInput ? originalCmfInput.value.trim() : '';
+        const isNew = isNewInput ? isNewInput.value === '1' : !originalNo;
+        if (!isNew && query.toLowerCase() === originalNo.toLowerCase()) {
+            if (saveBtn) saveBtn.disabled = false;
+            return;
+        }
         try {
             const response = await fetch(`/check-previous-matching/?cm_no=${query}`);
             const data = await response.json();
