@@ -1,6 +1,12 @@
-.cmf-table-card { background-color: var(--card-bg); border-radius: 0.5rem; border: 1px solid var(--sidebar-border); overflow: hidden; }
-
-.cmf-scroll-body { max-height: clamp(280px, 60vh, 640px); overflow: auto; }
+.cmf-table-card {
+    background-color: var(--card-bg);
+    border-radius: 0.5rem;
+    min-height: 280px;
+    max-height: 70vh;
+    border: 1px solid var(--sidebar-border);
+    overflow: hidden;
+}
+.cmf-scroll-body { max-height: clamp(280px, 100%, 640px); overflow: auto; }
 
 .cmf-records-table thead th { position: sticky; top: 0; z-index: 2; }
 
