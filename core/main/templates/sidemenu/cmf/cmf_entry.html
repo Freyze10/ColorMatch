@@ -39,7 +39,7 @@ CMF Entry
                         <div class="row g-2 mb-2">
                             <div class="col-md-12">
                                 <label class="fw-bold extra-small required-label">Color Matching No:</label>
-                                <input type="text" id="id_cmf_no" name="cmf_no" value="{{ form_data.cmf_no|default:'' }}" class="form-control form-control-sm uniform-input" required>
+                                <input type="text" id="id_cmf_no" name="cmf_no" value="{{ form_data.cmf_no|default:'' }}" class="form-control form-control-sm uniform-input" autocomplete="off" required>
                             </div>
                             <div class="col-md-12">
                                 <label class="fw-bold extra-small required-label">Customer:</label>
@@ -264,7 +264,8 @@ CMF Entry
                                     id="id_resin_note" 
                                     value="{{ form_data.resin_note|default:'' }}" 
                                     class="form-control form-control-sm uniform-input" 
-                                    placeholder="Optional...">
+                                    placeholder="Optional..."
+                                    autocomplete="off">
                             </div>
                         </div>
 
@@ -322,7 +323,7 @@ CMF Entry
                         <div class="row g-2 mb-2">
                             <div class="col-6">
                                 <label class="fw-bold extra-small required-label">MI Customer's Resin:</label>
-                                <input type="text" name="mi_customer_resin" value="{{ form_data.mi_customer_resin|default:'N/A' }}" class="form-control form-control-sm uniform-input" required>
+                                <input type="text" name="mi_customer_resin" value="{{ form_data.mi_customer_resin|default:'None' }}" class="form-control form-control-sm uniform-input" autocomplete="off" required>
                             </div>
                             <div class="col-6">
                                 <label class="fw-bold extra-small d-block mb-1 required-label">Is Color Guide to be Returned:</label>
@@ -365,7 +366,7 @@ CMF Entry
                         <div class="row g-2">
                             <div class="col-6">
                                 <label class="fw-bold extra-small required-label">Processing Temp (°C):</label>
-                                <input type="text" name="processing_temp" value="{{ form_data.processing_temp|default:'N/A' }}" class="form-control form-control-sm uniform-input temp-input" required>
+                                <input type="text" name="processing_temp" value="{{ form_data.processing_temp|default:'' }}" class="form-control form-control-sm uniform-input temp-input" autocomplete="off" required>
                             </div>
                             <div class="col-6">
                                 <label class="fw-bold extra-small d-block mb-1 required-label">Low Cost?</label>
