@@ -260,7 +260,7 @@ Formula DC
                                                data-row="{{ forloop.parentloop.counter }}"
                                                data-version="{{ forloop.counter }}"
                                                placeholder="0.000000"
-                                               value="{{ val|default:'' }}">
+                                               value="{{ val|floatformat:4 }}">
                                     </td>
                                     {% endfor %}
                                 </tr>

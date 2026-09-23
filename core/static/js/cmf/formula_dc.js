@@ -8,6 +8,9 @@
  *   V1 for a new formula, next empty version when updating).
  *   Rows that already have data stay editable.
  * - Enter key moves to the next field, like Tab.
+ * - Every version-value entry is reformatted to 4 decimal places the moment
+ *   you leave the cell — by Tab, Enter, or clicking elsewhere. Type "5.1"
+ *   and it becomes "5.1000" as soon as you move on.
  */
 (function () {
     const table = document.querySelector('.js-formula-table');
@@ -15,11 +18,49 @@
 
     if (!table || !form) return;
 
+    const DECIMALS = 4;
+
     // Version currently being entered. Read once on load, before any row gets locked.
     const openVersions = Array.from(table.querySelectorAll('.js-version-value'))
         .filter(input => !input.readOnly)
         .map(input => parseInt(input.dataset.version));
     const activeVersion = openVersions.length ? Math.max(...openVersions) : 1;
+
+    // ------------------------------------------------------------------
+    // 4-DECIMAL FORMATTING
+    // ------------------------------------------------------------------
+
+    /**
+     * Rewrites a field's own displayed value to a fixed number of decimals,
+     * e.g. "5.1" -> "5.1000". Returns true if it actually changed something.
+     */
+    function formatEntry(input) {
+        const raw = input.value.trim();
+        if (raw === '') return false;
+
+        const num = parseFloat(raw);
+        if (isNaN(num)) return false;
+
+        const formatted = num.toFixed(DECIMALS);
+        if (input.value === formatted) return false;
+
+        input.value = formatted;
+        return true;
+    }
+
+    /**
+     * Formats a version-value cell and lets formula.js's column-total
+     * listener know something changed, so the Total row picks it up.
+     * Called from both the blur/focusout handler and the Enter-key
+     * handler, so formatting is guaranteed regardless of how the user
+     * leaves the cell.
+     */
+    function commitEntry(el) {
+        if (!el || !el.classList || !el.classList.contains('js-version-value')) return;
+        if (formatEntry(el)) {
+            el.dispatchEvent(new Event('input', { bubbles: true }));
+        }
+    }
 
     // ------------------------------------------------------------------
     // SEQUENTIAL ROW LOCKING
@@ -76,6 +117,15 @@
 
     table.addEventListener('input', updateRowLocks);
     table.addEventListener('change', updateRowLocks); // Tom Select fires change on the original select
+
+    // Format to 4 decimals the moment the user leaves the cell by Tab or by
+    // clicking elsewhere. ('focusout' bubbles, unlike 'blur', so this is
+    // delegated on the table like the other listeners.) Enter is covered
+    // explicitly below, since preventDefault() there stops it from ever
+    // reaching a native Tab-like blur in some browsers.
+    table.addEventListener('focusout', function (e) {
+        commitEntry(e.target);
+    });
 
     // Locked (disabled) material selects are not posted by the browser,
     // so re-enable them right before the form is submitted.
@@ -153,9 +203,11 @@
             return;
         }
 
-        // Plain inputs
+        // Plain inputs — format the version value to 4 decimals immediately,
+        // don't wait on the browser's own blur/focusout to get around to it.
         if (target.tagName !== 'INPUT') return;
         e.preventDefault();
+        commitEntry(target);
         focusNextField(target);
     }, true);
 

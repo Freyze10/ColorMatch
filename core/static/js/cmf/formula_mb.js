@@ -5,7 +5,9 @@
  * - Row locking: a row is only editable once every row above it is complete
  *   (material + percent + weight).
  * - Enter key moves to the next field, like Tab.
- * - All percent/weight values are formatted to 4 decimal places, uniformly.
+ * - Every Final % and Weight entry is reformatted to 4 decimal places the
+ *   moment you leave the cell — by Tab, Enter, or clicking elsewhere.
+ *   Type "5.1" and it becomes "5.1000" as soon as you move on.
  */
 (function () {
     const table = document.querySelector('.js-formula-table');
@@ -69,6 +71,44 @@
             const masterWgt = parseFloat(supposedWeightInput.value) || 0;
             summaryTotalWeight.style.color = (totalWgt.toFixed(DECIMALS) !== masterWgt.toFixed(DECIMALS)) ? "#dc3545" : "#198754";
         }
+    }
+
+    /**
+     * Rewrites a field's own displayed value to a fixed number of decimals,
+     * e.g. "5.1" -> "5.1000". Returns true if it actually changed something,
+     * so callers know whether dependent totals need recomputing.
+     */
+    function formatEntry(input) {
+        const raw = input.value.trim();
+        if (raw === '') return false;
+
+        const num = parseFloat(raw);
+        if (isNaN(num)) return false;
+
+        const formatted = num.toFixed(DECIMALS);
+        if (input.value === formatted) return false;
+
+        input.value = formatted;
+        return true;
+    }
+
+    /**
+     * Formats whichever of Final % / Weight the given element is, and
+     * refreshes the row weight / summary totals that depend on it. Called
+     * from both the blur/focusout handler and the Enter-key handler, so
+     * the 4-decimal formatting is guaranteed regardless of how the user
+     * leaves the cell.
+     */
+    function commitEntry(el) {
+        if (!el || !el.classList) return;
+        const isPercent = el.classList.contains('js-percent-input');
+        const isWeight = el.classList.contains('js-weight-input');
+        if (!isPercent && !isWeight) return;
+
+        formatEntry(el);
+
+        if (isPercent) calculateRowWeight(el.closest('tr'));
+        updateSummaryTotals();
     }
 
     // ------------------------------------------------------------------
@@ -176,9 +216,11 @@
             return;
         }
 
-        // Plain inputs
+        // Plain inputs — format Final % / Weight to 4 decimals immediately,
+        // don't wait on the browser's own blur/focusout to get around to it.
         if (target.tagName !== 'INPUT') return;
         e.preventDefault();
+        commitEntry(target);
         focusNextField(target);
     }, true);
 
@@ -211,6 +253,15 @@
 
     // EVENT 4: Material picked/cleared (Tom Select fires change on the original select)
     table.addEventListener('change', updateRowLocks);
+
+    // EVENT 5: Format to 4 decimals the moment the user leaves the cell by
+    // Tab or by clicking elsewhere. ('focusout' bubbles, unlike 'blur', so
+    // this is delegated on the table like the other listeners.) Enter is
+    // covered explicitly above, since preventDefault() there stops it from
+    // ever reaching a native Tab-like blur in some browsers.
+    table.addEventListener('focusout', function (e) {
+        commitEntry(e.target);
+    });
 
     // Run once on page load (in case of existing data)
     updateSummaryTotals();
