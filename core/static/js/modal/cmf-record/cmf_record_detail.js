@@ -49,11 +49,28 @@ document.addEventListener('DOMContentLoaded', function () {
 
     // --- 1. DOUBLE CLICK TRIGGER: Background Fetch (No Redirect) ---
     recordsTbody.addEventListener('dblclick', function (e) {
-        const tr = e.target.closest('.record-row');
-        if (!tr) return;
+        // 1. Target standard 'tr'
+        const tr = e.target.closest('tr');
+        if (!tr || tr.closest('thead')) return;
 
-        const recordId = tr.cells[0].innerText.trim();
-        const mode = tr.dataset.mode;
+        let recordId = '';
+
+        // 2. Safely get the record ID from DataTables API, or fallback to the first visible cell
+        if (typeof table !== 'undefined' && table.row) {
+            const rowData = table.row(tr).data();
+            if (rowData) recordId = rowData.no || rowData.id;
+        } else if (window.DataTable && DataTable.isDataTable('.cmf-records-table')) {
+            const rowData = new DataTable.Api('.cmf-records-table').row(tr).data();
+            if (rowData) recordId = rowData.no || rowData.id;
+        }
+        // Fallback: first visible column is CMF No.
+        if (!recordId && tr.cells.length > 0) {
+            recordId = tr.cells[0].innerText.trim();
+        }
+        if (!recordId) return;
+
+        // 3. Since this table is CMF-only now, mode is always 'cmf'
+        const mode = 'cmf';
 
         bsModal.show();
         loadModalContent(recordId, mode);
