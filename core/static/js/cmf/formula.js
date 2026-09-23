@@ -365,7 +365,6 @@
         isDC ? 'id_dc_customer' : 'id_customer',
         isDC ? 'id_dc_resin' : 'id_resin_used',
         isDC ? 'id_dc_color' : 'id_color',
-        isDC ? 'id_dc_product_code' : 'id_product',
         isDC ? 'id_dc_dosage' : 'id_dosage',
         isDC ? 'id_dc_application' : 'id_application',
         isDC ? 'id_dc_finished_product' : 'id_finished_product',
