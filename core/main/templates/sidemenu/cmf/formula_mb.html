@@ -240,11 +240,11 @@
                                 </td>
                                 <td class="py-1">
                                     <!-- Added js-percent-input -->
-                                    <input type="number" step="any" name="percentage_{{ forloop.counter }}" class="table-input text-center js-percent-input" placeholder="0.0000" value="{{ ing.value|default:'' }}">
+                                    <input type="number" step="any" name="percentage_{{ forloop.counter }}" class="table-input text-center js-percent-input" placeholder="0.0000" value="{{ ing.value|floatformat:4  }}">
                                 </td>
                                 <td class="pe-4 py-1">
                                     <!-- Added js-weight-input -->
-                                    <input type="number" step="any" name="weight_{{ forloop.counter }}" class="table-input text-end weight-input js-weight-input" placeholder="0.0000" value="{{ ing.weight|default:'' }}">
+                                    <input type="number" step="any" name="weight_{{ forloop.counter }}" class="table-input text-end weight-input js-weight-input" placeholder="0.0000" value="{{ ing.weight|floatformat:4  }}">
                                 </td>
                             </tr>
                             {% endfor %}
