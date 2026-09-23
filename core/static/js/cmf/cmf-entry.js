@@ -75,9 +75,9 @@ document.addEventListener('DOMContentLoaded', function() {
     };
 
     if (toggleForRs) {
-        toggleForRs.addEventListener('change', updateForRsState(true));
-        // Initial run on load (respects whether 'For RS' was checked on reload)
-        setTimeout(updateForRsState(false), 100);
+        // ✅ CORRECT: waits for user to click the toggle
+        toggleForRs.addEventListener('change', () => updateForRsState(true));
+        setTimeout(() => updateForRsState(false), 100);
     }
 
     // --- 3. NUMERIC INPUT FORMATTING LOGIC ---
