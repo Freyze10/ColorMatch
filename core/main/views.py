@@ -256,7 +256,7 @@ def cmf_entry(request):
                 final_prod_code = ""
                 if final_formula and final_formula.code:
                     final_prod_code = final_formula.code.product_code
-
+                
                 form_data = {
                     'is_new': '1' if cm_no_override else '0',
                     'cmf_no': cm_no_override if cm_no_override else cmf.cm_no,

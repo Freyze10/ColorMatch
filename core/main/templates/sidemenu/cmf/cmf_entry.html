@@ -9,7 +9,7 @@ CMF Entry
 <div class="container-fluid p-0">
     <form class="cmf-entry-form" method="POST" action="{% url 'cmf_entry' %}" enctype="multipart/form-data">
     {% csrf_token %}
-        <input type="hidden" name="original_cmf_no" value="{{ form_data.cmf_no|default:'' }}">
+        <input type="hidden" name="original_cmf_no" value="{% if form_data.is_new == '0' %}{{ form_data.cmf_no|default:'' }}{% endif %}">
         <input type="hidden" name="is_new" value="{{ form_data.is_new|default:'1' }}">
         <input type="file" name="file" id="hidden-file-input" multiple style="display:none;">
         <div class="row g-2">

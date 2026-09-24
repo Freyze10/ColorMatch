@@ -176,10 +176,9 @@ document.addEventListener('DOMContentLoaded', function() {
                 estHidden.value = `${estNum.value.trim()} ${estUnit.value}`;
             }
 
-            const hiddenInput = entryForm.querySelector(
-                '[name="original_cmf_no"], [name="original_rs_no"], [name="record_no"]'
-            );
-            const isUpdate = hiddenInput && hiddenInput.value.trim() !== '';
+            const hiddenInput = entryForm.querySelector('[name="original_cmf_no"]');
+            const isNew = isNewInput ? isNewInput.value === '1' : true;
+            const isUpdate = !isNew && hiddenInput && hiddenInput.value.trim() !== '';
 
             Preline.confirm(
                 isUpdate ? 'Update Entry?' : 'Save Entry?',
@@ -388,8 +387,54 @@ document.addEventListener('DOMContentLoaded', function() {
         const query = cmfInput.value.trim();
         if (query.length < 3) return;
 
-        // Prepared for custom RS validation logic
-        console.log(`[validateRsCmf] Checking CMF #${query} for RS mode (isBlur: ${isBlur})`);
+        if (query.length < 3) return;
+        const originalNo = originalCmfInput ? originalCmfInput.value.trim() : '';
+        const isNew = isNewInput ? isNewInput.value === '1' : !originalNo;
+        if (!isNew && query.toLowerCase() === originalNo.toLowerCase()) {
+            if (saveBtn) saveBtn.disabled = false;
+            return;
+        }
+        try {
+            const response = await fetch(`/check-previous-matching/?cm_no=${query}`);
+            const data = await response.json();
+
+            let hasError = false;
+            let errorMessage = "";
+
+            // Check for exact duplicate
+            if (data.exists_exact) {
+                errorMessage = `Error: CMF No. ${query} already exists!`;
+                hasError = true;
+            } 
+            // Check for sequential gap (e.g., missing 'b' when typing 'c')
+            else if (data.sequential_error) {
+                errorMessage = data.sequential_error;
+                hasError = true;
+            }
+
+            if (hasError) {
+                // 1. Show Toast
+                if (typeof Preline.toast === 'function') {
+                    Preline.toast(errorMessage, 'error');
+                } else {
+                    alert(errorMessage);
+                }
+
+                // 2. Visual Feedback
+                saveBtn.disabled = true;
+
+                // 3. Force Focus back
+                setTimeout(() => {
+                    cmfInput.focus();
+                }, 10);
+                return; // STOP HERE
+            } else {
+                saveBtn.disabled = false;
+            }
+
+        } catch (error) {
+            console.error("Error fetching matching data:", error);
+        }
     }
 
     // Debounced input handler (dispatches based on "For RS" toggle)
@@ -426,6 +471,20 @@ document.addEventListener('DOMContentLoaded', function() {
 
                     const currentCmf = cmfInput ? cmfInput.value.trim() : '';
 
+                    // 1. Enforce Color Matching No. first
+                    if (!currentCmf) {
+                        if (typeof Preline.toast === 'function') {
+                            Preline.toast('Please enter the Color Matching No. first.', 'error');
+                        } else {
+                            alert('Please enter the Color Matching No. first.');
+                        }
+                        // Reset dropdown selection (true = silent, doesn't re-trigger change)
+                        this.setValue('', true);
+                        if (cmfInput) cmfInput.focus();
+                        return;
+                    }
+
+                    // 2. Fetch matching record
                     try {
                         const response = await fetch(`/check-prod-cmf/?code_no=${encodeURIComponent(codeNo)}`);
                         const data = await response.json();
@@ -436,7 +495,6 @@ document.addEventListener('DOMContentLoaded', function() {
                                 `A CMF for this product code is found (${data.cm_no}), do you want to auto fill?`,
                                 'info',
                                 () => {
-                                    // Redirect: loads CMF data, keeps current entered CMF No, keeps toggle ON and product code selected
                                     window.location.href = `/cmf/entry/?no=${encodeURIComponent(data.cm_no)}&new_no=${encodeURIComponent(currentCmf)}&is_for_rs=1&product_code=${encodeURIComponent(codeNo)}`;
                                 }
                             );
