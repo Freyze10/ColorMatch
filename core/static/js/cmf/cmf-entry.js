@@ -28,7 +28,7 @@ document.addEventListener('DOMContentLoaded', function() {
         return true;
     };
 
-    document.querySelectorAll('.qty-resin-input, .dosage-input, .est-qty-input').forEach(input => {
+    document.querySelectorAll('.qty-resin-input, .dosage-input').forEach(input => {
         input.addEventListener('keypress', restrictToNumbers);
     });
 
@@ -79,22 +79,7 @@ document.addEventListener('DOMContentLoaded', function() {
             numInput.value = hiddenField.value;
         }
     }
-    // --- POPULATE EST QTY ORDER ON LOAD ---
-    const estQtyHidden = document.getElementById('id_est_qty_order_hidden');
-    const estQtyNum = document.getElementById('id_est_qty_order_num');
-    const estQtyUnit = document.getElementById('id_est_qty_order_unit');
-
-    if (estQtyHidden && estQtyHidden.value.trim() !== "") {
-        const parts = estQtyHidden.value.trim().split(" ");
-        if (parts.length === 2) {
-            if (estQtyNum) estQtyNum.value = parts[0];
-            if (estQtyUnit) estQtyUnit.value = parts[1];
-        } else {
-            // Fallback for legacy numeric-only data
-            if (estQtyNum) estQtyNum.value = estQtyHidden.value;
-            if (estQtyUnit) estQtyUnit.value = "KG";
-        }
-    }
+    
 
     // --- 4. BUTTON LISTENERS ---
 
@@ -108,14 +93,7 @@ document.addEventListener('DOMContentLoaded', function() {
             if (numInput && hiddenField) {
                 hiddenField.value = `${numInput.value.trim()} ${unitSelect.value}`;
             }
-            // Combine Est. Qty Per Order
-            const estNum = document.getElementById('id_est_qty_order_num');
-            const estUnit = document.getElementById('id_est_qty_order_unit');
-            const estHidden = document.getElementById('id_est_qty_order_hidden');
-            if (estNum && estHidden && estUnit) {
-                estHidden.value = `${estNum.value.trim()} ${estUnit.value}`;
-            }
-
+        
             const hiddenInput = entryForm.querySelector(
                 '[name="original_cmf_no"], [name="original_rs_no"], [name="record_no"]'
             );
