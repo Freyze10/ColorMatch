@@ -140,13 +140,13 @@ Pending/Completed Forms
                         </div>
                     </div>
 
-                    <div class="row g-2 mb-3">
-                        <div class="col-6">
+                    <div class="row g-2 mb-3" id="submittedDetailsRow">
+                        <div class="col-6" id="qtyGivenCol">
                             <label class="fw-bold extra-small required-label">Qty Given (KG):</label>
                             <input type="number" name="qty_given" value="{% if form_data.qty_given %}{{ form_data.qty_given }}{% elif form_data.quantity_kg %}{{ form_data.quantity_kg }}{% else %}{% endif %}" 
                                 class="form-control form-control-sm uniform-input" placeholder="KG" step="0.01" min="0" required>
                         </div>
-                        <div class="col-6">
+                        <div class="col-6" id="setPcCol">
                             <label class="fw-bold extra-small required-label">Set (Pc/Pcs):</label>
                             <input type="number" name="set_pc" value="{{ form_data.set_pc|default:'' }}" 
                                 class="form-control form-control-sm uniform-input" placeholder="Qty" step="1" required>
@@ -156,7 +156,7 @@ Pending/Completed Forms
                         <div class="mb-3">
                             <label class="fw-bold extra-small required-label">Date Submitted:</label>
                             <div class="input-group input-group-sm flatpickr-container" data-wrap="true">
-                                <input type="text" name="date_submitted" value="{{ form_data.date_submitted|default:'' }}" class="form-control uniform-input date-picker-single" data-input required>
+                                <input type="text" name="date_submitted" value="{{ form_data.date_submitted|default:'' }}" class="form-control uniform-input date-picker-single" data-input autocomplete="off" required>
                                 <span class="input-group-text uniform-input border-start-0" data-toggle><i class="bi bi-calendar3"></i></span>
                             </div>
                         </div>
@@ -185,14 +185,14 @@ Pending/Completed Forms
                             </div>
                             <div class="col-6">
                                 <label class="fw-bold extra-small required-label">AR No.:</label>
-                                <input type="text" name="ar_no" value="{{ form_data.ar_no|default:'' }}" class="form-control form-control-sm uniform-input" required>
+                                <input type="text" name="ar_no" value="{{ form_data.ar_no|default:'' }}" class="form-control form-control-sm uniform-input" autocomplete="off" required>
                             </div>
                         </div>
 
                         <div class="mb-0">
                             <label class="fw-bold extra-small required-label">AR Date:</label>
                             <div class="input-group input-group-sm flatpickr-container" data-wrap="true">
-                                <input type="text" name="ar_date" value="{{ form_data.ar_date|default:'' }}" class="form-control uniform-input date-picker-single" data-input required>
+                                <input type="text" name="ar_date" value="{{ form_data.ar_date|default:'' }}" class="form-control uniform-input date-picker-single" data-input autocomplete="off" required>
                                 <span class="input-group-text uniform-input border-start-0" data-toggle><i class="bi bi-calendar3"></i></span>
                             </div>
                         </div>
@@ -209,24 +209,7 @@ Pending/Completed Forms
         </div>
     </form>
 </div>
-<script>
-    const saveBtn = document.querySelector('.btn-update');
-    const entryForm = saveBtn ? saveBtn.closest('form') : null;
-    if (saveBtn && entryForm) {
-        saveBtn.addEventListener('click', function() {
-            // 1. Validate Form
-            if (entryForm.reportValidity()) {
-
-                Preline.confirm(
-                    'Update Entry?',
-                    'Are you sure you want to update this entry? Existing records will be modified.',
-                    'success',
-                    () => {
-                        entryForm.submit();
-                    }
-                );
-            }
-        });
-    }
-</script>
+{% endblock %}
+{% block scripts %}
+    <script src="{% static 'js/cmf/pending_completed.js' %}"></script>
 {% endblock %}
