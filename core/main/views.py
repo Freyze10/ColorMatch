@@ -156,11 +156,9 @@ def cmf_records(request):
     # all_records = cmf_records_services.get_all_records_combined()
     return render(request, "sidemenu/cmf/cmf_records.html")
 
+# TODO: add in the access
 def rs_records(request):
-    all_records = rs_records_services.get_rs_records()
-    return render(request, "sidemenu/cmf/cmf_records.html", {
-        "records": all_records,
-    })
+    return render(request, "sidemenu/cmf/rs_records.html")
 
 @access_required('Formula Records')
 def formula_records(request):

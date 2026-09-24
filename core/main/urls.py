@@ -1,5 +1,7 @@
 from django.urls import path
 
+from .services.cmf_records import rs_records_services
+
 from .services.save import feedback_save
 
 from .services.settings import settings_services
@@ -24,6 +26,7 @@ urlpatterns = [
     path('homepage/', views.homepage, name='homepage'),
     path('dashboard/', views.dashboard, name='dashboard'),
     path('cmf/records/', views.cmf_records, name='cmf_records'),
+    path('cmf/rs-records/', views.rs_records, name='rs_records'),
     path('cmf/formula-records/', views.formula_records, name='formula_records'),
     path('cmf/entry/', views.cmf_entry, name='cmf_entry'),
     path('cmf/rs-entry/', views.cmf_rs_entry, name='rs_entry'),
@@ -46,6 +49,7 @@ urlpatterns = [
     # export
     path('cmf/records/export/', views.cmf_records_export_preview, name='cmf_records_export_preview'),
     # ajax
+    path('cmf/rs-records/data/', rs_records_services.rs_records_data, name='rs_records_data'),
     path('cmf/records/data/', cmf_records_services.cmf_records_data, name='cmf_records_data'),
     path('cmf/mb-dc-formula/', mb_dc_formulation_services.get_formulation_details, name='mb_dc_lookup_details'),
     path('cmf/formula-records/data/', cmf_records_services.formula_records_data, name='formula_records_data'),

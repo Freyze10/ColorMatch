@@ -50,6 +50,13 @@
                             </a>
                         </li>
                         {% endif %}
+                        <!-- TODO: add permission -->
+                        <li>
+                            <a href="{% url 'rs_records' %}"
+                                class="nav-link {% if request.resolver_match.url_name in 'rs_records' %}active-sub{% endif %}">
+                                RS Records
+                            </a>
+                        </li>
                         {% if 'Formula Records' in user_permissions %}
                         <li>
                             <a href="{% url 'formula_records' %}"
