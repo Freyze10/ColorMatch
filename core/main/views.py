@@ -203,6 +203,18 @@ def cmf_entry(request):
     else:
         cm_no = request.GET.get('no')
         cm_no_override = request.GET.get('new_no')
+
+        # 1. Capture query parameters from auto-fill redirect
+        url_is_for_rs = request.GET.get('is_for_rs') == '1'
+        url_product_code = request.GET.get('product_code')
+
+        # If a numeric code_no was passed, resolve its code string for the template
+        if url_product_code and url_product_code.isdigit():
+            code_obj = tbl_generated_prod_code.objects.filter(code_no=url_product_code).first()
+            selected_code_display = code_obj.product_code if code_obj else url_product_code
+        else:
+            selected_code_display = url_product_code
+
         if cm_no:
             cmf = tbl_cmf.objects.filter(cm_no=cm_no).first()
             if cmf:
@@ -237,14 +249,9 @@ def cmf_entry(request):
                     .values_list('spec_no__name', flat=True)
                 )
 
-                final_formula = tbl_mb_extruder_formula.objects.filter(
-                    cm_no=cmf, is_final=True
+                final_formula = tbl_cmf_pending_completed.objects.filter(
+                    cm_no=cmf
                 ).select_related('code').first()
-
-                if not final_formula:
-                    final_formula = tbl_dc_extruder_formula.objects.filter(
-                        cm_no=cmf, is_final=True
-                    ).select_related('code').first()
 
                 final_prod_code = ""
                 if final_formula and final_formula.code:
@@ -253,6 +260,8 @@ def cmf_entry(request):
                 form_data = {
                     'is_new': '1' if cm_no_override else '0',
                     'cmf_no': cm_no_override if cm_no_override else cmf.cm_no,
+                    # 2. Keep "For RS" toggled ON
+                    'is_for_rs': url_is_for_rs,
                     'customer': formula_info.customer if formula_info else "",
 
                     # DateField — needs strftime
@@ -284,7 +293,7 @@ def cmf_entry(request):
                     'color_guide_return': 'Y' if cmf.is_guide_to_return else ('N' if cmf.is_guide_to_return is False else ''),
                     'is_low_cost': 'Y' if cmf.is_low_cost else ('N' if cmf.is_low_cost is False else ''),
                     'remarks': cmf.remarks,
-                    'product_code': "" if cm_no_override else final_prod_code,
+                    'product_code': selected_code_display if selected_code_display else ("" if cm_no_override else final_prod_code),
                     'dosage_note': dosage_note_obj.note if dosage_note_obj else "",
                     'resin_note': resin_note_obj.note if resin_note_obj else "",
                     

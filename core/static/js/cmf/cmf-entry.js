@@ -412,4 +412,44 @@ document.addEventListener('DOMContentLoaded', function() {
             }
         });
     }
+
+    // --- PRODUCT CODE AUTO-FILL LISTENER (For RS) ---
+    const initProductCodeListener = () => {
+        let attempts = 0;
+        const checkTS = setInterval(() => {
+            attempts++;
+            if (productCodeSelect && productCodeSelect.tomselect) {
+                clearInterval(checkTS);
+
+                productCodeSelect.tomselect.on('change', async function(codeNo) {
+                    if (!codeNo) return;
+
+                    const currentCmf = cmfInput ? cmfInput.value.trim() : '';
+
+                    try {
+                        const response = await fetch(`/check-prod-cmf/?code_no=${encodeURIComponent(codeNo)}`);
+                        const data = await response.json();
+
+                        if (data.match && data.cm_no) {
+                            Preline.confirm(
+                                'Previous CMF Record Found',
+                                `A CMF for this product code is found (${data.cm_no}), do you want to auto fill?`,
+                                'info',
+                                () => {
+                                    // Redirect: loads CMF data, keeps current entered CMF No, keeps toggle ON and product code selected
+                                    window.location.href = `/cmf/entry/?no=${encodeURIComponent(data.cm_no)}&new_no=${encodeURIComponent(currentCmf)}&is_for_rs=1&product_code=${encodeURIComponent(codeNo)}`;
+                                }
+                            );
+                        }
+                    } catch (err) {
+                        console.error('Error checking matching for product code:', err);
+                    }
+                });
+            } else if (attempts > 50) {
+                clearInterval(checkTS);
+            }
+        }, 100);
+    };
+
+    initProductCodeListener()
 });

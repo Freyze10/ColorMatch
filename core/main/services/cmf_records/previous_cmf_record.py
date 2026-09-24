@@ -1,7 +1,9 @@
+from datetime import datetime
+
 from django.http import JsonResponse
 import re
 
-from main.models import tbl_cmf
+from main.models import tbl_cmf, tbl_cmf_pending_completed, tbl_dc_extruder_formula, tbl_mb_extruder_formula
 
 def check_previous_matching(request):
     cm_no_input = request.GET.get('cm_no', '').strip()
@@ -50,3 +52,29 @@ def check_previous_matching(request):
         'match': match_found,
         'latest_cm_no': latest_cm_no
     })
+
+def check_prod_code_cmf(request):
+    code_no = request.GET.get('code_no')
+    
+    # --- CHECK BY PRODUCT CODE (For RS) ---
+    if code_no:
+        # Find latest MB or DC formula that used this product code and has a linked CMF
+        mb = tbl_mb_extruder_formula.objects.filter(code_id=code_no, cm_no__isnull=False).select_related('cm_no').order_by('-date', '-mb_no').first()
+        dc = tbl_dc_extruder_formula.objects.filter(code_id=code_no, cm_no__isnull=False).select_related('cm_no').order_by('-date', '-dc_no').first()
+
+        latest_cm_no = None
+        if mb and dc:
+            latest_cm_no = mb.cm_no.cm_no if (mb.date or datetime.date.min) >= (dc.date or datetime.date.min) else dc.cm_no.cm_no
+        elif mb:
+            latest_cm_no = mb.cm_no.cm_no
+        elif dc:
+            latest_cm_no = dc.cm_no.cm_no
+        else:
+            # Fallback to pending_completed table if not found in extruder formulas
+            pending = tbl_cmf_pending_completed.objects.filter(code_id=code_no, cm_no__isnull=False).select_related('cm_no').order_by('-completed_id').first()
+            if pending:
+                latest_cm_no = pending.cm_no.cm_no
+
+        if latest_cm_no:
+            return JsonResponse({'match': True, 'cm_no': latest_cm_no})
+        return JsonResponse({'match': False})

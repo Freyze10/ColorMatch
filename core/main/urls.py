@@ -54,6 +54,7 @@ urlpatterns = [
     path('formula-records/export-all/', formula_price_first.export_formula_by_date, name='export_formula_all'),
     path('master-formula/lookup/', master_formula_services.master_formula_lookup, name='master_formula_lookup'),
     path('check-previous-matching/', previous_cmf_record.check_previous_matching, name='check_previous_matching'),
+    path('check-prod-cmf/', previous_cmf_record.check_prod_code_cmf, name='check_prod_code_cmf'),
     path('formulation/data/', formulation_services.get_formulation_records_json, name='formulation_data'),
     path('master-formula/data/', master_formula_services.get_master_formula_records_json, name='master_formula_data'),
     path('audit-trail/data/', audit_services.get_audit_trail_data, name='audit_trail_data'),
