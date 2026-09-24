@@ -320,5 +320,40 @@ body.dark-mode .ts-dropdown .active {
 /* ===================================
    7. RESPONSIVE
 =================================== */
-@media (max-width: 991.98px) { .sidebar { transform: translateX(-100%); } .sidebar.show { transform: translateX(0); } .main { margin-left: 0 !important; } .sidebar-overlay.show { display: block; } .content { padding-top: 1rem !important; } }
-@media (min-width: 992px) { .sidebar.collapsed { width: 80px; } .sidebar.collapsed ~ .main { margin-left: 80px; } .sidebar.collapsed .logo-text, .sidebar.collapsed span, .sidebar.collapsed .user-info, .sidebar.collapsed .arrow-icon, .sidebar.collapsed .user-name, .sidebar.collapsed .user-role { display: none !important; } .sidebar.collapsed .nav-link { justify-content: center; } .sidebar.collapsed .sidebar-footer .dropdown-toggle::after { display: none !important; } }
+@media (max-width: 991.98px) {
+    .sidebar {
+        transform: translateX(-100%);
+    }
+
+    .sidebar.show {
+        transform: translateX(0);
+    }
+
+    .main {
+        margin-left: 0 !important;
+    }
+
+    .sidebar-overlay.show {
+        display: block;
+    }
+
+    .content {
+        padding-top: 1rem !important;
+    }
+    #globalBackBtn { display: none !important; }
+}
+
+@media (min-width: 992px) {
+    .sidebar.collapsed {
+        width: 80px;
+    }
+
+    .sidebar.collapsed~.main {
+        margin-left: 80px;
+    }
+
+    .sidebar.collapsed .logo-text,
+    .sidebar.collapsed span,
+    .sidebar.collapsed .user-info,
+    .sidebar.collapsed .arrow-icon,
+    .sidebar.collapsed .user-name, .sidebar.collapsed .user-role { display: none !important; } .sidebar.collapsed .nav-link { justify-content: center; } .sidebar.collapsed .sidebar-footer .dropdown-toggle::after { display: none !important; } }
