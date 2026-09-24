@@ -259,7 +259,7 @@ Formula DC
                                                class="table-input text-center js-version-value"
                                                data-row="{{ forloop.parentloop.counter }}"
                                                data-version="{{ forloop.counter }}"
-                                               placeholder="0.000000"
+                                               placeholder="0.0000"
                                                value="{{ val|floatformat:4 }}">
                                     </td>
                                     {% endfor %}
@@ -273,7 +273,7 @@ Formula DC
                                     {% for v in "1234567890" %}
                                     <td class="py-2 text-center">
                                         <input type="text" class="form-control form-control-sm border-0 bg-transparent text-center fw-bold p-0 js-version-total" 
-                                               data-version="{{ forloop.counter }}" readonly value="0.000000">
+                                               data-version="{{ forloop.counter }}" readonly value="0.0000">
                                     </td>
                                     {% endfor %}
                                 </tr>
