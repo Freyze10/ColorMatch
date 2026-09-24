@@ -144,15 +144,15 @@ def save_cmf_complete_entry(request):
             # B. If submitted from the text input (product code string)
             if not code_obj:
                 code_obj = tbl_generated_prod_code.objects.filter(product_code=prod_code_val).first()
-
+       
         tbl_cmf_pending_completed.objects.create(
             cm_no=cmf_main,
-            code_no=code_obj,
+            code=code_obj,
             is_completed=False
         )
         tbl_feedback_details.objects.create(
             cm_no=cmf_main,
-            code_no=code_obj
+            code=code_obj
         )
 
         num_files = _handle_file_uploads(request, cmf_main)
