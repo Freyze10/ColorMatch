@@ -156,7 +156,7 @@ def cmf_records(request):
     # all_records = cmf_records_services.get_all_records_combined()
     return render(request, "sidemenu/cmf/cmf_records.html")
 
-# TODO: add in the access
+@access_required('RS Records')
 def rs_records(request):
     return render(request, "sidemenu/cmf/rs_records.html")
 
