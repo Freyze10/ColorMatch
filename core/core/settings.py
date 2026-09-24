@@ -90,6 +90,7 @@ TEMPLATES = [
                 'django.contrib.auth.context_processors.auth',
                 'django.contrib.messages.context_processors.messages',
                 'main.context_processors.sidebar_permissions',
+                "main.context_processors.app_version"
             ],
         },
     },
@@ -143,6 +144,8 @@ AUTH_PASSWORD_VALIDATORS = [
         'NAME': 'django.contrib.auth.password_validation.NumericPasswordValidator',
     },
 ]
+
+APP_VERSION = os.environ.get('APP_VERSION')
 
 # Internationalization
 # https://docs.djangoproject.com/en/6.0/topics/i18n/
