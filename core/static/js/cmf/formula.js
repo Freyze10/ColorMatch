@@ -435,7 +435,7 @@
         isDC ? 'id_dc_color' : 'id_color',
         isDC ? 'id_dc_dosage' : 'id_dosage',
         isDC ? 'id_dc_application' : 'id_application',
-        isDC ? 'id_dc_finished_product' : 'id_finished_product',
+        isDC ? 'id_dc_product_used' : 'id_finished_product',
     ];
 
     /**
