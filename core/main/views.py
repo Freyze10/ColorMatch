@@ -256,7 +256,7 @@ def cmf_entry(request):
 
                 final_formula = tbl_cmf_pending_completed.objects.filter(
                     cm_no=cmf
-                ).select_related('code').first()
+                ).select_related('code').first() 
 
                 final_prod_code = ""
                 if final_formula and final_formula.code:
@@ -836,6 +836,7 @@ def cmf_pending_completed(request):
             tracking_instance = None
             feedback_instance = None
             parent_display = ""
+            has_rs_code_cleared = False
 
             # 1. Identify Parent and Get/Create Instances
             if record_type == 'cmf':
@@ -845,23 +846,35 @@ def cmf_pending_completed(request):
                 feedback_instance, _ = tbl_feedback_details.objects.get_or_create(cm_no=cmf_obj)
                 parent_display = f"CMF: {record_no}"
             else:
-                rs_obj = tbl_rs.objects.filter(pk=record_no).first()
-                if not rs_obj: raise Exception(f"RS record not found.")
-                tracking_instance, _ = tbl_cmf_pending_completed.objects.get_or_create(rs_no=rs_obj)
-                feedback_instance, _ = tbl_feedback_details.objects.get_or_create(rs_no=rs_obj)
+                rs_obj = tbl_rs.objects.filter(pk=record_no).first() if str(record_no).isdigit() else tbl_rs.objects.filter(rs_no=record_no).first()
+                if not rs_obj: raise Exception("RS record not found.")
+                tracking_instance, _ = tbl_cmf_pending_completed.objects.get_or_create(rs_no=rs_obj, defaults={'code': None})
+                feedback_instance, _ = tbl_feedback_details.objects.get_or_create(rs_no=rs_obj, defaults={'code': None})
                 parent_display = f"RS: {rs_obj.rs_no}"
 
-            # 2. Update Map for Tracking Table
+            # 2. Update Map for Tracking Table (Shared fields)
             update_map = {
                 'status': (tracking_instance, 'is_completed', 'Status', lambda x: x == 'Completed'),
                 'pending_reason': (tracking_instance, 'reason', 'Reason', str),
-                'product_code': (tracking_instance, 'code', 'Product Code', get_prod_code_obj),
                 'lot_no': (tracking_instance, 'lot_no', 'Lot Number', str),
-                'code_description': (tracking_instance, 'code_details', 'Code Details', str),
                 'date_submitted': (tracking_instance, 'date_submitted', 'Date Submitted', parse_date),
                 'ar_no': (tracking_instance, 'ar_no', 'AR No.', str),
                 'ar_date': (tracking_instance, 'ar_date', 'AR Date', parse_date),
             }
+
+            # Product Code & Code Description apply ONLY to CMF
+            if record_type == 'cmf':
+                update_map['product_code'] = (tracking_instance, 'code', 'Product Code', get_prod_code_obj)
+                if 'code_description' in data:
+                    update_map['code_description'] = (tracking_instance, 'code_details', 'Code Details', str)
+            else:
+                # FOR RS: Strictly ensure code is null in both tracking and feedback
+                if tracking_instance.code is not None:
+                    tracking_instance.code = None
+                    has_rs_code_cleared = True
+                if feedback_instance.code is not None:
+                    feedback_instance.code = None
+                    has_rs_code_cleared = True
 
             # 3. Update Map for Feedback Table
             feedback_map = {
@@ -872,6 +885,8 @@ def cmf_pending_completed(request):
             with transaction.atomic():
                 # Process Tracking Diffs
                 for post_key, (inst, attr, label, transform) in update_map.items():
+                    if post_key not in data:
+                        continue
                     current_val = getattr(inst, attr)
                     new_val = transform(data.get(post_key, ''))
                     
@@ -884,6 +899,8 @@ def cmf_pending_completed(request):
 
                 # Process Feedback Diffs
                 for post_key, (inst, attr, label, transform) in feedback_map.items():
+                    if post_key not in data:
+                        continue
                     current_val = getattr(inst, attr)
                     new_val = transform(data.get(post_key, ''))
                     
@@ -892,16 +909,16 @@ def cmf_pending_completed(request):
                         diff_logs.append(f"{label} ({curr_str} -> {new_str})")
                         setattr(inst, attr, new_val)
 
-                # Sync Code FK to Feedback
-                if feedback_instance.code != tracking_instance.code:
+                # Sync Code FK to Feedback (CMF ONLY)
+                if record_type == 'cmf' and feedback_instance.code != tracking_instance.code:
                     feedback_instance.code = tracking_instance.code
 
-                if diff_logs:
+                # Save if there are changes or if RS code was cleared
+                if diff_logs or has_rs_code_cleared:
                     tracking_instance.save()
                     feedback_instance.save()
 
-                # --- 4. Sync Submitted Options (Sample/Chips/Price) ---
-                # tracking_instance needs a pk before we can attach selections to it.
+                # --- 4. Sync Submitted Options (Sample/Chips) ---
                 if tracking_instance.pk is None:
                     tracking_instance.save()
 
@@ -922,8 +939,6 @@ def cmf_pending_completed(request):
                         ).delete()
 
                     if to_add:
-                        # option_id is a literal field name ending in "_id", so Django
-                        # requires an actual related object here — a raw pk int is rejected.
                         option_objs = tbl_submitted_option.objects.filter(option_id__in=to_add)
                         for option_obj in option_objs:
                             tbl_submitted_selected.objects.get_or_create(
@@ -940,7 +955,7 @@ def cmf_pending_completed(request):
                         f"Submitted ({', '.join(old_names) or '---'} -> {', '.join(new_names) or '---'})"
                     )
 
-                if diff_logs:
+                if diff_logs or has_rs_code_cleared:
                     log_audit(request, "Updated", f"Updated Status for {parent_display}. Changes: {', '.join(diff_logs)}")
                     messages.success(request, f"Successfully updated tracking for {parent_display}")
                     cache.delete('cmf_records_list')
@@ -1014,43 +1029,63 @@ def cmf_pending_completed(request):
                 }
 
         elif record_type == 'rs':
-            rs = tbl_rs.objects.filter(id=record_no).first()
+            rs = tbl_rs.objects.filter(pk=record_no).first() if str(record_no).isdigit() else tbl_rs.objects.filter(rs_no=record_no).first()
             if rs:
                 tracking = tbl_cmf_pending_completed.objects.filter(rs_no=rs).select_related('code').first()
                 feedback = tbl_feedback_details.objects.filter(rs_no=rs).first()
                 dates = tbl_cmf_dates.objects.filter(rs_no=rs).first()
-                resins_list = tbl_resins_selected.objects.filter(rs_no=rs).values_list('resin_no__abbreviation', flat=True)
-                processes = tbl_cmf_process02.objects.filter(rs_no=rs).values_list('process_no__name', flat=True)
+                cmf = rs.cm_no  # Central technical authority
 
-                is_dc = (rs.colorant_type or "").upper() == 'DC'
+                # Determine Product Code: Check tracking first, fallback to linked CMF
                 final_prod_code = tracking.code.product_code if tracking and tracking.code else ""
+                if not final_prod_code and cmf:
+                    cmf_tracking = tbl_cmf_pending_completed.objects.filter(cm_no=cmf).select_related('code').first()
+                    if cmf_tracking and cmf_tracking.code:
+                        final_prod_code = cmf_tracking.code.product_code
 
-                selected_lot = "N/A" if is_dc else (tracking.lot_no if tracking else "")
+                # Colorant & Lots come from CMF formulas
+                is_dc = (getattr(cmf, 'colorant_type', '') or '').upper() == 'DC' if cmf else False
+                selected_lot = "N/A" if is_dc else (tracking.lot_no if tracking and tracking.lot_no else "")
                 lot_options = ["N/A"] if is_dc else []
-                if not is_dc and tracking and tracking.code:
-                    mb_lots = tbl_mb_extruder_formula.objects.filter(rs_no=rs, code=tracking.code).values_list('lot_no', flat=True)
+                if not is_dc and cmf:
+                    mb_lots = tbl_mb_extruder_formula.objects.filter(cm_no=cmf).values_list('lot_no', flat=True)
                     lot_options = sorted(list(set(filter(None, mb_lots))), reverse=True)
+                    if not selected_lot and lot_options:
+                        selected_lot = lot_options[0]
+
+                # Approved By full name
+                approved_by_name = ""
+                if rs.approved_by:
+                    approved_by_name = (
+                        rs.approved_by.get_full_name() 
+                        if hasattr(rs.approved_by, 'get_full_name') and rs.approved_by.get_full_name() 
+                        else f"{rs.approved_by.first_name} {rs.approved_by.last_name}".strip() or rs.approved_by.username
+                    )
+
+                # Salesman name
+                salesman_name = rs.sm_no.name if getattr(rs, 'sm_no', None) else (getattr(rs, 'salesman', '') or '')
+
+                # Filter submitted options strictly to Sample and Chips
+                rs_submitted_options = [
+                    opt for opt in all_options if opt.name.strip().lower() in ['sample', 'chips']
+                ]
 
                 selected_option_ids = list(
                     tbl_submitted_selected.objects.filter(completed_id=tracking).values_list('option_id', flat=True)
                 ) if tracking else []
-                
+
                 form_data = {
                     'rs_no': rs.rs_no,
+                    'cm_no': cmf.cm_no if cmf else "",
                     'customer': rs.customer or "",
+                    'salesman': salesman_name,
+                    'approved_by': approved_by_name,
                     'quantity_kg': rs.quantity_required or "",
-                    'date_created': format_val(dates.form_made) if dates else "",
-                    'due_date': format_val(dates.due_date_lab) if dates else "",
-                    'required_date': dates.date_required if dates else "",
-                    'date_received': dates.date_received_lab if dates else "",
-                    'finished_product': rs.finished_product or "",
-                    'color_description': rs.color_desc or "",
-                    'matchType': rs.matching_type.upper() if rs.matching_type else "",
-                    'colorantType': rs.colorant_type.upper() if rs.colorant_type else "",
-                    'salesman': rs.sm_no.name if rs.sm_no else "",
+                    'date_created': format_val(dates.form_made) if dates and dates.form_made else format_val(getattr(rs, 'date_created', None)),
+                    'due_date': format_val(dates.due_date_lab) if dates and dates.due_date_lab else format_val(getattr(rs, 'due_date', None)),
+                    'required_date': dates.date_required if dates and dates.date_required else getattr(rs, 'required_date', ''),
+                    'date_received': dates.date_received_lab if dates and dates.date_received_lab else getattr(rs, 'date_received', ''),
                     'status': 'Completed' if (tracking and tracking.is_completed) else 'Pending',
-                    'resin': ", ".join(resins_list),
-                    'application': ", ".join(processes),
                     'pending_reason': tracking.reason if tracking else "",
                     'product_code': final_prod_code,
                     'lot_no': selected_lot,
@@ -1062,7 +1097,7 @@ def cmf_pending_completed(request):
                     'date_submitted': format_val(tracking.date_submitted) if tracking else "",
                     'ar_no': tracking.ar_no if tracking else "",
                     'ar_date': format_val(tracking.ar_date) if tracking else "",
-                    'submitted_options': all_options,
+                    'submitted_options': rs_submitted_options,
                     'selected_option_ids': selected_option_ids,
                     'record_no': rs.id,
                     'record_type': 'rs',

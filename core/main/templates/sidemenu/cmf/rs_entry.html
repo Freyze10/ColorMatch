@@ -130,7 +130,7 @@ RS Entry
                                 <select class="form-select form-select-sm ts-select" name="approved_by" placeholder="Select lab personnel..." required>
                                     <option value=""></option>
                                     {% for u in lab_personnel %}
-                                        <option value="{{ u.id }}" {% if form_data.approved_by == u.id or form_data.approved_by == u.id|stringformat:"s" %}selected{% endif %}>
+                                        <option value="{{ u.id }}" {% if form_data.approved_by_id == u.id or form_data.approved_by == u.fullname|stringformat:"s" %}selected{% endif %}>
                                             {{ u.full_name|default:u.username }}
                                         </option>
                                     {% endfor %}
