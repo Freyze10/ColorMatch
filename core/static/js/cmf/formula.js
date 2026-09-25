@@ -92,7 +92,7 @@
 
             table.querySelectorAll('.js-version-total').forEach(totalInput => {
                 const v = totalInput.dataset.version;
-                totalInput.value = (totals[v] || 0).toFixed(6);
+                totalInput.value = (totals[v] || 0).toFixed(4);
             });
         }
     }
@@ -242,6 +242,23 @@
         lotNumberInput.addEventListener('blur', checkExistingLotNumber);
     }
 
+    // --- FORMAT TOTAL WEIGHT TO 4 DECIMALS ---
+    const totalWeightInput = document.querySelector('.total-weight-input');
+    if (totalWeightInput) {
+        // 1. Restrict typing to numbers and a single decimal point
+        totalWeightInput.addEventListener('keypress', restrictToNumbers);
+
+        // 2. Format to 4 decimal places when user leaves the field
+        totalWeightInput.addEventListener('blur', function () {
+            const val = parseFloat(this.value);
+            if (!isNaN(val)) {
+                this.value = val.toFixed(4);
+            } else {
+                this.value = '';
+            }
+        });
+    }
+
     // --- 4. SAVE / NEW / PRINT BUTTONS ---
     const saveBtn = document.querySelector('.btn-save-formula');
     const newBtn = document.querySelector('.btn-new');
@@ -267,11 +284,11 @@
                 const totalPct = parseFloat(document.querySelector('.js-total-percent-summary')?.value) || 0;
                 const totalWgt = parseFloat(document.querySelector('.js-total-weight-summary')?.value) || 0;
                 
-                if (totalPct.toFixed(2) !== "100.00") {
+                if (totalPct.toFixed(4) !== "100.0000") {
                     Preline.toast(`MB Error: Total percentage must be 100%. Current: ${totalPct}%`, 'error');
                     return;
                 }
-                if (totalWgt.toFixed(2) !== masterWgt.toFixed(2)) {
+                if (totalWgt.toFixed(4) !== masterWgt.toFixed(4)) {
                     Preline.toast(`MB Error: Summary weight mismatch.`, 'error');
                     return;
                 }
