@@ -83,10 +83,6 @@ document.addEventListener('DOMContentLoaded', function () {
                         'success',
                         () => entryForm.submit()
                     );
-                } else {
-                    if (confirm(isUpdate ? 'Update this RS entry?' : 'Save this RS entry?')) {
-                        entryForm.submit();
-                    }
                 }
             }
         });
