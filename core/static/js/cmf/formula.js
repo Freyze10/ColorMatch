@@ -478,7 +478,7 @@
             product: isDC ? 'id_dc_product_code' : 'id_product',
             dosage: isDC ? 'id_dc_dosage' : 'id_dosage',
             application: isDC ? 'id_dc_application' : 'id_application',
-            finished_product: isDC ? 'id_dc_finished_product' : 'id_finished_product',
+            finished_product: isDC ? 'id_dc_product_used' : 'id_finished_product',
             lot_no: 'id_lot_number' 
         };
         const setVal = (id, val) => {
