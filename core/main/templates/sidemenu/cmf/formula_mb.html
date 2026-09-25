@@ -306,7 +306,7 @@
                     <!-- Total Weight -->
                     <div class="d-flex align-items-center gap-3 order-1 order-md-2 ms-auto ms-md-0">
                         <span class="fw-bold small text-uppercase">Total Weight:</span>
-                        <input type="text" name="total_weight" class="form-control total-weight-input total-weight-display" value="{{ form_data.total_weight|default:'0.00' }}">
+                        <input type="text" name="total_weight" class="form-control total-weight-input total-weight-display" value="{{ form_data.total_weight|default:'' }}" autocomplete="off">
                     </div>
                 </div>
 
@@ -317,23 +317,23 @@
                         <span class="extra-small fw-bold me-1">sRGB:</span>
                         <div class="d-flex align-items-center gap-1">
                             <label class="extra-small fw-bold mb-0">Hex</label>
-                            <input type="text" name="srgb_hex" class="form-control form-control-sm uniform-input text-center hex-input" style="width: 90px;" placeholder="#FFFFFF" maxlength="7" value="{{ form_data.srgb_hex|default:'' }}">
+                            <input type="text" name="srgb_hex" class="form-control form-control-sm uniform-input text-center hex-input" style="width: 90px;" placeholder="#FFFFFF" maxlength="7" value="{{ form_data.srgb_hex|default:'' }}" autocomplete="off">
                         </div>
                         <div class="d-flex align-items-center gap-1">
                             <label class="extra-small fw-bold mb-0">C</label>
-                            <input type="number" step="0.01" name="cmyk_c" id="id_cmyk_c" class="form-control form-control-sm uniform-input text-center" style="width: 60px;" value="{{ form_data.cmyk_c|default:'' }}">
+                            <input type="number" step="0.01" name="cmyk_c" id="id_cmyk_c" class="form-control form-control-sm uniform-input text-center" style="width: 60px;" value="{{ form_data.cmyk_c|default:'' }}" autocomplete="off">
                         </div>
                         <div class="d-flex align-items-center gap-1">
                             <label class="extra-small fw-bold mb-0">M</label>
-                            <input type="number" step="0.01" name="cmyk_m" id="id_cmyk_m" class="form-control form-control-sm uniform-input text-center" style="width: 60px;" value="{{ form_data.cmyk_m|default:'' }}">
+                            <input type="number" step="0.01" name="cmyk_m" id="id_cmyk_m" class="form-control form-control-sm uniform-input text-center" style="width: 60px;" value="{{ form_data.cmyk_m|default:'' }}" autocomplete="off">
                         </div>
                         <div class="d-flex align-items-center gap-1">
                             <label class="extra-small fw-bold mb-0">Y</label>
-                            <input type="number" step="0.01" name="cmyk_y" id="id_cmyk_y" class="form-control form-control-sm uniform-input text-center" style="width: 60px;" value="{{ form_data.cmyk_y|default:'' }}">
+                            <input type="number" step="0.01" name="cmyk_y" id="id_cmyk_y" class="form-control form-control-sm uniform-input text-center" style="width: 60px;" value="{{ form_data.cmyk_y|default:'' }}" autocomplete="off">
                         </div>
                         <div class="d-flex align-items-center gap-1">
                             <label class="extra-small fw-bold mb-0">K</label>
-                            <input type="number" step="0.01" name="cmyk_k" id="id_cmyk_k" class="form-control form-control-sm uniform-input text-center" style="width: 60px;" value="{{ form_data.cmyk_k|default:'' }}">
+                            <input type="number" step="0.01" name="cmyk_k" id="id_cmyk_k" class="form-control form-control-sm uniform-input text-center" style="width: 60px;" value="{{ form_data.cmyk_k|default:'' }}" autocomplete="off">
                         </div>
                     </div>
 
