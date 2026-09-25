@@ -317,6 +317,13 @@ body.dark-mode .ts-dropdown .active {
 .navbar { background: var(--navbar-bg); border-bottom: 1px solid var(--sidebar-border); height: 64px; display: flex; align-items: center; padding: 0 1.5rem; position: sticky; top: 0; z-index: 1030; transition: transform 0.3s ease-in-out; width: 100%; }
 .nav-hidden { transform: translateY(-100%); }
 
+.ts-dropdown,
+.ts-dropdown .ts-dropdown-content,
+.ts-control,
+.ts-wrapper {
+    transition: none !important;
+    animation: none !important;
+}
 /* ===================================
    7. RESPONSIVE
 =================================== */
