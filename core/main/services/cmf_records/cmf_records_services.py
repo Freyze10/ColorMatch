@@ -187,22 +187,36 @@ def toggle_final_formula(request, formula_type, formula_id):
 
 
 # Formula Records Retrieval for CMF and RS
-# Index 0 (checkbox) and 8 (swatch/html) are intentionally excluded —
-# not meaningful to text-search.
+
+# Mapped 1-to-1 with DataTables column indices
 SEARCHABLE_COLUMNS = {
     1: 'date_display',
     2: 'cmf_no',
-    3: 'product_code',
-    4: 'color',
-    5: 'mixing',
-    6: 'matched_by',
-    7: 'lot_no',
-    9: 'type',
+    3: 'customer',
+    4: 'product_code',
+    5: 'lot_no',
+    6: 'color',
+    7: 'dosage_display',
+}
+
+SORTABLE_COLUMNS = {
+    1: 'date',
+    2: 'cmf_no',
+    3: 'customer',
+    4: 'product_code',
+    5: 'lot_no',
+    6: 'color',
+    7: 'dosage',
 }
 
 
 def get_all_formula_records():
-    # Only select_related 'code' and 'cm_no' since 'rs_no' has been removed
+    # 1. Preload customer and dosage from tbl_cmf_formula in 1 query for instant O(1) lookup
+    formula_map = {}
+    for f in tbl_cmf_formula.objects.all().only('cm_no', 'customer', 'dosage'):
+        if f.cm_no_id:
+            formula_map[str(f.cm_no_id)] = f
+
     mb_qs = tbl_mb_extruder_formula.objects.select_related('code', 'cm_no')
     dc_qs = tbl_dc_extruder_formula.objects.select_related('code', 'cm_no')
 
@@ -210,63 +224,59 @@ def get_all_formula_records():
 
     # MB Formulas
     for f in mb_qs:
-        color = f.cm_no.color_desc if f.cm_no and f.cm_no.color_desc else "---"
-        record_type = 'cmf' if f.cm_no else ''
-        record_no = f.cm_no.cm_no if f.cm_no else ''
-        cmf_no = f.cm_no.cm_no if f.cm_no else "N/A"
+        cm_obj = f.cm_no
+        cmf_no = cm_obj.cm_no if cm_obj else "N/A"
+        color = cm_obj.color_desc if (cm_obj and cm_obj.color_desc) else "---"
+        
+        f_info = formula_map.get(str(cm_obj.cm_no)) if cm_obj else None
+        customer = f_info.customer if f_info and f_info.customer else "---"
+        raw_dosage = f_info.dosage if f_info else None
+        dosage_display = f"{float(raw_dosage):g}%" if raw_dosage is not None else "---"
 
         combined_results.append({
             "id": f.mb_no,
             "type": "MB",
             "date": f.date,
             "cmf_no": cmf_no,
-            "record_type": record_type,
-            "record_no": record_no,
+            "record_type": "cmf",
+            "record_no": cmf_no if cmf_no != "N/A" else "",
+            "customer": customer,
             "product_code": f.code.product_code if f.code else "---",
-            "color": color,
-            "mixing": f.mixing_time or "---",
-            "matched_by": f.matched_by or "---",
             "lot_no": f.lot_no or "N/A",
+            "color": color,
+            "dosage": float(raw_dosage) if raw_dosage is not None else None,
+            "dosage_display": dosage_display,
             "html": f.html or "#ffffff"
         })
 
     # DC Formulas
     for f in dc_qs:
-        color = f.cm_no.color_desc if f.cm_no and f.cm_no.color_desc else "---"
-        record_type = 'cmf' if f.cm_no else ''
-        record_no = f.cm_no.cm_no if f.cm_no else ''
-        cmf_no = f.cm_no.cm_no if f.cm_no else "N/A"
+        cm_obj = f.cm_no
+        cmf_no = cm_obj.cm_no if cm_obj else "N/A"
+        color = cm_obj.color_desc if (cm_obj and cm_obj.color_desc) else "---"
+
+        f_info = formula_map.get(str(cm_obj.cm_no)) if cm_obj else None
+        customer = f_info.customer if f_info and f_info.customer else "---"
+        raw_dosage = f_info.dosage if f_info else None
+        dosage_display = f"{float(raw_dosage):g}%" if raw_dosage is not None else "---"
 
         combined_results.append({
             "id": f.dc_no,
             "type": "DC",
             "date": f.date,
             "cmf_no": cmf_no,
-            "record_type": record_type,
-            "record_no": record_no,
+            "record_type": "cmf",
+            "record_no": cmf_no if cmf_no != "N/A" else "",
+            "customer": customer,
             "product_code": f.code.product_code if f.code else "---",
-            "color": color,
-            "mixing": f.mixing_time or "---",
-            "matched_by": f.matched_by or "---",
             "lot_no": "N/A",
+            "color": color,
+            "dosage": float(raw_dosage) if raw_dosage is not None else None,
+            "dosage_display": dosage_display,
             "html": f.html or "#ffffff"
         })
 
     return combined_results
-
-# Maps a DataTables column index to the dict key to sort/filter by.
-# Index 8 (swatch/html) is intentionally not sortable in the JS config,
-# so it's omitted here too.
-SORTABLE_COLUMNS = {
-    1: 'date',           # sort by the raw date object, not date_display string
-    2: 'cmf_no',
-    3: 'product_code',
-    4: 'color',
-    5: 'mixing',
-    6: 'matched_by',
-    7: 'lot_no',
-    9: 'type',
-}
 
 
 def formula_records_data(request):
@@ -342,29 +352,33 @@ def get_formula_materials(request, formula_type, formula_id):
     results = []
 
     if formula_type.upper() == 'MB':
-        # MB still uses the old flat structure
-        results = list(tbl_mb_extruder_formula02.objects.filter(mb_id=formula_id).values('material', 'value', 'weight'))
+        # MB formula items
+        results = list(
+            tbl_mb_extruder_formula02.objects
+            .filter(mb_id=formula_id)
+            .values('material', 'value', 'weight')
+        )
     
     else:
-        # NEW DC LOGIC: Find latest trial/version
-        # 1. Identify the highest version number recorded for this formula
+        # DC LOGIC: Find latest trial/version
+        # 1. Identify the highest version number for this DC formula
         max_v = tbl_dc_extruder_version.objects.filter(
             material__dc_id=formula_id
         ).aggregate(Max('version_no'))['version_no__max']
 
-        if max_v:
-            # 2. Get materials and values for that specific version
-            # select_related('material') avoids multiple DB hits for the material name
+        if max_v is not None:
+            # 2. Pull materials and values for that latest version
             version_data = tbl_dc_extruder_version.objects.filter(
                 material__dc_id=formula_id, 
                 version_no=max_v
-            ).select_related('material')
+            ).select_related('material').order_by('id')
 
             for v in version_data:
+                val = float(v.value or 0)
                 results.append({
-                    'material': v.material.material,
-                    'value': float(v.value or 0),
-                    'weight': 0 # Weight was removed from DC database, returning 0 to keep JS happy
+                    'material': v.material.material if v.material else '---',
+                    'value': val,
+                    'weight': val  # Pass val to weight so JS parseFloat(m.weight) displays the true value
                 })
 
     return JsonResponse({'materials': results})

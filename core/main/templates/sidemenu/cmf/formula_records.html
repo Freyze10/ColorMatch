@@ -18,14 +18,13 @@ Formula Records
                     <option value="-1" selected>All Columns</option>
                     <option value="1">Date</option>
                     <option value="2">CMF No</option>
-                    <option value="3">Product Code</option>
-                    <option value="4">Color Description</option>
-                    <option value="5">Mixing</option>
-                    <option value="6">Matched By</option>
-                    <option value="7">Lot No</option>
-                    <option value="9">Type</option>
+                    <option value="3">Customer</option>
+                    <option value="4">Product Code</option>
+                    <option value="5">Lot No</option>
+                    <option value="6">Color Description</option>
+                    <option value="7">Dosage</option>
                 </select>
-                <input type="text" id="recordSearchInput" class="form-control uniform-input" placeholder="Search CMF, Code, Color, or Lot...">
+                <input type="text" id="recordSearchInput" class="form-control uniform-input" placeholder="Search CMF, Code, Customer, Color, or Lot...">
                 <span class="input-group-text uniform-input bg-white"><i class="bi bi-search"></i></span>
             </div>
         </div>
@@ -52,13 +51,12 @@ Formula Records
                                 </th>
                                 <th class="no-wrap">Date</th>
                                 <th class="no-wrap">CMF No</th>
+                                <th>Customer</th>
                                 <th class="no-wrap">Product Code</th>
-                                <th>Color Description</th>
-                                <th>Mixing</th>
-                                <th>Matched By</th>
                                 <th>Lot No</th>
+                                <th>Color Description</th>
+                                <th>Dosage</th>
                                 <th>Swatch</th>
-                                <th>Type</th>
                             </tr>
                         </thead>
                         <tbody class="extra-small"></tbody>
@@ -116,7 +114,9 @@ Formula Records
         </div>
     </div>
 </div>
+
 {% include "modal/cmf-record/formula_pricefirst.html" %}
+
 <style>
     select.uniform-input {
         line-height: 1.5 !important;
@@ -138,9 +138,6 @@ Formula Records
     .table-selected { background-color: #e6fffa !important; }
     .color-swatch-rect { width: 45px; height: 18px; border-radius: 2px; border: 1px solid #dee2e6; display: inline-block; vertical-align: middle; }
     .uniform-input { font-size: 0.8rem; border-radius: 6px; }
-
-    .badge-mb { background-color: #2c7a7b; color: #fff; }
-    .badge-dc { background-color: #38b2ac; color: #fff; }
 
     .dataTables_wrapper { height: 100%; display: flex; flex-direction: column; }
     .dataTables_scroll { flex-grow: 1; display: flex; flex-direction: column; }
@@ -179,22 +176,17 @@ $(document).ready(function() {
             },
             { data: "date_display", className: "no-wrap fw-bold text-muted" },
             { data: "cmf_no", className: "no-wrap fw-bold text-dark" },
+            { data: "customer", className: "fw-semibold" },
             { data: "product_code", className: "no-wrap fw-bold text-teal" },
+            { data: "lot_no", className: "no-wrap" },
             { data: "color" },
-            { data: "mixing" },
-            { data: "matched_by" },
-            { data: "lot_no" },
+            { data: "dosage_display", className: "no-wrap fw-semibold" },
             {
                 data: "html",
                 orderable: false,
                 searchable: false,
-                render: function(data) { return `<div class="color-swatch-rect" style="background-color: ${data}"></div>`; }
-            },
-            {
-                data: "type",
-                render: function(data) {
-                    const cls = data === 'MB' ? 'badge-mb' : 'badge-dc';
-                    return `<span class="badge ${cls} extra-small">${data}</span>`;
+                render: function(data) { 
+                    return `<div class="color-swatch-rect" style="background-color: ${data}"></div>`; 
                 }
             }
         ],
@@ -323,11 +315,15 @@ $(document).ready(function() {
         $(this).addClass('table-active');
 
         const rowData = table.row(this).data();
+        if (!rowData) return;
 
         $('#selectedRecordLabel').html(`
             <span class="extra-small fw-bold">${rowData.cmf_no}</span>
             <span class="text-muted">|</span>
             <span class="text-teal fw-bold">${rowData.product_code}</span>
+            <span class="text-muted">|</span>
+            <span class="extra-small fw-bold text-uppercase">Customer:</span>
+            <span class="fw-bold text-dark">${rowData.customer}</span>
             <span class="text-muted">|</span>
             <span class="extra-small fw-bold text-uppercase">HTML:</span>
             <span class="text-teal fw-bold">${rowData.html === '#ffffff' ? 'N/A' : rowData.html}</span>
@@ -339,17 +335,20 @@ $(document).ready(function() {
             const res = await fetch(`/cmf/formula-records/materials/${rowData.type}/${rowData.id}/`);
             const data = await res.json();
 
-            if (data.materials.length === 0) {
-                $('#materialDetailBody').html('<tr><td colspan="2" class="text-center py-4">No materials found</td></tr>');
+            if (!data.materials || data.materials.length === 0) {
+                $('#materialDetailBody').html('<tr><td colspan="2" class="text-center py-4 text-muted">No materials found</td></tr>');
                 return;
             }
 
-            const html = data.materials.map(m => `
-                <tr>
-                    <td class="ps-2 fw-bold text-muted" style="font-size: 0.7rem;">${m.material}</td>
-                    <td class="pe-2 text-end fw-bold text-teal">${parseFloat(m.weight).toFixed(5)}</td>
-                </tr>
-            `).join('');
+            const html = data.materials.map(m => {
+                const val = (m.value !== undefined && m.value !== null) ? m.value : (m.weight || 0);
+                return `
+                    <tr>
+                        <td class="ps-2 fw-bold text-muted" style="font-size: 0.7rem;">${m.material}</td>
+                        <td class="pe-2 text-end fw-bold text-teal">${parseFloat(val).toFixed(5)}</td>
+                    </tr>
+                `;
+            }).join('');
             $('#materialDetailBody').html(html);
         } catch (err) {
             $('#materialDetailBody').html('<tr><td colspan="2" class="text-center text-danger">Load failed</td></tr>');
@@ -366,7 +365,6 @@ $(document).ready(function() {
         }
 
         const targetUrl = rowData.type === 'MB' ? "{% url 'mb_formula' %}" : "{% url 'dc_formula' %}";
-
         const params = new URLSearchParams({
             no: rowData.record_no,
             type: rowData.record_type,
@@ -385,6 +383,7 @@ $(document).ready(function() {
 
     $('#btnRefreshTable').on('click', () => table.ajax.reload());
 
+    // --- PRICE FIRST MODAL TRIGGER ---
     $('#btnPriceFirst').on('click', function() {
         let items = [];
 
@@ -397,7 +396,9 @@ $(document).ready(function() {
             const activeRow = $('#formulaRecordsTable tbody tr.table-active');
             if (activeRow.length > 0) {
                 const rowData = table.row(activeRow).data();
-                items.push({ type: rowData.type, id: rowData.id });
+                if (rowData) {
+                    items.push({ type: rowData.type, id: rowData.id });
+                }
             }
         }
 
@@ -408,33 +409,43 @@ $(document).ready(function() {
 
         showLoader();
         fetch(`/cmf/formula-records/price-first/?items=${encodeURIComponent(JSON.stringify(items))}`)
-            .then(res => res.json())
+            .then(res => {
+                if (!res.ok) {
+                    throw new Error(`Server returned error code ${res.status}`);
+                }
+                return res.json();
+            })
             .then(data => {
                 hideLoader();
                 const body = $('#priceFirstTableBody');
                 body.empty();
 
+                if (!data.data || data.data.length === 0) {
+                    Preline.toast('No formula details found.', 'info');
+                    return;
+                }
+
                 data.data.forEach((row) => {
                     const tr = `
                         <tr>
-                            <td class="text-center">${row.date}</td>
-                            <td class="ps-2">${row.customer}</td>
-                            <td class="text-center">${row.classification}</td>
-                            <td class="text-center fw-bold text-primary">${row.prod_code}</td>
-                            <td class="ps-2">${row.resin}</td>
-                            <td class="ps-2 fw-bold">${row.mat_code}</td>
-                            <td class="text-end pe-2">${row.mat_conc}</td>
-                            <td class="text-center">${row.end_product}</td>
-                            <td class="text-center">${row.total}</td>
-                            <td class="text-center text-danger fw-bold">${row.others}</td>
-                            <td class="text-center">${row.dosage}</td>
-                            <td class="text-center">${row.salesman_namey}</td>
-                            <td class="text-center">${row.cmf_no}</td>
-                            <td class="text-center">${row.html}</td>
-                            <td class="text-center">${row.c}</td>
-                            <td class="text-center">${row.m}</td>
-                            <td class="text-center">${row.y}</td>
-                            <td class="text-center">${row.k}</td>
+                            <td class="text-center">${row.date || '---'}</td>
+                            <td class="ps-2">${row.customer || '---'}</td>
+                            <td class="text-center">${row.classification || '---'}</td>
+                            <td class="text-center fw-bold text-primary">${row.prod_code || '---'}</td>
+                            <td class="ps-2">${row.resin || '---'}</td>
+                            <td class="ps-2 fw-bold">${row.mat_code || '---'}</td>
+                            <td class="text-end pe-2">${row.mat_conc || '0.00'}</td>
+                            <td class="text-center">${row.end_product || '---'}</td>
+                            <td class="text-center">${row.total || '0.00'}</td>
+                            <td class="text-center text-danger fw-bold">${row.others || '---'}</td>
+                            <td class="text-center">${row.dosage || '---'}</td>
+                            <td class="text-center">${row.salesman_name || '---'}</td>
+                            <td class="text-center">${row.cmf_no || '---'}</td>
+                            <td class="text-center">${row.html || '---'}</td>
+                            <td class="text-center">${row.c ?? ''}</td>
+                            <td class="text-center">${row.m ?? ''}</td>
+                            <td class="text-center">${row.y ?? ''}</td>
+                            <td class="text-center">${row.k ?? ''}</td>
                             <td class="p-0">
                                 <input type="text" class="form-control form-control-sm border-0 rounded-0 bg-warning-subtle py-1"
                                     style="font-size: 0.7rem;" placeholder="Add remarks here...">
@@ -444,13 +455,21 @@ $(document).ready(function() {
                     body.append(tr);
                 });
 
-                $('#priceFirstModal').modal('show');
+                // Robust Bootstrap 5 Modal show
+                const modalEl = document.getElementById('priceFirstModal');
+                if (modalEl) {
+                    const modal = bootstrap.Modal.getOrCreateInstance(modalEl);
+                    modal.show();
+                } else {
+                    $('#priceFirstModal').modal('show');
+                }
             })
             .catch(err => {
                 hideLoader();
-                Preline.toast('Error fetching data.' + err, 'danger');
+                Preline.toast('Error fetching data: ' + err.message, 'danger');
             });
     });
+
     // --- BULK EXPORT (Direct Download) ---
     $('#btnExport').on('click', function() {
         const dateFrom = $('#dateFrom').val();
@@ -467,20 +486,14 @@ $(document).ready(function() {
             'success',
             () => {
                 showLoader();
-                // Construct URL with query parameters
                 const exportUrl = `{% url 'export_formula_all' %}?from=${encodeURIComponent(dateFrom)}&to=${encodeURIComponent(dateTo)}`;
-                
-                // Use window.location for direct download (it handles the response headers automatically)
                 window.location.href = exportUrl;
-                
-                // Hide loader after a delay because we can't easily track 
-                // when window.location.href finishes downloading
                 setTimeout(hideLoader, 3000);
             }
         );
     });
 
-    // --- DOWNLOAD EXCEL (server-side build, offline-safe, no CDN) ---
+    // --- DOWNLOAD EXCEL ---
     $('#btnDownloadPriceFirst').on('click', function() {
         const rows = [];
         $('#priceFirstTableBody tr').each(function() {
@@ -528,8 +541,6 @@ $(document).ready(function() {
         });
     });
 
-    // Standard Django CSRF cookie reader, needed since this POST isn't
-    // a form submission (no {% csrf_token %} field available to read from).
     function getCookie(name) {
         let cookieValue = null;
         if (document.cookie && document.cookie !== '') {
