@@ -124,11 +124,11 @@ def get_formulation_details(request):
     data = {
         'customer': formula_info.customer if formula_info else "",
         'resin': resin_str,
-        'color': cmf.color_desc or (cmf.in_code_no.color or ""),
+        'color': cmf.color_desc.upper() or (cmf.in_code_no.color or ""),
         'product_code': generated_code if generated_code else (cmf.in_code_no.code if cmf.in_code_no else ""),
         'dosage': formula_info.dosage if formula_info else "",
         'lot_no': generated_lot,
-        'application': app_str,
+        'application': app_str.upper() if app_str else "",
         'finished_product': formula_info.finished_product if formula_info else "",
         'colorant_type': colorant_type,
     }
