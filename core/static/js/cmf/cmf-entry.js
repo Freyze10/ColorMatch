@@ -309,8 +309,16 @@ document.addEventListener('DOMContentLoaded', function() {
 
             // Check for exact duplicate
             if (data.exists_exact) {
-                errorMessage = `Error: CMF No. ${query} already exists!`;
-                hasError = true;
+                saveBtn.disabled = true;
+                Preline.alert(
+                    'Duplicate CMF Detected',
+                    `CMF No. ${query} already exists! Please enter a different number.`,
+                    'danger',
+                    () => {
+                        setTimeout(() => cmfInput.focus(), 10);
+                    }
+                );
+                return; // 🛑 MUST ADD THIS: Stop execution so saveBtn stays disabled!
             } 
             // Check for sequential gap (e.g., missing 'b' when typing 'c')
             else if (data.sequential_error) {
@@ -322,9 +330,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 // 1. Show Toast
                 if (typeof Preline.toast === 'function') {
                     Preline.toast(errorMessage, 'error');
-                } else {
-                    alert(errorMessage);
-                }
+                } 
 
                 // 2. Visual Feedback
                 saveBtn.disabled = true;
