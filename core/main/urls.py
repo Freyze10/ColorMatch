@@ -50,6 +50,7 @@ urlpatterns = [
     path('cmf/records/export/', views.cmf_records_export_preview, name='cmf_records_export_preview'),
     # ajax
     path('cmf/rs-records/data/', rs_records_services.rs_records_data, name='rs_records_data'),
+    path('cmf/rs/get-final-code/', rs_records_services.get_cmf_final_code, name='get_cmf_final_code'),
     path('cmf/records/data/', cmf_records_services.cmf_records_data, name='cmf_records_data'),
     path('cmf/mb-dc-formula/', mb_dc_formulation_services.get_formulation_details, name='mb_dc_lookup_details'),
     path('cmf/formula-records/data/', cmf_records_services.formula_records_data, name='formula_records_data'),

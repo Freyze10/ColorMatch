@@ -90,3 +90,19 @@ def rs_records_data(request):
         "recordsFiltered": filtered_count,
         "data": data
     })
+
+
+def get_cmf_final_code(request):
+    cm_no = request.GET.get('cm_no', '').strip()
+    product_code = ""
+
+    if cm_no:
+        # Get the code directly from tbl_cmf_pending_completed
+        pending_record = tbl_cmf_pending_completed.objects.filter(
+            cm_no__cm_no=cm_no
+        ).select_related('code').first()
+
+        if pending_record and pending_record.code:
+            product_code = pending_record.code.product_code
+
+    return JsonResponse({'success': True, 'product_code': product_code})
