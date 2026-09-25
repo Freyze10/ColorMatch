@@ -22,7 +22,7 @@ RS Entry
                             <!-- RS Number -->
                             <div class="col-md-6">
                                 <label class="fw-bold extra-small required-label">RS Number:</label>
-                                <input type="text" name="rs_no" value="{{ form_data.rs_no|default:'' }}" class="form-control form-control-sm uniform-input" {% if is_edit %}readonly{% endif %} required>
+                                <input type="text" name="rs_no" value="{{ form_data.rs_no|default:'' }}" class="form-control form-control-sm uniform-input" {% if is_edit %}readonly{% endif %} autocomplete="off" required>
                             </div>
 
                             <!-- CMF Number (FK to tbl_cmf) -->
@@ -74,7 +74,7 @@ RS Entry
                         <div class="row g-2 mb-2">
                             <div class="col-md-12">
                                 <label class="fw-bold extra-small required-label">Quantity Required (KG):</label>
-                                <input type="number" name="quantity_kg" step="0.01" value="{{ form_data.quantity_kg|default:'' }}" class="form-control form-control-sm uniform-input" placeholder="0.00" required>
+                                <input type="number" name="quantity_kg" step="0.01" value="{{ form_data.quantity_kg|default:'' }}" class="form-control form-control-sm uniform-input" placeholder="0.00" autocomplete="off" required>
                             </div>
                         </div>
                     </div>
@@ -92,14 +92,14 @@ RS Entry
                             <div class="col-6">
                                 <label class="fw-bold extra-small required-label">Date Created:</label>
                                 <div class="input-group input-group-sm flatpickr-container" data-wrap="true">
-                                    <input type="text" name="date_created" value="{{ form_data.date_created|default:'' }}" class="form-control uniform-input date-picker-single" data-input required>
+                                    <input type="text" name="date_created" value="{{ form_data.date_created|default:'' }}" class="form-control uniform-input date-picker-single" data-input autocomplete="off" required>
                                     <span class="input-group-text uniform-input border-start-0" data-toggle><i class="bi bi-calendar3"></i></span>
                                 </div>
                             </div>
                             <div class="col-6">
                                 <label class="fw-bold extra-small required-label">Required Date:</label>
                                 <div class="input-group input-group-sm flatpickr-container" data-wrap="true">
-                                    <input type="text" name="required_date" value="{{ form_data.required_date|default:'' }}" class="form-control uniform-input date-picker-asap" data-input required>
+                                    <input type="text" name="required_date" value="{{ form_data.required_date|default:'' }}" class="form-control uniform-input date-picker-asap" data-input autocomplete="off" required>
                                     <span class="input-group-text uniform-input border-start-0" data-toggle><i class="bi bi-calendar3"></i></span>
                                 </div>
                             </div>
@@ -110,14 +110,14 @@ RS Entry
                             <div class="col-6">
                                 <label class="fw-bold extra-small required-label">Date Received:</label>
                                 <div class="input-group input-group-sm flatpickr-container" data-wrap="true">
-                                    <input type="text" name="date_received" value="{{ form_data.date_received|default:'' }}" class="form-control uniform-input date-picker-multiple" data-input required>
+                                    <input type="text" name="date_received" value="{{ form_data.date_received|default:'' }}" class="form-control uniform-input date-picker-multiple" data-input autocomplete="off" required>
                                     <span class="input-group-text uniform-input border-start-0" data-toggle><i class="bi bi-calendar3"></i></span>
                                 </div>
                             </div>
                             <div class="col-6">
                                 <label class="fw-bold extra-small required-label">Due Date:</label>
                                 <div class="input-group input-group-sm flatpickr-container" data-wrap="true">
-                                    <input type="text" name="due_date" value="{{ form_data.due_date|default:'' }}" class="form-control uniform-input date-picker-single" data-input required>
+                                    <input type="text" name="due_date" value="{{ form_data.due_date|default:'' }}" class="form-control uniform-input date-picker-single" data-input autocomplete="off" required>
                                     <span class="input-group-text uniform-input border-start-0" data-toggle><i class="bi bi-calendar3"></i></span>
                                 </div>
                             </div>

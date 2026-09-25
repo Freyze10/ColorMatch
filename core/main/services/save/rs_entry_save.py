@@ -243,37 +243,37 @@ def update_rs_complete_entry(request, original_rs_id):
     return rs_instance
 
 def build_form_data(rs_instance):
-    """Prepares dictionary for template context when loading an existing record."""
-    pending = tbl_cmf_pending_completed.objects.filter(rs_no=rs_instance).select_related('code').first()
-    color_req = tbl_cmf_color_req.objects.filter(rs_no=rs_instance).first()
     dates = tbl_cmf_dates.objects.filter(rs_no=rs_instance).first()
-    
-    STANDARD_COLOR_REQS = {'transparent', 'opaque', 'translucent', 'metallic', 'fluorescent', 'pearlescent'}
-    color_req_name = color_req.name if color_req else ''
-    
-    if color_req_name and color_req_name.lower() not in STANDARD_COLOR_REQS:
-        color_req_value, color_req_other = 'other', color_req_name
-    else:
-        color_req_value, color_req_other = color_req_name.lower() if color_req_name else '', ''
+
+    # Look up Product Code
+    pending = tbl_cmf_pending_completed.objects.filter(rs_no=rs_instance).select_related('code').first()
+    if not (pending and pending.code) and rs_instance.cm_no:
+        pending = tbl_cmf_pending_completed.objects.filter(cm_no=rs_instance.cm_no).select_related('code').first()
+    product_code = pending.code.product_code if (pending and pending.code) else ''
+
+    # --- GET FULL NAME INSTEAD OF ID ---
+    approved_by_name = ""
+    if rs_instance.approved_by:
+        full_name = f"{rs_instance.approved_by.first_name} {rs_instance.approved_by.last_name}".strip()
+        approved_by_name = full_name if full_name else rs_instance.approved_by.username
 
     return {
         'original_rs_id': rs_instance.id,
-        'rs_no': rs_instance.rs_no,
-        'customer': rs_instance.customer,
+        'rs_no': rs_instance.rs_no or '',
+        'cm_no': rs_instance.cm_no.cm_no if rs_instance.cm_no else '',
+        'product_code': product_code,
+        'customer': rs_instance.customer or '',
         'salesman': rs_instance.sm_no.name if rs_instance.sm_no else '',
-        'primary_color': rs_instance.primary_color,
-        'quantity_kg': rs_instance.quantity_required,
-        'finished_product': rs_instance.finished_product,
-        'color_description': rs_instance.color_desc,
-        'date_created': dates.form_made.strftime('%m/%d/%Y') if dates and dates.form_made else '',
+        'quantity_kg': rs_instance.quantity_required or '',
+
+        # Full Name for display:
+        'approved_by': approved_by_name,
+        # Keep ID available if you still have an edit dropdown:
+        'approved_by_id': rs_instance.approved_by_id or '',
+
+        # Dates
+        'date_created': dates.form_made.strftime('%m/%d/%Y') if (dates and dates.form_made) else '',
         'required_date': dates.date_required if dates else '',
         'date_received': dates.date_received_lab if dates else '',
-        'due_date': dates.due_date_lab.strftime('%m/%d/%Y') if dates and dates.due_date_lab else '',
-        'product_code': pending.code.product_code if pending and pending.code else '',
-        'colorantType': rs_instance.colorant_type if rs_instance.colorant_type in ('MB', 'DC') else 'Other',
-        'colorantTypeOther': rs_instance.colorant_type if rs_instance.colorant_type not in ('MB', 'DC', None, '') else '',
-        'colorReq': color_req_value,
-        'colorReq_other': color_req_other,
-        'resin': [str(x) for x in tbl_resins_selected.objects.filter(rs_no=rs_instance).values_list('resin_no__resin_no', flat=True)],
-        'process': list(tbl_cmf_process02.objects.filter(rs_no=rs_instance).values_list('process_no__name', flat=True)),
+        'due_date': dates.due_date_lab.strftime('%m/%d/%Y') if (dates and dates.due_date_lab) else '',
     }
