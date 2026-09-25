@@ -71,6 +71,53 @@ document.addEventListener('DOMContentLoaded', function () {
     // Initial check on page load (in case they are already checked from the database)
     updateFieldsVisibility();
 
+    // --- AUTO-SYNC DATE SUBMITTED TO AR DATE ---
+    const dateSubmittedInput = document.querySelector('input[name="date_submitted"]');
+    const arDateInput = document.querySelector('input[name="ar_date"]');
+
+    if (dateSubmittedInput && arDateInput) {
+        // If AR Date already has a distinct value loaded from DB, treat as manually edited
+        let isArDateUserEdited = Boolean(
+            arDateInput.value.trim() !== '' &&
+            arDateInput.value.trim() !== dateSubmittedInput.value.trim()
+        );
+
+        // Helper to safely set date on Flatpickr or native input
+        const setArDateValue = (val) => {
+            const fp = arDateInput._flatpickr || arDateInput.closest('.flatpickr-container')?._flatpickr;
+            if (fp) {
+                fp.setDate(val, false); // false prevents triggering internal change loops
+            } else {
+                arDateInput.value = val;
+            }
+        };
+
+        // 1. Sync from Date Submitted -> AR Date while not manually modified
+        const handleDateSubmittedChange = function() {
+            if (!isArDateUserEdited) {
+                setArDateValue(this.value);
+            }
+        };
+
+        dateSubmittedInput.addEventListener('change', handleDateSubmittedChange);
+        dateSubmittedInput.addEventListener('input', handleDateSubmittedChange);
+
+        // 2. Track when user manually modifies AR Date
+        const handleArDateUserChange = function() {
+            const val = this.value.trim();
+            if (val === '') {
+                // If cleared, resume syncing
+                isArDateUserEdited = false;
+            } else if (val !== dateSubmittedInput.value.trim()) {
+                // User set a custom different date: stop syncing
+                isArDateUserEdited = true;
+            }
+        };
+
+        arDateInput.addEventListener('change', handleArDateUserChange);
+        arDateInput.addEventListener('input', handleArDateUserChange);
+    }
+
     const saveBtn = document.querySelector('.btn-update');
     const entryForm = saveBtn ? saveBtn.closest('form') : null;
     if (saveBtn && entryForm) {
