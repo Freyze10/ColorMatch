@@ -256,7 +256,9 @@ $(document).ready(function() {
         if (!selectionMode) return;
         const visibleKeys = table.rows({ page: 'current' }).data().toArray().map(r => `${r.type}:${r.id}`);
         const allChecked = visibleKeys.length > 0 && visibleKeys.every(k => selectedIds.has(k));
-        $('#selectAllRows').prop('checked', allChecked);
+        
+        // Target all instances in case scrollY duplicated the header
+        $('input#selectAllRows').prop('checked', allChecked);
     }
 
     $('#btnToggleSelection').on('click', function() {
@@ -272,10 +274,16 @@ $(document).ready(function() {
         }
     });
 
-    $('#selectAllRows').on('change', function() {
+    $(document).on('change', '#selectAllRows', function(e) {
+        e.stopPropagation();
         const isChecked = $(this).is(':checked');
-        table.rows({ page: 'current' }).every(function() {
-            const row = this.data();
+
+        // Keep all duplicate header checkboxes visually synchronized
+        $('input#selectAllRows').prop('checked', isChecked);
+
+        // Add or remove all records on the current page
+        const pageData = table.rows({ page: 'current' }).data().toArray();
+        pageData.forEach(row => {
             const key = `${row.type}:${row.id}`;
             if (isChecked) {
                 selectedIds.add(key);
@@ -283,8 +291,12 @@ $(document).ready(function() {
                 selectedIds.delete(key);
             }
         });
-        $('#formulaRecordsTable tbody .row-checkbox').prop('checked', isChecked);
-        $('#formulaRecordsTable tbody tr').toggleClass('table-selected', isChecked);
+
+        // Visually check/uncheck row checkboxes and highlight rows
+        const tableBody = $('#formulaRecordsTable tbody');
+        tableBody.find('.row-checkbox').prop('checked', isChecked);
+        tableBody.find('tr').toggleClass('table-selected', isChecked);
+
         updateSelectionInfo();
     });
 
