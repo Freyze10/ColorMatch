@@ -47,6 +47,7 @@ urlpatterns = [
     path('cmf/records/export/', views.cmf_records_export_preview, name='cmf_records_export_preview'),
     # ajax
     path('cmf/mb-dc-formula/', mb_dc_formulation_services.get_formulation_details, name='mb_dc_lookup_details'),
+    path('cmf/mb-dc-formula/check-lot-number/', mb_dc_formulation_services.check_lot_number, name='check_lot_number'),
     path('cmf/formula-records/data/', cmf_records_services.formula_records_data, name='formula_records_data'),
     path('cmf/formula-records/price-first/', formula_price_first.get_price_first_data, name='get_price_first_data'),
     path('cmf/formula-records/price-first/download/', formula_price_first.download_price_first_excel, name='download_price_first_excel'),

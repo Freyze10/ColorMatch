@@ -133,3 +133,18 @@ def get_formulation_details(request):
         'colorant_type': colorant_type,
     }
     return JsonResponse(data)
+
+
+def check_lot_number(request):
+    lot_no = request.GET.get('lot_no', '').strip()
+    formula_id = request.GET.get('formula_id', '').strip()
+    exists = False
+
+    if lot_no and lot_no.upper() != 'N/A':
+        qs = tbl_mb_extruder_formula.objects.filter(lot_no__iexact=lot_no)
+        # Exclude current formula if editing
+        if formula_id and formula_id.isdigit():
+            qs = qs.exclude(pk=int(formula_id))
+        exists = qs.exists()
+
+    return JsonResponse({'exists': exists})

@@ -191,6 +191,57 @@
         });
     }
 
+    // --- CHECK EXISTING LOT NUMBER ---
+    const lotNumberInput = document.getElementById('id_lot_number');
+
+    async function checkExistingLotNumber() {
+        if (!lotNumberInput) return;
+        const lotNo = lotNumberInput.value.trim();
+        if (!lotNo || lotNo.toUpperCase() === 'N/A') return;
+
+        // Pass formula_id so editing an existing record won't flag its own lot number
+        const formulaId = document.querySelector('input[name="formula_id"]')?.value || '';
+
+        try {
+            let url = `/cmf/mb-dc-formula/check-lot-number/?lot_no=${encodeURIComponent(lotNo)}`;
+            if (formulaId) url += `&formula_id=${encodeURIComponent(formulaId)}`;
+
+            const response = await fetch(url);
+            if (!response.ok) return;
+            const data = await response.json();
+
+            if (data.exists) {
+                if (saveBtn) saveBtn.disabled = true;
+
+                if (typeof Preline !== 'undefined' && typeof Preline.alert === 'function') {
+                    Preline.alert(
+                        'Duplicate Lot Number',
+                        `Lot Number "${lotNo}" already exists! Please use a unique lot number.`,
+                        'danger',
+                        () => { setTimeout(() => lotNumberInput.focus(), 10); }
+                    );
+                } else if (typeof Preline !== 'undefined' && typeof Preline.toast === 'function') {
+                    Preline.toast(`Lot Number "${lotNo}" already exists!`, 'error');
+                    setTimeout(() => lotNumberInput.focus(), 10);
+                }
+            } else {
+                if (saveBtn) saveBtn.disabled = false;
+            }
+        } catch (err) {
+            console.error('Error checking lot number:', err);
+        }
+    }
+
+    if (lotNumberInput) {
+        // Real-time check as the user types (600ms debounce)
+        const handleLotInput = debounce(() => {
+            checkExistingLotNumber();
+        }, 600);
+
+        lotNumberInput.addEventListener('input', handleLotInput);
+        lotNumberInput.addEventListener('blur', checkExistingLotNumber);
+    }
+
     // --- 4. SAVE / NEW / PRINT BUTTONS ---
     const saveBtn = document.querySelector('.btn-save-formula');
     const newBtn = document.querySelector('.btn-new');
