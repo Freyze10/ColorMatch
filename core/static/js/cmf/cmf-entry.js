@@ -269,6 +269,23 @@ document.addEventListener('DOMContentLoaded', function() {
         updateOtherInputState(trigger, input);
     });
 
+    // --- 5.1 REQUIRE AT LEAST ONE CHECKBOX ---
+    function setupRequiredCheckboxGroup(groupName, errorMessage = "Please select at least one option.") {
+        const checkboxes = document.querySelectorAll(`input[type="checkbox"][name="${groupName}"]`);
+        if (checkboxes.length === 0) return;
+
+        const updateGroupValidity = () => {
+            const isAnyChecked = Array.from(checkboxes).some(cb => cb.checked);
+            checkboxes[0].setCustomValidity(isAnyChecked ? '' : errorMessage);
+        };
+
+        checkboxes.forEach(cb => cb.addEventListener('change', updateGroupValidity));
+        updateGroupValidity();
+    }
+
+    setupRequiredCheckboxGroup('process', 'Please select at least one Process.');
+    setupRequiredCheckboxGroup('specification', 'Please select at least one Specification.');
+
     // --- 6. TABLE FILTERING LOGIC (Records View) ---
     function applyFilters() {
         if (!recordsTbody) return; // Only run if on the records page
