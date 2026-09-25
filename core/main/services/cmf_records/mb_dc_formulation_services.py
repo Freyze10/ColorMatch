@@ -123,7 +123,7 @@ def get_formulation_details(request):
     data = {
         'customer': formula_info.customer if formula_info else "",
         'resin': resin_str,
-        'color': cmf.in_code_no.color if cmf.in_code_no else (cmf.color_desc or ""),
+        'color': cmf.color_desc or (cmf.in_code_no.color or ""),
         'product_code': generated_code if generated_code else (cmf.in_code_no.code if cmf.in_code_no else ""),
         'dosage': formula_info.dosage if formula_info else "",
         'lot_no': generated_lot,
