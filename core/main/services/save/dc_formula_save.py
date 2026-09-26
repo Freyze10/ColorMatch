@@ -17,7 +17,6 @@ User = get_user_model()
 def save_dc_complete_formula(request):
     post_data = request.POST
     formula_id = post_data.get('formula_id')
-    record_type = post_data.get('record_type', 'cmf')
 
     def clean_num(val):
         if val is None:
@@ -44,6 +43,7 @@ def save_dc_complete_formula(request):
             'C': 'Spectro C', 'H': 'Spectro H', 'notes': 'Note',
             'code': 'Product Code', 'material_code': 'Material Code',
             'matcher': 'Matcher Account', 'is_final': 'Final Formula',
+            'cm_no': 'CMF No.',
         }
         return mapping.get(field, field.replace('_', ' ').title())
 
@@ -52,7 +52,7 @@ def save_dc_complete_formula(request):
             # 1. Resolve Product Code
             prod_code_str = post_data.get('product_code', '').strip()
             prod_code_obj, _ = tbl_generated_prod_code.objects.get_or_create(product_code=prod_code_str) if prod_code_str else (None, False)
-
+            print(prod_code_str, prod_code_obj)
             # Resolve Personnel (The new Matcher Account)
             matcher_id = post_data.get('matcher_id')
             matcher_obj = User.objects.filter(pk=matcher_id).first() if matcher_id else None
@@ -64,10 +64,19 @@ def save_dc_complete_formula(request):
             mat_code_id = post_data.get('material_code_id')
             mat_code_obj = tbl_coding_materials.objects.filter(pk=mat_code_id).first() if mat_code_id else None
 
-            # 2. Resolve Parent (Strictly CMF / Standalone)
-            record_id = post_data.get('record_id') or post_data.get('cm_no')
-            cmf_obj = tbl_cmf.objects.filter(cm_no=record_id).first() if record_id and record_id != 'N/A' else None
-            cm_display = cmf_obj.cm_no if cmf_obj else (record_id or "N/A")
+            # 2. RESOLVE CMF (Checks 'cmf_number' from HTML select/input, then fallbacks)
+            raw_cm_no = (
+                post_data.get('cmf_number') or 
+                post_data.get('record_id') or 
+                post_data.get('cm_no') or 
+                ''
+            ).strip()
+
+            cmf_obj = None
+            if raw_cm_no and raw_cm_no.upper() != 'N/A':
+                cmf_obj = tbl_cmf.objects.filter(cm_no=raw_cm_no).first()
+
+            cm_display = cmf_obj.cm_no if cmf_obj else (raw_cm_no or "N/A")
 
             # 3. Standardize Date
             raw_date = post_data.get('date_matched')
