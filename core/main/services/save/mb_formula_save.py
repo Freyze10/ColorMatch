@@ -5,7 +5,7 @@ from django.contrib.auth import get_user_model
 from django.db import IntegrityError, transaction
 from main.utils.log_audit_trail import log_audit
 from ...models import (
-    tbl_cmf, tbl_rs, tbl_generated_prod_code,
+    tbl_cmf, tbl_generated_prod_code,
     tbl_mb_extruder_formula, tbl_mb_extruder_formula02
 )
 User = get_user_model()
@@ -55,20 +55,19 @@ def save_mb_complete_formula(request):
             # Also get the full name string to keep 'matched_by' updated
             matched_by_text = matcher_obj.get_full_name() if matcher_obj else ""
 
-            # 2. Resolve Parent
+            # 2. Resolve Parent (Strictly CMF / Standalone 'N/A')
+            raw_cm_no = (
+                post_data.get('cmf_number') or 
+                post_data.get('record_id') or 
+                post_data.get('cm_no') or 
+                ''
+            ).strip()
+
             cmf_obj = None
-            rs_obj = None
-            parent_label = ""
-            if record_type == 'rs':
-                rs_obj = tbl_rs.objects.get(pk=post_data.get('record_id'))
-                parent_label = f"RS: {rs_obj.rs_no}"
-                dosage_val = clean_num(post_data.get('dosage'))
-                if dosage_val is not None:
-                    rs_obj.dosage = dosage_val
-                    rs_obj.save(update_fields=['dosage'])
-            else:
-                cmf_obj = tbl_cmf.objects.get(cm_no=post_data.get('record_id'))
-                parent_label = f"CMF: {cmf_obj.cm_no}"
+            if raw_cm_no and raw_cm_no.upper() != 'N/A':
+                cmf_obj = tbl_cmf.objects.filter(cm_no=raw_cm_no).first()
+
+            parent_label = f"CMF: {cmf_obj.cm_no}" if cmf_obj else f"CMF: {raw_cm_no or 'N/A'}"
 
             # 3. Standardize Date
             raw_date = post_data.get('date')
@@ -78,7 +77,6 @@ def save_mb_complete_formula(request):
             header_params = {
                 'date': formatted_date,
                 'cm_no': cmf_obj,
-                'rs_no': rs_obj,
                 'code': prod_code_obj,
                 'lot_no': post_data.get('lot_number'),
                 'mixing_time': post_data.get('mixing_time'),
