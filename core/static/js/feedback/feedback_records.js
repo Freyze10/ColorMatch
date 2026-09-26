@@ -17,18 +17,22 @@ jQuery(document).ready(function($) {
             {
                 data: "matching_no",
                 className: "ps-3 fw-bold",
-                render: function(data, type, row) {
-                    const colorClass = row.mode === 'rs' ? 'text-primary' : 'text-teal';
-                    return `<span class="${colorClass}">${data}</span>`;
+                render: function(data) {
+                    return `<span class="text-teal">${data}</span>`;
                 }
             },
             { data: "customer" },
-            { data: "prod_code", render: data => `<code>${data}</code>` },
+            { data: "prod_code", render: data => data && data !== '---' ? `<code>${data}</code>` : '---' },
             { data: "color_desc" },
             { data: "finished_prod" },
+            { data: "type" },
             { data: "required_date" },
             { data: "due_date" },
-            { data: "type" },
+            { data: "date_submitted" },
+            { 
+                data: "ar_no",
+                render: data => data === '---' ? '<span class="text-muted">---</span>' : `<strong>${data}</strong>`
+            },
             {
                 data: "status",
                 render: function(data) {
@@ -51,8 +55,7 @@ jQuery(document).ready(function($) {
                 render: function(data) {
                     return `<div class="text-truncate" style="max-width: 150px;" title="${data || ''}">${data || '---'}</div>`;
                 }
-            },
-            { data: "package_details", className: "pe-3" }
+            }
         ],
         dom: 'rtp',
         pageLength: 100,

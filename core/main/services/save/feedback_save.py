@@ -1,9 +1,9 @@
-from datetime import datetime
+from datetime import date, datetime
 
 from django.core.cache import cache
 from django.db import transaction
 from django.http import JsonResponse
-from django.db.models import Q, Value, CharField
+from django.db.models import F, Q, DateField, Value, CharField
 from django.db.models.functions import Coalesce
 from django.db.models.expressions import OuterRef, Subquery, Case, When
 from main.utils.log_audit_trail import log_audit
@@ -175,13 +175,10 @@ def get_feedback_form_data(feedback_no):
     form_data['status_choices'] = get_feedback_status_choices(selected_names)
 
     return form_data
-
-
 def get_feedback_queryset():
     """
-    Base queryset for Feedback Records with every display field annotated
-    at the DB level via subqueries. Pagination/search/sort all run in SQL,
-    so a page load only touches `length` rows instead of the whole table.
+    Base queryset for Feedback Records strictly for CMFs.
+    Pulls technical specs, formulas, schedule dates, and pending/completed details.
     """
     mb_final_code = tbl_mb_extruder_formula.objects.filter(
         cm_no=OuterRef('cm_no'), is_final=True
@@ -192,39 +189,30 @@ def get_feedback_queryset():
     ).values('code__product_code')[:1]
 
     cmf_formula = tbl_cmf_formula.objects.filter(cm_no=OuterRef('cm_no'))
+    cmf_dates = tbl_cmf_dates.objects.filter(cm_no=OuterRef('cm_no'))
+    cmf_pending = tbl_cmf_pending_completed.objects.filter(cm_no=OuterRef('cm_no'))
 
-    cmf_dates_cm = tbl_cmf_dates.objects.filter(cm_no=OuterRef('cm_no'))
-    cmf_dates_rs = tbl_cmf_dates.objects.filter(rs_no=OuterRef('rs_no'))
-
-    rs_pending_code = tbl_cmf_pending_completed.objects.filter(
-        rs_no=OuterRef('rs_no')
-    ).values('code__product_code')[:1]
-
-    return tbl_feedback_details.objects.select_related('cm_no', 'rs_no', 'code').annotate(
-        matching_no=Coalesce('cm_no__cm_no', 'rs_no__rs_no'),
-        customer=Coalesce(Subquery(cmf_formula.values('customer')[:1]), 'rs_no__customer'),
-        color_desc=Coalesce('cm_no__color_desc', 'rs_no__color_desc'),
-        finished_prod=Coalesce(Subquery(cmf_formula.values('finished_product')[:1]), 'rs_no__finished_product'),
-        matching_type=Coalesce('cm_no__matching_type', 'rs_no__matching_type'),
-        required_date=Coalesce(
-            Subquery(cmf_dates_cm.values('date_required')[:1]),
-            Subquery(cmf_dates_rs.values('date_required')[:1]),
-        ),
-        due_date=Coalesce(
-            Subquery(cmf_dates_cm.values('due_date_lab')[:1]),
-            Subquery(cmf_dates_rs.values('due_date_lab')[:1]),
-        ),
-        prod_code=Coalesce(
-            Subquery(mb_final_code),
-            Subquery(dc_final_code),
-            Subquery(rs_pending_code),
-            'code__product_code',
-        ),
-        mode=Case(
-            When(cm_no__isnull=False, then=Value('cmf')),
-            default=Value('rs'),
-            output_field=CharField(),
-        ),
+    return (
+        tbl_feedback_details.objects.filter(cm_no__isnull=False)
+        .select_related('cm_no', 'code')
+        .annotate(
+            matching_no=F('cm_no__cm_no'),
+            customer=Subquery(cmf_formula.values('customer')[:1], output_field=CharField()),
+            color_desc=F('cm_no__color_desc'),
+            finished_prod=Subquery(cmf_formula.values('finished_product')[:1], output_field=CharField()),
+            matching_type=F('cm_no__matching_type'),
+            required_date=Subquery(cmf_dates.values('date_required')[:1], output_field=CharField()),
+            due_date=Subquery(cmf_dates.values('due_date_lab')[:1], output_field=DateField()),
+            date_submitted=Subquery(cmf_pending.values('date_submitted')[:1], output_field=DateField()),
+            ar_no=Subquery(cmf_pending.values('ar_no')[:1], output_field=CharField()),
+            prod_code=Coalesce(
+                Subquery(mb_final_code, output_field=CharField()),
+                Subquery(dc_final_code, output_field=CharField()),
+                'code__product_code',
+                output_field=CharField(),
+            ),
+            mode=Value('cmf', output_field=CharField()),
+        )
     )
 
 COLUMN_FIELD_MAP = {
@@ -234,24 +222,35 @@ COLUMN_FIELD_MAP = {
     'Color Description': 'color_desc',
     'Finished Product': 'finished_prod',
     'Type': 'matching_type',
+    'AR No.': 'ar_no',
     'Status': 'status',
 }
 
-
-# Index position matches the `columns` array in feedback_records.js (0-based)
+# 0-based indices strictly matching the new 12-column table order
 ORDER_COLUMN_MAP = {
     '0': 'matching_no',
     '1': 'customer',
     '2': 'prod_code',
     '3': 'color_desc',
     '4': 'finished_prod',
-    '5': 'required_date',
-    '6': 'due_date',
-    '7': 'matching_type',
-    '8': 'status',
-    '9': 'comment',
-    '10': 'storage_details',
+    '5': 'matching_type',
+    '6': 'required_date',
+    '7': 'due_date',
+    '8': 'date_submitted',
+    '9': 'ar_no',
+    '10': 'status',
+    '11': 'comment',
 }
+
+def format_date_safe(val):
+    if not val:
+        return '---'
+    if isinstance(val, (datetime, date)):
+        return val.strftime('%m/%d/%Y')
+    try:
+        return datetime.strptime(str(val).split('T')[0], '%Y-%m-%d').strftime('%m/%d/%Y')
+    except Exception:
+        return str(val)
 
 def get_feedback_records_data(request):
     """DataTables server-side endpoint for the Feedback Records table."""
@@ -276,9 +275,9 @@ def get_feedback_records_data(request):
                 Q(color_desc__icontains=search_value) |
                 Q(finished_prod__icontains=search_value) |
                 Q(matching_type__icontains=search_value) |
+                Q(ar_no__icontains=search_value) |
                 Q(status__icontains=search_value) |
-                Q(comment__icontains=search_value) |
-                Q(storage_details__icontains=search_value)
+                Q(comment__icontains=search_value)
             )
 
     filtered_records = queryset.count()
@@ -293,8 +292,8 @@ def get_feedback_records_data(request):
 
     page = queryset[start:start + length].values(
         'feedback_no', 'matching_no', 'customer', 'prod_code', 'color_desc',
-        'finished_prod', 'required_date', 'due_date', 'matching_type',
-        'status', 'comment', 'storage_details', 'mode',
+        'finished_prod', 'matching_type', 'required_date', 'due_date',
+        'date_submitted', 'ar_no', 'status', 'comment', 'mode',
     )
 
     data = [
@@ -305,12 +304,13 @@ def get_feedback_records_data(request):
             'prod_code': row['prod_code'] or '---',
             'color_desc': row['color_desc'] or '---',
             'finished_prod': row['finished_prod'] or '---',
-            'required_date': row['required_date'] or '---',
-            'due_date': row['due_date'].strftime('%m/%d/%Y') if row['due_date'] else '---',
             'type': row['matching_type'] or '---',
-            'status': row['status'],
+            'required_date': row['required_date'] or '---',
+            'due_date': format_date_safe(row['due_date']),
+            'date_submitted': format_date_safe(row['date_submitted']),
+            'ar_no': row['ar_no'] or '---',
+            'status': row['status'] or '---',
             'details': row['comment'] or '---',
-            'package_details': row['storage_details'] or '---',
             'mode': row['mode'],
         }
         for row in page
@@ -322,7 +322,6 @@ def get_feedback_records_data(request):
         "recordsFiltered": filtered_records,
         "data": data,
     })
-
 
 def save_feedback_entry(request, feedback_no):
     """
