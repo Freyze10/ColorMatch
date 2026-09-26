@@ -147,7 +147,7 @@ Pending/Completed Forms
                         </div>
 
                         <!-- Pending Reason -->
-                        <div class="mb-3">
+                        <div class="mb-3" {% if form_data.status == 'Completed' %}d-none{% endif %}" id="pendingReasonGroup">
                             <label class="fw-bold extra-small">Pending Reason:</label>
                             <input type="text" name="pending_reason" value="{{ form_data.pending_reason|default:'' }}" class="form-control form-control-sm uniform-input">
                         </div>

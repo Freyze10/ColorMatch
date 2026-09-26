@@ -102,6 +102,32 @@ document.addEventListener('DOMContentLoaded', function () {
         dateSubmittedInput.addEventListener('change', handleDateSubmittedChange);
         dateSubmittedInput.addEventListener('input', handleDateSubmittedChange);
 
+        function setupPendingReasonToggle() {
+            const statusPending = document.getElementById('status_pending');
+            const statusCompleted = document.getElementById('status_completed');
+            const reasonGroup = document.getElementById('pendingReasonGroup');
+            const reasonInput = document.getElementById('id_pending_reason');
+
+            if (!statusPending || !statusCompleted || !reasonGroup) return;
+
+            function handleStatusChange() {
+                if (statusCompleted.checked) {
+                    reasonGroup.classList.add('d-none');
+                    if (reasonInput) {
+                        reasonInput.value = '';
+                    }
+                } else {
+                    reasonGroup.classList.remove('d-none');
+                }
+            }
+
+            statusPending.addEventListener('change', handleStatusChange);
+            statusCompleted.addEventListener('change', handleStatusChange);
+
+            handleStatusChange();
+        }
+        setupPendingReasonToggle();
+
         // 2. Track when user manually modifies AR Date
         const handleArDateUserChange = function() {
             const val = this.value.trim();
