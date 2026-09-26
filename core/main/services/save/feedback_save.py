@@ -9,7 +9,7 @@ from django.db.models.expressions import OuterRef, Subquery, Case, When
 from main.utils.log_audit_trail import log_audit
 from main.models import (
     tbl_feedback_details, tbl_cmf_pending_completed, tbl_cmf_formula,
-    tbl_cmf_dates, tbl_mb_extruder_formula, tbl_dc_extruder_formula,
+    tbl_cmf_dates, tbl_mb_extruder_formula, tbl_dc_extruder_formula, tbl_submitted_option,
     tbl_submitted_selected,
 )
 
@@ -95,86 +95,106 @@ def _get_selected_option_names(tracking):
 
 def get_feedback_form_data(feedback_no):
     """
-    Fetches a single feedback record with all related CMF/RS context,
-    formatted for the feedback entry form. Returns {} if not found.
+    Fetches a single feedback record strictly for CMF with all related context,
+    submitted options, and tracking details. Returns {} if not found or if not a CMF.
     """
     form_data = {}
-    fb = tbl_feedback_details.objects.select_related('cm_no', 'rs_no').filter(feedback_no=feedback_no).first()
-    if not fb:
+    
+    # Strictly fetch CMF feedback records
+    fb = (
+        tbl_feedback_details.objects
+        .select_related('cm_no', 'cm_no__sm')
+        .filter(feedback_no=feedback_no, cm_no__isnull=False)
+        .first()
+    )
+    if not fb or not fb.cm_no:
         return form_data
 
-    tracking = None
+    cmf = fb.cm_no
 
-    if fb.cm_no:
-        pending_info = tbl_cmf_pending_completed.objects.filter(cm_no=fb.cm_no).select_related('code').first()
-        formula = tbl_cmf_formula.objects.filter(cm_no=fb.cm_no).first()
-        dates = tbl_cmf_dates.objects.filter(cm_no=fb.cm_no).first()
-        pending = tbl_cmf_pending_completed.objects.filter(cm_no=fb.cm_no).first()
-        tracking = pending
+    # 1. Fetch related CMF records
+    tracking = (
+        tbl_cmf_pending_completed.objects
+        .filter(cm_no=cmf)
+        .select_related('code')
+        .first()
+    )
+    formula = tbl_cmf_formula.objects.filter(cm_no=cmf).first()
+    dates = tbl_cmf_dates.objects.filter(cm_no=cmf).first()
 
-        form_data = {
-            'feedback_no': fb.feedback_no,
-            'matching_no': fb.cm_no.cm_no,
-            'customer': formula.customer if formula else '',
-            'date_created': dates.form_made.strftime('%m/%d/%Y') if dates and dates.form_made else '',
-            'required_date': dates.date_required if dates else '',
-            'date_received': dates.date_received_lab if dates else '',
-            'due_date': dates.due_date_lab.strftime('%m/%d/%Y') if dates and dates.due_date_lab else '',
-            'finished_product': formula.finished_product if formula else '',
-            'color_description': fb.cm_no.color_desc or '',
-            'matching_type': fb.cm_no.matching_type or '',
-            'sales_person': fb.cm_no.sm.name if fb.cm_no.sm else '',
-            'current_status': 'Completed' if (pending and pending.is_completed) else 'Pending',
-            'pending_reason': pending.reason if pending else '',
-            'product_code': pending_info.code.product_code if pending_info and pending_info.code else "",
-            'code_description': pending.code_details if pending else '',
-            'date_submitted': pending.date_submitted.strftime('%m/%d/%Y') if pending and pending.date_submitted else '',
-            'ar_number': pending.ar_no if pending else '',
-            'ar_date': pending.ar_date.strftime('%m/%d/%Y') if pending and pending.ar_date else '',
-            'record_type': 'cmf',
-            'feedback_status': fb.status or 'Pending',
-            'date_sample_received': fb.date_sample_received.strftime('%m/%d/%Y') if fb.date_sample_received else '',
-            'comments': fb.comment or '',
-            'storage_details': fb.storage_details or '',
-        }
+    # 2. Resolve Product Code & Lot Number (same hierarchy as cmf_pending_completed)
+    final_formula = tbl_mb_extruder_formula.objects.filter(cm_no=cmf, is_final=True).select_related('code').first()
+    if not final_formula:
+        final_formula = tbl_dc_extruder_formula.objects.filter(cm_no=cmf, is_final=True).select_related('code').first()
 
-    elif fb.rs_no:
-        pending_info = tbl_cmf_pending_completed.objects.filter(rs_no=fb.rs_no).select_related('code').first()
-        pending = tbl_cmf_pending_completed.objects.filter(rs_no=fb.rs_no).first()
-        dates = tbl_cmf_dates.objects.filter(rs_no=fb.rs_no).first()
-        tracking = pending
+    final_prod_code = (
+        final_formula.code.product_code if final_formula and final_formula.code else
+        (tracking.code.product_code if tracking and tracking.code else "")
+    )
 
-        form_data = {
-            'feedback_no': fb.feedback_no,
-            'matching_no': fb.rs_no.rs_no,
-            'customer': fb.rs_no.customer or '',
-            'date_created': dates.form_made.strftime('%m/%d/%Y') if dates and dates.form_made else '',
-            'required_date': dates.date_required if dates else '',
-            'date_received': dates.date_received_lab if dates else '',
-            'due_date': dates.due_date_lab.strftime('%m/%d/%Y') if dates and dates.due_date_lab else '',
-            'finished_product': fb.rs_no.finished_product or '',
-            'color_description': fb.rs_no.color_desc or '',
-            'matching_type': fb.rs_no.matching_type or '',
-            'sales_person': fb.rs_no.sm_no.name if fb.rs_no.sm_no else '',
-            'current_status': 'Completed' if (pending and pending.is_completed) else 'Pending',
-            'pending_reason': pending.reason if pending else '',
-            'product_code': pending_info.code.product_code if pending_info and pending_info.code else "",
-            'code_description': pending.code_details if pending else '',
-            'date_submitted': pending.date_submitted.strftime('%m/%d/%Y') if pending and pending.date_submitted else '',
-            'ar_number': pending.ar_no if pending else '',
-            'ar_date': pending.ar_date.strftime('%m/%d/%Y') if pending and pending.ar_date else '',
-            'record_type': 'rs',
-            'feedback_status': fb.status or 'Pending',
-            'date_sample_received': fb.date_sample_received.strftime('%m/%d/%Y') if fb.date_sample_received else '',
-            'comments': fb.comment or '',
-            'storage_details': fb.storage_details or '',
-        }
+    selected_lot = (
+        tracking.lot_no if tracking and tracking.lot_no else
+        (final_formula.lot_no if final_formula and final_formula.lot_no else "N/A")
+    )
 
-    # --- Compute the allowed status choices for this record ---
-    selected_names = _get_selected_option_names(tracking)
+    # 3. Retrieve Submitted Options (using tbl_submitted_option and tbl_submitted_selected)
+    all_options = list(tbl_submitted_option.objects.all())
+
+    selected_option_ids = list(
+        tbl_submitted_selected.objects.filter(completed_id=tracking).values_list('option_id', flat=True)
+    ) if tracking else []
+
+    selected_names = list(
+        tbl_submitted_selected.objects.filter(completed_id=tracking).values_list('option_id__name', flat=True)
+    ) if tracking else []
+
+    # 4. Build complete form_data
+    form_data = {
+        'feedback_no': fb.feedback_no,
+        'matching_no': cmf.cm_no,
+        'customer': formula.customer if formula else '',
+        'date_created': dates.form_made.strftime('%m/%d/%Y') if dates and dates.form_made else '',
+        'required_date': dates.date_required if dates else '',
+        'date_received': dates.date_received_lab if dates else '',
+        'due_date': dates.due_date_lab.strftime('%m/%d/%Y') if dates and dates.due_date_lab else '',
+        'finished_product': formula.finished_product if formula else '',
+        'color_description': cmf.color_desc or '',
+        'matching_type': cmf.matching_type or '',
+        'sales_person': cmf.sm.name if cmf.sm else '',
+        'product_code': final_prod_code,
+
+        # Right Column tracking & feedback details
+        'current_status': 'Completed' if (tracking and tracking.is_completed) else 'Pending',
+        'pending_reason': tracking.reason if tracking else '',
+        'code_description': tracking.code_details if tracking else (cmf.color_desc or ''),
+        'lot_no': selected_lot,
+        'quantity_kg': fb.quantity_given if fb.quantity_given is not None else '',
+        'set_pc': fb.pieces if fb.pieces is not None else '',
+        'date_submitted': tracking.date_submitted.strftime('%m/%d/%Y') if tracking and tracking.date_submitted else '',
+        'ar_number': tracking.ar_no if tracking else '',
+        'ar_date': tracking.ar_date.strftime('%m/%d/%Y') if tracking and tracking.ar_date else '',
+
+        # Submitted options context for checkboxes & conditional visibility
+        'submitted_options': all_options,
+        'selected_option_ids': selected_option_ids,
+        'has_sample': any('sample' in n.lower() for n in selected_names),
+        'has_chips': any('chip' in n.lower() for n in selected_names),
+        'has_price': any('price' in n.lower() for n in selected_names),
+        'submitted_str': ", ".join(selected_names),
+
+        # Feedback specific editable fields
+        'record_type': 'cmf',
+        'feedback_status': fb.status or 'Pending',
+        'date_sample_received': fb.date_sample_received.strftime('%m/%d/%Y') if fb.date_sample_received else '',
+        'comments': fb.comment or '',
+        'storage_details': fb.storage_details or '',
+    }
+
+    # 5. Compute the allowed status choices for this record
     form_data['status_choices'] = get_feedback_status_choices(selected_names)
 
     return form_data
+    
 def get_feedback_queryset():
     """
     Base queryset for Feedback Records strictly for CMFs.
