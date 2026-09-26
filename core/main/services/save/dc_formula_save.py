@@ -64,21 +64,10 @@ def save_dc_complete_formula(request):
             mat_code_id = post_data.get('material_code_id')
             mat_code_obj = tbl_coding_materials.objects.filter(pk=mat_code_id).first() if mat_code_id else None
 
-            # 2. Resolve Parent
-            cmf_obj = None
-            rs_obj = None
-            cm_display = ""
-
-            if record_type == 'rs':
-                rs_obj = tbl_rs.objects.get(pk=post_data.get('record_id'))
-                cm_display = rs_obj.rs_no
-                dosage_val = clean_num(post_data.get('dosage'))
-                if dosage_val is not None:
-                    rs_obj.dosage = dosage_val
-                    rs_obj.save(update_fields=['dosage'])
-            else:
-                cmf_obj = tbl_cmf.objects.get(cm_no=post_data.get('record_id'))
-                cm_display = cmf_obj.cm_no
+            # 2. Resolve Parent (Strictly CMF / Standalone)
+            record_id = post_data.get('record_id') or post_data.get('cm_no')
+            cmf_obj = tbl_cmf.objects.filter(cm_no=record_id).first() if record_id and record_id != 'N/A' else None
+            cm_display = cmf_obj.cm_no if cmf_obj else (record_id or "N/A")
 
             # 3. Standardize Date
             raw_date = post_data.get('date_matched')
@@ -88,7 +77,6 @@ def save_dc_complete_formula(request):
             header_params = {
                 'date': formatted_date,
                 'cm_no': cmf_obj,
-                'rs_no': rs_obj,
                 'code': prod_code_obj,
                 'material_code': mat_code_obj,
                 'sample_size': post_data.get('sample_size'),
