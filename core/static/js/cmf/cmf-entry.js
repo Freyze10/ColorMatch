@@ -146,6 +146,20 @@ document.addEventListener('DOMContentLoaded', function() {
     if (saveBtn && entryForm) {
     saveBtn.addEventListener('click', function() {
         if (entryForm.reportValidity()) {
+
+            // 🛑 Final guard before confirm modal:
+                const cmfVal = cmfInput ? cmfInput.value.trim() : '';
+                const formatCheck = checkCmfFormat(cmfVal);
+                if (!formatCheck.valid) {
+                    if (typeof Preline.toast === 'function') {
+                        Preline.toast(formatCheck.message, 'error');
+                    } else {
+                        alert(formatCheck.message);
+                    }
+                    if (cmfInput) cmfInput.focus();
+                    return;
+                }
+
             // Combine Qty Resin for Test
             const numInput = document.getElementById('id_qty_resin_num');
             const unitSelect = document.getElementById('id_qty_resin_unit');
@@ -313,14 +327,59 @@ document.addEventListener('DOMContentLoaded', function() {
     // Initial run
     applyFilters();
 
+    // --- CMF CAPITAL AT START & SMALL AT END VALIDATION ---
+    function checkCmfFormat(val) {
+        if (!val || val.length < 2) {
+            return { valid: false, message: 'CMF No. must be at least 2 characters long.' };
+        }
+        const startsWithCapital = /^[A-Z]/.test(val[0]);
+        const endsWithSmall = /[a-z]/.test(val[val.length - 1]);
+
+        if (!startsWithCapital && !endsWithSmall) {
+            return { 
+                valid: false, 
+                message: 'CMF No. must start with a CAPITAL letter and end with a small letter (e.g. A1234a).' 
+            };
+        }
+        if (!startsWithCapital) {
+            return { 
+                valid: false, 
+                message: 'CMF No. must start with a CAPITAL letter at index 0 (e.g. A...).' 
+            };
+        }
+        if (!endsWithSmall) {
+            return { 
+                valid: false, 
+                message: 'CMF No. must end with a small letter at the last index (e.g. ...a).' 
+            };
+        }
+        return { valid: true, message: '' };
+    }
+
     // The function that checks the database
     async function validateCmf(isBlur = false) {
         const query = cmfInput.value.trim();
         if (query.length < 3) return;
+
+        // 🛑 Check index 0 and last index for letters
+        const formatCheck = checkCmfFormat(query);
+        if (!formatCheck.valid) {
+            if (saveBtn) saveBtn.disabled = true;
+            if (isBlur) {
+                if (typeof Preline.toast === 'function') {
+                    Preline.toast(formatCheck.message, 'error');
+                } else {
+                    alert(formatCheck.message);
+                }
+                setTimeout(() => cmfInput.focus(), 10);
+            }
+            return; // Stop here, do not call backend
+        }
+
         const originalNo = originalCmfInput ? originalCmfInput.value.trim() : '';
         const isNew = isNewInput ? isNewInput.value === '1' : !originalNo;
         if (!isNew && query.toLowerCase() === originalNo.toLowerCase()) {
-            if (saveBtn) saveBtn.disabled = false;
+            if (saveBtn) saveBtn.disabled = false
             return;
         }
         try {
@@ -388,7 +447,21 @@ document.addEventListener('DOMContentLoaded', function() {
         const query = cmfInput.value.trim();
         if (query.length < 3) return;
 
-        if (query.length < 3) return;
+        // 🛑 Check index 0 and last index for letters
+        const formatCheck = checkCmfFormat(query);
+        if (!formatCheck.valid) {
+            if (saveBtn) saveBtn.disabled = true;
+            if (isBlur) {
+                if (typeof Preline.toast === 'function') {
+                    Preline.toast(formatCheck.message, 'error');
+                } else {
+                    alert(formatCheck.message);
+                }
+                setTimeout(() => cmfInput.focus(), 10);
+            }
+            return; // Stop here, do not call backend
+        }
+
         const originalNo = originalCmfInput ? originalCmfInput.value.trim() : '';
         const isNew = isNewInput ? isNewInput.value === '1' : !originalNo;
         if (!isNew && query.toLowerCase() === originalNo.toLowerCase()) {
