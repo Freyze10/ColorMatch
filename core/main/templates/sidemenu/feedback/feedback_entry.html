@@ -3,17 +3,28 @@
         {% csrf_token %}
         <input type="hidden" name="feedback_no" value="{{ form_data.feedback_no|default:'' }}">
         <input type="hidden" name="record_type" value="{{ form_data.record_type|default:'cmf' }}">
+        
         <div class="row g-4">
-            <!-- LEFT COLUMN -->
+            <!-- ==================== LEFT COLUMN ==================== -->
             <div class="col-lg-6">
+                <!-- Matching No. (Bold) -->
                 <div class="row g-2 align-items-center mb-3">
                     <div class="col-md-3"><label class="extra-small fw-bold">Matching No:</label></div>
-                    <div class="col-md-9"><input type="text" id="id_f_matching_no" class="form-control form-control-sm uniform-input readonly-gray" value="{{ form_data.matching_no|default:'' }}" readonly required></div>
+                    <div class="col-md-9">
+                        <input type="text" id="id_f_matching_no" 
+                               class="form-control form-control-sm uniform-input readonly-gray fw-bold" 
+                               value="{{ form_data.matching_no|default:'' }}" readonly required>
+                    </div>
                 </div>
 
+                <!-- Customer -->
                 <div class="row g-2 align-items-center mb-3">
                     <div class="col-md-3"><label class="extra-small fw-bold">Customer:</label></div>
-                    <div class="col-md-9"><input type="text" id="id_f_customer" class="form-control form-control-sm uniform-input readonly-gray" value="{{ form_data.customer|default:'' }}" readonly required></div>
+                    <div class="col-md-9">
+                        <input type="text" id="id_f_customer" 
+                               class="form-control form-control-sm uniform-input readonly-gray" 
+                               value="{{ form_data.customer|default:'' }}" readonly required>
+                    </div>
                 </div>
 
                 <!-- Date Created & Required Date Row -->
@@ -21,14 +32,18 @@
                     <div class="col-md-3"><label class="extra-small fw-bold">Date Created:</label></div>
                     <div class="col-md-4">
                         <div class="input-group input-group-sm flatpickr-container" data-wrap="true">
-                            <input type="text" id="id_f_date_created" class="form-control uniform-input date-picker-single readonly-gray" placeholder="MM/DD/YYYY" value="{{ form_data.date_created|default:'' }}" data-input readonly required>
+                            <input type="text" id="id_f_date_created" 
+                                   class="form-control uniform-input date-picker-single readonly-gray" 
+                                   placeholder="MM/DD/YYYY" value="{{ form_data.date_created|default:'' }}" data-input readonly required>
                             <span class="input-group-text uniform-input border-start-0" data-toggle><i class="bi bi-calendar3"></i></span>
                         </div>
                     </div>
                     <div class="col-md-1 px-0 text-center"><label class="extra-small">Req:</label></div>
                     <div class="col-md-4">
                         <div class="input-group input-group-sm flatpickr-container" data-wrap="true">
-                            <input type="text" id="id_f_required_date" class="form-control uniform-input date-picker-asap readonly-gray" placeholder="MM/DD/YYYY or ASAP" value="{{ form_data.required_date|default:'' }}" data-input readonly required>
+                            <input type="text" id="id_f_required_date" 
+                                   class="form-control uniform-input date-picker-asap readonly-gray" 
+                                   placeholder="MM/DD/YYYY or ASAP" value="{{ form_data.required_date|default:'' }}" data-input readonly required>
                             <span class="input-group-text uniform-input border-start-0" data-toggle><i class="bi bi-calendar3"></i></span>
                         </div>
                     </div>
@@ -39,40 +54,74 @@
                     <div class="col-md-3"><label class="extra-small fw-bold">Date Received:</label></div>
                     <div class="col-md-4">
                         <div class="input-group input-group-sm flatpickr-container" data-wrap="true">
-                            <input type="text" id="id_f_date_received" class="form-control uniform-input date-picker-multiple readonly-gray" placeholder="MM/DD/YYYY, MM/DD/YYYY" value="{{ form_data.date_received|default:'' }}" data-input readonly required>
+                            <input type="text" id="id_f_date_received" 
+                                   class="form-control uniform-input date-picker-multiple readonly-gray" 
+                                   placeholder="MM/DD/YYYY, MM/DD/YYYY" value="{{ form_data.date_received|default:'' }}" data-input readonly required>
                             <span class="input-group-text uniform-input border-start-0" data-toggle><i class="bi bi-calendar3"></i></span>
                         </div>
                     </div>
                     <div class="col-md-1 px-0 text-center"><label class="extra-small">Due:</label></div>
                     <div class="col-md-4">
                         <div class="input-group input-group-sm flatpickr-container" data-wrap="true">
-                            <input type="text" id="id_f_due_date" class="form-control uniform-input date-picker-single readonly-gray" placeholder="MM/DD/YYYY" value="{{ form_data.due_date|default:'' }}" data-input readonly required>
+                            <input type="text" id="id_f_due_date" 
+                                   class="form-control uniform-input date-picker-single readonly-gray" 
+                                   placeholder="MM/DD/YYYY" value="{{ form_data.due_date|default:'' }}" data-input readonly required>
                             <span class="input-group-text uniform-input border-start-0" data-toggle><i class="bi bi-calendar3"></i></span>
                         </div>
                     </div>
                 </div>
 
+                <!-- Finished Product -->
                 <div class="row g-2 align-items-center mb-3">
                     <div class="col-md-3"><label class="extra-small fw-bold">Finished Product:</label></div>
-                    <div class="col-md-9"><input type="text" id="id_f_finished_product" class="form-control form-control-sm uniform-input readonly-gray" value="{{ form_data.finished_product|default:'' }}" readonly required></div>
+                    <div class="col-md-9">
+                        <input type="text" id="id_f_finished_product" 
+                               class="form-control form-control-sm uniform-input readonly-gray" 
+                               value="{{ form_data.finished_product|default:'' }}" readonly required>
+                    </div>
                 </div>
 
+                <!-- Color Description -->
                 <div class="row g-2 align-items-center mb-3">
                     <div class="col-md-3"><label class="extra-small fw-bold">Color Description:</label></div>
-                    <div class="col-md-9"><input type="text" id="id_f_color_description" class="form-control form-control-sm uniform-input readonly-gray" value="{{ form_data.color_description|default:'' }}" readonly required></div>
+                    <div class="col-md-9">
+                        <input type="text" id="id_f_color_description" 
+                               class="form-control form-control-sm uniform-input readonly-gray" 
+                               value="{{ form_data.color_description|default:'' }}" readonly required>
+                    </div>
                 </div>
 
+                <!-- Matching Type -->
                 <div class="row g-2 align-items-center mb-3">
                     <div class="col-md-3"><label class="extra-small fw-bold">Matching Type:</label></div>
-                    <div class="col-md-9"><input type="text" id="id_f_matching_type" class="form-control form-control-sm uniform-input readonly-gray" value="{{ form_data.matching_type|default:'' }}" readonly required></div>
+                    <div class="col-md-9">
+                        <input type="text" id="id_f_matching_type" 
+                               class="form-control form-control-sm uniform-input readonly-gray" 
+                               value="{{ form_data.matching_type|default:'' }}" readonly required>
+                    </div>
                 </div>
 
+                <!-- Sales Person -->
                 <div class="row g-2 align-items-center mb-3">
                     <div class="col-md-3"><label class="extra-small fw-bold">Sales Person:</label></div>
-                    <div class="col-md-9"><input type="text" id="id_f_sales_person" class="form-control form-control-sm uniform-input readonly-gray" value="{{ form_data.sales_person|default:'' }}" readonly required></div>
+                    <div class="col-md-9">
+                        <input type="text" id="id_f_sales_person" 
+                               class="form-control form-control-sm uniform-input readonly-gray" 
+                               value="{{ form_data.sales_person|default:'' }}" readonly required>
+                    </div>
                 </div>
 
-                <!-- Feedback Specific Section — the ONLY editable fields on this page -->
+                <!-- Product Code (Moved here, styled Danger Bold) -->
+                <div class="row g-2 align-items-center mb-3">
+                    <div class="col-md-3"><label class="extra-small fw-bold">Product Code:</label></div>
+                    <div class="col-md-9">
+                        <input type="text" id="id_f_product_code" 
+                               class="form-control form-control-sm uniform-input readonly-gray fw-bold text-danger" 
+                               value="{{ form_data.product_code|default:'' }}" readonly required>
+                    </div>
+                </div>
+
+                <!-- Feedback Specific Section -->
                 <div class="mt-4 pt-2">
                     <h6 class="feedback-section-title mb-3">Feedback & Monitoring</h6>
 
@@ -92,9 +141,9 @@
                         <div class="col-md-9">
                             <div class="input-group input-group-sm flatpickr-container" data-wrap="true">
                                 <input type="text" name="date_sample_received" id="id_f_date_sample_received" 
-                                    class="form-control uniform-input date-picker-single" 
-                                    placeholder="MM/DD/YYYY (Optional)" data-input
-                                    value="{{ form_data.date_sample_received|default:'' }}">
+                                       class="form-control uniform-input date-picker-single" 
+                                       placeholder="MM/DD/YYYY (Optional)" data-input
+                                       value="{{ form_data.date_sample_received|default:'' }}">
                                 <span class="input-group-text uniform-input border-start-0" data-toggle><i class="bi bi-calendar3"></i></span>
                             </div>
                         </div>
@@ -102,70 +151,156 @@
 
                     <div class="row g-2 align-items-center mb-3">
                         <div class="col-md-3"><label class="extra-small fw-bold">Comments:</label></div>
-                        <div class="col-md-9"><input type="text" name="comments" id="id_f_comments" class="form-control form-control-sm uniform-input" placeholder="Enter feedback observations..." value="{{ form_data.comments|default:'' }}"></div>
+                        <div class="col-md-9">
+                            <input type="text" name="comments" id="id_f_comments" 
+                                   class="form-control form-control-sm uniform-input" 
+                                   placeholder="Enter feedback observations..." 
+                                   value="{{ form_data.comments|default:'' }}">
+                        </div>
                     </div>
 
                     <div class="row g-2 align-items-center mb-3">
                         <div class="col-md-3"><label class="extra-small fw-bold">Storage Details:</label></div>
-                        <div class="col-md-9"><input type="text" name="storage_details" id="id_f_storage_details" class="form-control form-control-sm uniform-input" placeholder="Box #, Plastic Bin location..." value="{{ form_data.storage_details|default:'' }}"></div>
+                        <div class="col-md-9">
+                            <input type="text" name="storage_details" id="id_f_storage_details" 
+                                   class="form-control form-control-sm uniform-input" 
+                                   placeholder="Box #, Plastic Bin location..." 
+                                   value="{{ form_data.storage_details|default:'' }}">
+                        </div>
                     </div>
                 </div>
             </div>
 
-            <!-- RIGHT COLUMN -->
+            <!-- ==================== RIGHT COLUMN ==================== -->
             <div class="col-lg-6">
+                <!-- Current Status -->
                 <div class="row g-2 align-items-center mb-3">
                     <div class="col-md-3"><label class="extra-small fw-bold">Current Status:</label></div>
-                    <div class="col-md-9"><input type="text" id="id_f_current_status" class="form-control form-control-sm uniform-input readonly-gray" value="{{ form_data.current_status|default:'' }}" readonly required></div>
+                    <div class="col-md-9">
+                        <input type="text" id="id_f_current_status" 
+                               class="form-control form-control-sm uniform-input readonly-gray" 
+                               value="{{ form_data.current_status|default:'' }}" readonly required>
+                    </div>
                 </div>
 
-                <div class="row g-2 align-items-center mb-3">
+                <!-- Pending Reason (Removed if Completed) -->
+                {% if form_data.current_status|lower != 'completed' %}
+                <div class="row g-2 align-items-center mb-3" id="pendingReasonRow">
                     <div class="col-md-3"><label class="extra-small fw-bold">Pending Reason:</label></div>
-                    <div class="col-md-9"><input type="text" id="id_f_pending_reason" class="form-control form-control-sm uniform-input readonly-gray" value="{{ form_data.pending_reason|default:'' }}" readonly required></div>
+                    <div class="col-md-9">
+                        <input type="text" id="id_f_pending_reason" 
+                               class="form-control form-control-sm uniform-input readonly-gray" 
+                               value="{{ form_data.pending_reason|default:'' }}" readonly>
+                    </div>
                 </div>
+                {% endif %}
 
-                <div class="row g-2 align-items-center mb-3">
-                    <div class="col-md-3"><label class="extra-small fw-bold">Product Code:</label></div>
-                    <div class="col-md-9"><input type="text" id="id_f_product_code" class="form-control form-control-sm uniform-input readonly-gray" value="{{ form_data.product_code|default:'' }}" readonly required></div>
-                </div>
-
+                <!-- Code Description -->
                 <div class="row g-2 align-items-center mb-3">
                     <div class="col-md-3"><label class="extra-small fw-bold">Code Description:</label></div>
-                    <div class="col-md-9"><input type="text" name="code_description" id="id_f_code_description" class="form-control form-control-sm uniform-input readonly-gray" value="{{ form_data.color_description|default:'' }}" readonly></div>
+                    <div class="col-md-9">
+                        <input type="text" name="code_description" id="id_f_code_description" 
+                               class="form-control form-control-sm uniform-input readonly-gray" 
+                               value="{{ form_data.color_description|default:'' }}" readonly>
+                    </div>
                 </div>
 
+                <!-- Submitted Checkboxes (Sample, Chips, Price - Disabled) -->
                 <div class="row g-2 align-items-center mb-3">
-                    <div class="col-md-3"><label class="extra-small fw-bold">Set-Pc:</label></div>
-                    <div class="col-md-4"><input type="text" id="id_f_set_pc" class="form-control form-control-sm uniform-input readonly-gray" placeholder="Qty" value="{{ form_data.set_pc|default:'' }}" readonly required></div>
-                    <div class="col-md-1 px-0 text-center"><label class="extra-small fw-bold">Quantity:</label></div>
-                    <div class="col-md-4"><input type="text" id="id_f_quantity_kg" class="form-control form-control-sm uniform-input readonly-gray" placeholder="KG" value="{{ form_data.quantity_kg|default:'' }}" readonly required></div>
+                    <div class="col-md-3"><label class="extra-small fw-bold">Submitted:</label></div>
+                    <div class="col-md-9">
+                        <div class="d-flex align-items-center flex-wrap gap-3">
+                            {% if form_data.submitted_options %}
+                                {% for opt in form_data.submitted_options %}
+                                <div class="form-check mb-0">
+                                    <input class="form-check-input visible-check" type="checkbox" name="submitted_options"
+                                        id="submitted_option_{{ opt.option_id }}" value="{{ opt.option_id }}"
+                                        {% if opt.option_id in form_data.selected_option_ids or opt.is_checked %}checked{% endif %} disabled>
+                                    <label class="form-check-label extra-small" for="submitted_option_{{ opt.option_id }}">{{ opt.name }}</label>
+                                </div>
+                                {% endfor %}
+                            {% else %}
+                                <div class="form-check mb-0">
+                                    <input class="form-check-input visible-check" type="checkbox" name="submitted_options" id="f_opt_sample"
+                                        {% if form_data.has_sample or 'sample' in form_data.submitted_str|lower or form_data.quantity_kg %}checked{% endif %} disabled>
+                                    <label class="form-check-label extra-small" for="f_opt_sample">Sample</label>
+                                </div>
+                                <div class="form-check mb-0">
+                                    <input class="form-check-input visible-check" type="checkbox" name="submitted_options" id="f_opt_chips"
+                                        {% if form_data.has_chips or 'chip' in form_data.submitted_str|lower or form_data.set_pc %}checked{% endif %} disabled>
+                                    <label class="form-check-label extra-small" for="f_opt_chips">Chips</label>
+                                </div>
+                                <div class="form-check mb-0">
+                                    <input class="form-check-input visible-check" type="checkbox" name="submitted_options" id="f_opt_price"
+                                        {% if form_data.has_price or 'price' in form_data.submitted_str|lower %}checked{% endif %} disabled>
+                                    <label class="form-check-label extra-small" for="f_opt_price">Price</label>
+                                </div>
+                            {% endif %}
+                        </div>
+                    </div>
                 </div>
 
+                <!-- Set-Pc (Displayed only if Chips is submitted) -->
+                <div class="row g-2 align-items-center mb-3" id="row_set_pc">
+                    <div class="col-md-3"><label class="extra-small fw-bold">Set-Pc:</label></div>
+                    <div class="col-md-9">
+                        <input type="text" id="id_f_set_pc" 
+                               class="form-control form-control-sm uniform-input readonly-gray" 
+                               placeholder="Qty" value="{{ form_data.set_pc|default:'' }}" readonly>
+                    </div>
+                </div>
+
+                <!-- Quantity (KG) (Displayed only if Sample is submitted) -->
+                <div class="row g-2 align-items-center mb-3" id="row_quantity_kg">
+                    <div class="col-md-3"><label class="extra-small fw-bold">Quantity (KG):</label></div>
+                    <div class="col-md-9">
+                        <input type="text" id="id_f_quantity_kg" 
+                               class="form-control form-control-sm uniform-input readonly-gray" 
+                               placeholder="KG" value="{{ form_data.quantity_kg|default:'' }}" readonly>
+                    </div>
+                </div>
+
+                <!-- Date Submitted -->
                 <div class="row g-2 align-items-center mb-3">
                     <div class="col-md-3"><label class="extra-small fw-bold">Date Submitted:</label></div>
                     <div class="col-md-9">
                         <div class="input-group input-group-sm flatpickr-container" data-wrap="true">
-                            <input type="text" id="id_f_date_submitted" class="form-control uniform-input date-picker-single readonly-gray" placeholder="MM/DD/YYYY" value="{{ form_data.date_submitted|default:'' }}" data-input readonly required>
+                            <input type="text" id="id_f_date_submitted" 
+                                   class="form-control uniform-input date-picker-single readonly-gray" 
+                                   placeholder="MM/DD/YYYY" value="{{ form_data.date_submitted|default:'' }}" data-input readonly required>
                             <span class="input-group-text uniform-input border-start-0" data-toggle><i class="bi bi-calendar3"></i></span>
                         </div>
                     </div>
                 </div>
 
+                <!-- Lot No. -->
                 <div class="row g-2 align-items-center mb-3">
                     <div class="col-md-3"><label class="extra-small fw-bold">Lot No.:</label></div>
-                    <div class="col-md-9"><input type="text" id="id_f_lot_no" class="form-control form-control-sm uniform-input readonly-gray" value="{{ form_data.lot_no|default:'N/A' }}" required readonly></div>
+                    <div class="col-md-9">
+                        <input type="text" id="id_f_lot_no" 
+                               class="form-control form-control-sm uniform-input readonly-gray" 
+                               value="{{ form_data.lot_no|default:'N/A' }}" required readonly>
+                    </div>
                 </div>
 
+                <!-- AR Number -->
                 <div class="row g-2 align-items-center mb-3">
                     <div class="col-md-3"><label class="extra-small fw-bold">AR Number:</label></div>
-                    <div class="col-md-9"><input type="text" id="id_f_ar_number" class="form-control form-control-sm uniform-input readonly-gray" value="{{ form_data.ar_number|default:'' }}" readonly required></div>
+                    <div class="col-md-9">
+                        <input type="text" id="id_f_ar_number" 
+                               class="form-control form-control-sm uniform-input readonly-gray" 
+                               value="{{ form_data.ar_number|default:'' }}" readonly required>
+                    </div>
                 </div>
 
+                <!-- AR Date -->
                 <div class="row g-2 align-items-center mb-3">
                     <div class="col-md-3"><label class="extra-small fw-bold">AR Date:</label></div>
                     <div class="col-md-9">
                         <div class="input-group input-group-sm flatpickr-container" data-wrap="true">
-                            <input type="text" id="id_f_ar_date" class="form-control uniform-input date-picker-single readonly-gray" placeholder="MM/DD/YYYY" value="{{ form_data.ar_date|default:'' }}" data-input readonly required>
+                            <input type="text" id="id_f_ar_date" 
+                                   class="form-control uniform-input date-picker-single readonly-gray" 
+                                   placeholder="MM/DD/YYYY" value="{{ form_data.ar_date|default:'' }}" data-input readonly required>
                             <span class="input-group-text uniform-input border-start-0" data-toggle><i class="bi bi-calendar3"></i></span>
                         </div>
                     </div>
@@ -181,3 +316,30 @@
         </div>
     </form>
 </div>
+
+<!-- Dynamic Visibility Script for Set-Pc & Quantity -->
+<script>
+    document.addEventListener('DOMContentLoaded', function () {
+        let isSampleChecked = false;
+        let isChipsChecked = false;
+
+        document.querySelectorAll('input[name="submitted_options"]').forEach(cb => {
+            const label = document.querySelector(`label[for="${cb.id}"]`);
+            if (label) {
+                const text = label.textContent.trim().toLowerCase();
+                if (text.includes('sample') && cb.checked) isSampleChecked = true;
+                if (text.includes('chip') && cb.checked) isChipsChecked = true;
+            }
+        });
+
+        const rowSetPc = document.getElementById('row_set_pc');
+        const rowQuantity = document.getElementById('row_quantity_kg');
+
+        if (rowSetPc) {
+            rowSetPc.style.display = isChipsChecked ? '' : 'none';
+        }
+        if (rowQuantity) {
+            rowQuantity.style.display = isSampleChecked ? '' : 'none';
+        }
+    });
+</script>
