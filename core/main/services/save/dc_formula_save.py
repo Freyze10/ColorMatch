@@ -5,9 +5,9 @@ from django.contrib.auth import get_user_model
 from django.db import IntegrityError, transaction
 from main.utils.log_audit_trail import log_audit
 from ...models import (
-    tbl_cmf, tbl_rs, tbl_generated_prod_code,
+    tbl_cmf, tbl_generated_prod_code,
     tbl_dc_extruder_formula, tbl_dc_extruder_materials, tbl_dc_extruder_version,
-    tbl_coding_materials
+    tbl_coding_materials, tbl_cmf_formula
 )
 
 MAX_MATERIAL_ROWS = 10
@@ -110,7 +110,17 @@ def save_dc_complete_formula(request):
             }
 
             diff_logs = []
-            
+
+            if cmf_obj:
+                cmf_formula = tbl_cmf_formula.objects.filter(cm_no=cmf_obj).order_by('-cmf_formula_no').first()
+                if cmf_formula:
+                    posted_dosage = Decimal(clean_num(post_data.get('dosage')) or 0)
+                    if cmf_formula.dosage != posted_dosage:
+                        diff_logs.append(
+                            f"CMF Dosage ({format_val(cmf_formula.dosage)} -> {format_val(posted_dosage)})"
+                        )
+                        cmf_formula.dosage = posted_dosage
+                        cmf_formula.save(update_fields=['dosage'])
 
             # --- Capture old materials/versions BEFORE any changes, for
             # the audit-log diff comparison further down.

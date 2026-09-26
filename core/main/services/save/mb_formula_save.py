@@ -5,7 +5,7 @@ from django.contrib.auth import get_user_model
 from django.db import IntegrityError, transaction
 from main.utils.log_audit_trail import log_audit
 from ...models import (
-    tbl_cmf, tbl_generated_prod_code,
+    tbl_cmf, tbl_cmf_formula, tbl_generated_prod_code,
     tbl_mb_extruder_formula, tbl_mb_extruder_formula02
 )
 User = get_user_model()
@@ -102,6 +102,20 @@ def save_mb_complete_formula(request):
             diff_logs = []
             ingredients_changed = False
 
+            # --- 4.5 SYNC DOSAGE BACK TO THE CMF-LEVEL FORMULA RECORD ---
+            # touch it (and only log it) if the posted value actually
+            # differs from what's on file.
+            if cmf_obj:
+                cmf_formula = tbl_cmf_formula.objects.filter(cm_no=cmf_obj).order_by('-cmf_formula_no').first()
+                if cmf_formula:
+                    posted_dosage = Decimal(clean_num(post_data.get('dosage')) or 0)
+                    if cmf_formula.dosage != posted_dosage:
+                        diff_logs.append(
+                            f"CMF Dosage ({format_val(cmf_formula.dosage)} -> {format_val(posted_dosage)})"
+                        )
+                        cmf_formula.dosage = posted_dosage
+                        cmf_formula.save(update_fields=['dosage'])
+
             if formula_id:
                 header = tbl_mb_extruder_formula.objects.get(pk=formula_id)
                 
@@ -170,6 +184,8 @@ def save_mb_complete_formula(request):
                         msg += " (Material Breakdown was modified)."
             else:
                 msg = f"New MB Formula (Lot: {lot_display}) for {parent_label}."
+                if diff_logs:
+                    msg += " Changes: " + ", ".join(diff_logs)
 
             log_audit(request, action_type, msg)
             return header
