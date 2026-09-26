@@ -1,9 +1,9 @@
 import re
 from django.http import JsonResponse
-from django.db.models import Max
+from django.db.models import Q, Max
 from main.models import (
     tbl_cmf, tbl_cmf_formula, tbl_coding_materials, tbl_mb_extruder_formula, tbl_resins_selected, 
-    tbl_cmf_process02, tbl_master_formula, tbl_generated_prod_code
+    tbl_cmf_process02, tbl_master_formula, tbl_generated_prod_code, tbl_field_note
 )
 
 def get_formulation_details(request):
@@ -16,6 +16,14 @@ def get_formulation_details(request):
 
     formula_info = tbl_cmf_formula.objects.filter(cm_no=cm_no).first()
     colorant_type = (cmf.colorant_type or "").upper()
+
+    # 1. Fetch Dosage Note (prioritized for new formulas)
+    dosage_note_obj = tbl_field_note.objects.filter(
+        Q(cmf_formula_no=formula_info) | Q(cmf_formula_no__cm_no=cmf),
+        Q(field__iexact='dosage') | Q(field__iexact='dosage_note')
+    ).exclude(note__isnull=True).exclude(note='').order_by('-id').first()
+
+    dosage_val = dosage_note_obj.note.strip() if (dosage_note_obj and dosage_note_obj.note) else (formula_info.dosage if formula_info else "")
     
     # 1. Concatenate Data
     resins_qs = tbl_resins_selected.objects.filter(cm_no=cmf).select_related('resin_no').order_by('pk')
@@ -125,7 +133,7 @@ def get_formulation_details(request):
         'resin': resin_str,
         'color': cmf.color_desc.upper() or (cmf.in_code_no.color or ""),
         'product_code': generated_code if generated_code else (cmf.in_code_no.code if cmf.in_code_no else ""),
-        'dosage': formula_info.dosage if formula_info else "",
+        'dosage': dosage_val,
         'lot_no': "", #generated_lot = next suggestion lot number, temporarily removed when entering past record
         'application': app_str.upper() if app_str else "",
         'finished_product': formula_info.finished_product if formula_info else "",

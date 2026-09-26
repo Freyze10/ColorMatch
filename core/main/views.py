@@ -514,7 +514,8 @@ def cmf_mb_formula(request):
         formula_id = request.GET.get('formula_id')
 
         cmf = None
-
+        formula_info = None
+        
         # 1. Load details from CMF if provided
         if record_no:
             cmf = tbl_cmf.objects.filter(cm_no=record_no).first()
@@ -523,6 +524,13 @@ def cmf_mb_formula(request):
 
                 formula_info = tbl_cmf_formula.objects.filter(cm_no=record_no).first()
 
+                # Fetch dosage note from CMF entry
+                dosage_note_obj = tbl_field_note.objects.filter(
+                    cmf_formula_no=formula_info, 
+                    field='dosage'
+                ).first() if formula_info else None
+                dosage_note_val = dosage_note_obj.note if dosage_note_obj and dosage_note_obj.note else ""
+                
                 resins_list = tbl_resins_selected.objects.filter(
                     cm_no=record_no
                 ).values_list('resin_no__abbreviation', flat=True)
@@ -533,14 +541,17 @@ def cmf_mb_formula(request):
                 ).values_list('process_no__name', flat=True)
                 application_str = ", ".join(processes)
 
+                # For new matching: prioritize dosage_note, fallback to formula dosage
+                initial_dosage = dosage_note_val or (formula_info.dosage if formula_info else "")
+                
                 form_data = {
                     'cm_form_no': record_no,
                     'record_id': record_no,
                     'customer': formula_info.customer if formula_info else "",
                     'resin_used': resin_used_str,
-                    'dosage': formula_info.dosage if formula_info else "",
+                    'dosage': initial_dosage,
                     'finished_product': formula_info.finished_product if formula_info else "",
-                    'notes': formula_info.finished_product if formula_info else "",
+                    'note': formula_info.finished_product if formula_info else "",
                     'color': cmf.in_code_no.color if cmf.in_code_no else "",
                     'product': cmf.in_code_no.code if cmf.in_code_no else "",
                     'application': application_str,
@@ -559,8 +570,19 @@ def cmf_mb_formula(request):
             header = tbl_mb_extruder_formula.objects.filter(**filter_kwargs).first()
 
             if header:
+                # If loaded directly by formula_id without record_no in URL
+                if not cmf and header.cm_no:
+                    cmf = header.cm_no
+                    formula_info = tbl_cmf_formula.objects.filter(cm_no=cmf).first()
+                    form_data['cm_form_no'] = cmf.cm_no
+                    form_data['record_id'] = cmf.cm_no
+
+                # Existing record: display actual dosage
+                existing_dosage = getattr(header, 'dosage', None) or (formula_info.dosage if formula_info else "")
+
                 form_data.update({
                     'formula_id': header.pk,
+                    'dosage': existing_dosage,
                     'date': header.date.strftime('%m/%d/%Y') if header.date else "",
                     'product': header.code.product_code if header.code else "",
                     'lot_number': header.lot_no or "",
@@ -662,6 +684,7 @@ def cmf_dc_formula(request):
         formula_id = request.GET.get('formula_id')
 
         cmf = None
+        formula_info = None
 
         # 1. Load details from CMF if provided
         if record_no:
@@ -671,6 +694,14 @@ def cmf_dc_formula(request):
 
                 formula_info = tbl_cmf_formula.objects.filter(cm_no=record_no).first()
 
+                # Fetch dosage note from CMF entry
+                dosage_note_obj = tbl_field_note.objects.filter(
+                    cmf_formula_no=formula_info, 
+                    field='dosage'
+                ).first() if formula_info else None
+                dosage_note_val = dosage_note_obj.note if dosage_note_obj and dosage_note_obj.note else ""
+
+                                
                 resins_list = tbl_resins_selected.objects.filter(
                     cm_no=record_no
                 ).values_list('resin_no__abbreviation', flat=True)
@@ -681,12 +712,15 @@ def cmf_dc_formula(request):
                 ).values_list('process_no__name', flat=True)
                 app_str = ", ".join(processes)
 
+                # For new matching: prioritize dosage_note, fallback to formula dosage
+                initial_dosage = dosage_note_val or (formula_info.dosage if formula_info else "")
+                                
                 form_data = {
                     'cm_form_no': record_no,
                     'record_id': record_no,
                     'customer': formula_info.customer if formula_info else "",
                     'resin': resin_str,
-                    'dosage': formula_info.dosage if formula_info else "",
+                    'dosage': initial_dosage,
                     'finished_product': formula_info.finished_product if formula_info else "",
                     'color': cmf.in_code_no.color if cmf.in_code_no else "",
                     'application': app_str,
@@ -702,10 +736,13 @@ def cmf_dc_formula(request):
                 filter_kwargs['cm_no'] = cmf
 
             header = tbl_dc_extruder_formula.objects.filter(**filter_kwargs).first()
+            # Existing record: display actual dosage
+            existing_dosage = getattr(header, 'dosage', None) or (formula_info.dosage if formula_info else "")
 
             if header:
                 form_data.update({
                     'formula_id': header.pk,
+                    'dosage': existing_dosage,
                     'date_matched': header.date.strftime('%m/%d/%Y') if header.date else "",
                     'product_code': header.code.product_code if header.code else "",
                     'material_code_id': header.material_code_id or "",

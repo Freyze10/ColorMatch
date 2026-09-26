@@ -88,9 +88,13 @@
                     <div class="row g-2 align-items-center mb-2">
                         <div class="col-5"><label class="extra-small fw-bold required-label">Dosage:</label></div>
                         <div class="col-7">
-                            <input type="text" name="dosage" id="id_dosage" 
-                                   value="{{ form_data.dosage|default:'' }}" 
-                                   class="form-control form-control-sm uniform-input {% if form_data.dosage %} readonly-gray" readonly {% else %}" {% endif %} required>
+                            <input type="text" 
+                                name="dosage" 
+                                id="id_dosage" 
+                                value="{{ form_data.dosage|default:'' }}" 
+                                class="form-control form-control-sm uniform-input{% if form_data.formula_id %} readonly-gray{% endif %}" 
+                                {% if form_data.formula_id %}readonly{% endif %} 
+                                required>
                         </div>
                     </div>
                     <!-- ... (Lot Number) ... -->
