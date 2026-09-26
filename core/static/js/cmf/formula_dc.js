@@ -27,6 +27,51 @@
     const activeVersion = openVersions.length ? Math.max(...openVersions) : 1;
 
     // ------------------------------------------------------------------
+    // DOSAGE -> TOTAL WEIGHT REAL-TIME SYNC
+    // ------------------------------------------------------------------
+
+    const dosageInput = form.querySelector('#id_dc_dosage') || form.querySelector('[name="dosage"]');
+    const totalWeightInput = form.querySelector('.total-weight-display') || form.querySelector('[name="total_weight"]');
+
+    function syncDosageToTotalWeight() {
+        if (!dosageInput || !totalWeightInput) return;
+
+        const raw = dosageInput.value.trim();
+
+        // Allows any positive number: whole numbers, decimals of any length, or starting with a dot (e.g., "2", "2.5", ".5", "0.12345")
+        // Blocks letters, symbols (%), negatives, and multiple dots
+        const isNumeric = /^\d*\.?\d*$/.test(raw) && raw !== '' && raw !== '.';
+
+        if (isNumeric) {
+            const num = parseFloat(raw);
+            if (!isNaN(num) && num > 0) {
+                // Keep Total Weight formatted to 4 decimals
+                totalWeightInput.value = num.toFixed(DECIMALS);
+                totalWeightInput.dispatchEvent(new Event('input', { bubbles: true }));
+                return;
+            }
+        }
+
+        // If it contains non-numeric text (e.g. "2%", letters, symbols) or is empty,
+        // do not display it in Total Weight.
+        totalWeightInput.value = '';
+        totalWeightInput.dispatchEvent(new Event('input', { bubbles: true }));
+    }
+
+    if (dosageInput && totalWeightInput) {
+        // Sync in real-time as the user types or leaves the field
+        dosageInput.addEventListener('input', syncDosageToTotalWeight);
+        dosageInput.addEventListener('change', syncDosageToTotalWeight);
+        dosageInput.addEventListener('blur', syncDosageToTotalWeight);
+
+        // On initial page load for new formulas: clean up if dosage note had non-numeric text
+        const isUpdate = form.querySelector('[name="formula_id"]')?.value.trim() !== '';
+        if (!isUpdate && dosageInput.value.trim() !== '') {
+            syncDosageToTotalWeight();
+        }
+    }
+
+    // ------------------------------------------------------------------
     // 4-DECIMAL FORMATTING
     // ------------------------------------------------------------------
 
