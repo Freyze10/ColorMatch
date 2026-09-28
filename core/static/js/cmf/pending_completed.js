@@ -4,23 +4,39 @@ document.addEventListener('DOMContentLoaded', function () {
     const setPcCol = document.getElementById('setPcCol');
     const setPcInput = document.querySelector('input[name="set_pc"]');
     const submittedDetailsRow = document.getElementById('submittedDetailsRow');
+    // Target fields for Lot No, AR No, and AR Date
+    const lotInput = document.querySelector('input[name="lot_no"]');
+    const arNoInput = document.querySelector('input[name="ar_no"]');
+    const arDateInput = document.querySelector('input[name="ar_date"]');
+
+    const lotArRow = lotInput ? lotInput.closest('.row') : null;
+    const arDateContainer = arDateInput ? (arDateInput.closest('.mb-0') || arDateInput.closest('.mb-3')) : null;
 
     // Locate the "Sample" and "Chips" checkboxes dynamically by their label names
     let sampleCheckbox = null;
     let chipsCheckbox = null;
+    let priceCheckbox = null;
 
-    document.querySelectorAll('input[name="submitted_options"]').forEach(cb => {
+    const submittedCheckboxes = Array.from(document.querySelectorAll('input[name="submitted_options"]'));
+
+    submittedCheckboxes.forEach(cb => {
         const label = document.querySelector(`label[for="${cb.id}"]`);
         if (label) {
             const text = label.textContent.trim().toLowerCase();
             if (text.includes('sample')) sampleCheckbox = cb;
             if (text.includes('chip')) chipsCheckbox = cb;
+            if (text.includes('price')) priceCheckbox = cb;
         }
     });
 
     function updateFieldsVisibility() {
         const isSampleChecked = sampleCheckbox ? sampleCheckbox.checked : false;
         const isChipsChecked = chipsCheckbox ? chipsCheckbox.checked : false;
+        const isPriceChecked = priceCheckbox ? priceCheckbox.checked : false;
+
+        const checkedCount = submittedCheckboxes.filter(cb => cb.checked).length;
+        // True ONLY if Price is checked and no other option is checked
+        const isOnlyPrice = isPriceChecked && (checkedCount === 1);
 
         // 1. Toggle Qty Given (Sample)
         if (qtyGivenCol && qtyGivenInput) {
@@ -62,18 +78,57 @@ document.addEventListener('DOMContentLoaded', function () {
         if (submittedDetailsRow) {
             submittedDetailsRow.style.display = (!isSampleChecked && !isChipsChecked) ? 'none' : '';
         }
+
+        // 5. Toggle Lot No., AR No., and AR Date (Hide ONLY if Price is the sole selected option)
+        if (isOnlyPrice) {
+            if (lotArRow) lotArRow.style.display = 'none';
+            if (arDateContainer) arDateContainer.style.display = 'none';
+
+            if (lotInput) lotInput.required = false;
+            if (arNoInput) arNoInput.required = false;
+            if (arDateInput) arDateInput.required = false;
+        } else {
+            if (lotArRow) lotArRow.style.display = '';
+            if (arDateContainer) arDateContainer.style.display = '';
+
+            if (lotInput) lotInput.required = true;
+            if (arNoInput) arNoInput.required = true;
+            if (arDateInput) arDateInput.required = true;
+        }
     }
 
-    // Attach change listeners
-    if (sampleCheckbox) sampleCheckbox.addEventListener('change', updateFieldsVisibility);
-    if (chipsCheckbox) chipsCheckbox.addEventListener('change', updateFieldsVisibility);
+    // Attach change listener to all submitted checkboxes
+    submittedCheckboxes.forEach(cb => {
+        cb.addEventListener('change', updateFieldsVisibility);
+    });
 
-    // Initial check on page load (in case they are already checked from the database)
+    // Initial check on page load
     updateFieldsVisibility();
+
+    // ==================================================================
+    // ENFORCE AT LEAST ONE "SUBMITTED" CHECKBOX IS CHECKED
+    // ==================================================================
+
+    function validateSubmittedOptions() {
+        if (!submittedCheckboxes.length) return true;
+        const anyChecked = submittedCheckboxes.some(cb => cb.checked);
+        
+        // Setting custom validity on the first checkbox enforces native HTML5 validation
+        submittedCheckboxes[0].setCustomValidity(
+            anyChecked ? '' : 'Please select at least one submitted option (e.g. Sample, Chips, or Price).'
+        );
+        return anyChecked;
+    }
+
+    submittedCheckboxes.forEach(cb => {
+        cb.addEventListener('change', validateSubmittedOptions);
+    });
+
+    // Run initial validation check on load
+    validateSubmittedOptions();
 
     // --- AUTO-SYNC DATE SUBMITTED TO AR DATE ---
     const dateSubmittedInput = document.querySelector('input[name="date_submitted"]');
-    const arDateInput = document.querySelector('input[name="ar_date"]');
 
     if (dateSubmittedInput && arDateInput) {
         // If AR Date already has a distinct value loaded from DB, treat as manually edited
@@ -106,7 +161,7 @@ document.addEventListener('DOMContentLoaded', function () {
             const statusPending = document.getElementById('status_pending');
             const statusCompleted = document.getElementById('status_completed');
             const reasonGroup = document.getElementById('pendingReasonGroup');
-            const reasonInput = document.getElementById('id_pending_reason');
+            const reasonInput = document.getElementById('input[name="pending_reason"]');
 
             if (!statusPending || !statusCompleted || !reasonGroup) return;
 
@@ -148,7 +203,18 @@ document.addEventListener('DOMContentLoaded', function () {
     const entryForm = saveBtn ? saveBtn.closest('form') : null;
     if (saveBtn && entryForm) {
         saveBtn.addEventListener('click', function() {
-            // 1. Validate Form
+            // Guard: Validate that at least one Submitted option is checked
+            const hasSubmittedChecked = validateSubmittedOptions();
+            if (!hasSubmittedChecked) {
+                if (submittedCheckboxes[0]) {
+                    submittedCheckboxes[0].reportValidity();
+                }
+                if (typeof Preline !== 'undefined' && Preline.toast) {
+                    Preline.toast('Please select at least one Submitted option.', 'warning');
+                }
+                return;
+            }
+            // Validate Form
             if (entryForm.reportValidity()) {
 
                 Preline.confirm(
