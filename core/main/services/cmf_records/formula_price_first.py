@@ -4,6 +4,8 @@ import os
 import threading
 import re
 import json
+from django.core.cache import cache
+from django.db import transaction
 import win32com.client as win32
 import tempfile
 import uuid
@@ -12,11 +14,12 @@ from decimal import Decimal
 from datetime import datetime, date
 from django.db.models import Max
 from django.http import HttpResponse, HttpResponseBadRequest, JsonResponse
+from main.utils.log_audit_trail import log_audit
 from main.models import (
-    tbl_cmf, tbl_cmf_formula, tbl_dc_extruder_formula, 
-    tbl_dc_extruder_materials, tbl_dc_extruder_version, 
+    tbl_cmf, tbl_cmf_formula, tbl_cmf_pending_completed, tbl_dc_extruder_formula, 
+    tbl_dc_extruder_materials, tbl_dc_extruder_version, tbl_feedback_details, 
     tbl_mb_extruder_formula, tbl_mb_extruder_formula02, 
-    tbl_resins_selected
+    tbl_resins_selected, tbl_submitted_option, tbl_submitted_selected
 )
 
 def _build_price_first_row_list(items):
@@ -220,6 +223,9 @@ def download_price_first_excel(request):
     try:
         payload = json.loads(request.body)
         rows = payload.get('rows', [])
+        # True if confirmed by user; False if user chose not to update records
+        mark_completed = bool(payload.get('mark_completed', False))
+
     except (json.JSONDecodeError, TypeError):
         return HttpResponseBadRequest("Invalid JSON body.")
 
@@ -230,6 +236,19 @@ def download_price_first_excel(request):
     for row in rows:
         row_dicts.append({field: (row[i] if i < len(row) else "") for i, field in enumerate(COLUMN_ORDER)})
 
+    # Only update tracking if the user confirmed in the prompt
+    if mark_completed:
+        cmf_numbers = set()
+        for r in row_dicts:
+            c_no = r.get('cmf_no', '').strip()
+            if c_no and c_no.lower() not in ('none', 'n/a', 'no data', ''):
+                cmf_numbers.add(c_no)
+
+        try:
+            _auto_complete_cmf_price_first(cmf_numbers, request)
+        except Exception:
+            pass
+        
     template_abs_path = os.path.abspath(FORMULA_TEMPLATE_PATH)
     if not os.path.exists(template_abs_path):
         return HttpResponseBadRequest("Formula.xlsx template not found on server.")
@@ -255,3 +274,73 @@ def download_price_first_excel(request):
     )
     response['Content-Disposition'] = 'attachment; filename="Formula.xlsx"'
     return response
+
+
+
+def _auto_complete_cmf_price_first(cmf_numbers, request=None):
+    """
+    Automates pending/completed tracking for CMFs exported via Price First:
+    - Status: Completed
+    - Reason: 'Done'
+    - Submitted: 'Price'
+    - Lot No: 'N/A'
+    - Qty Given, Set Pc, AR No: None (SQL NULL)
+    - Date Submitted & AR Date: today's date
+    """
+    if not cmf_numbers:
+        return
+
+    today = date.today()
+    price_option = tbl_submitted_option.objects.filter(name__iexact='price').first()
+
+    for cm_no_str in cmf_numbers:
+        cmf_obj = tbl_cmf.objects.filter(cm_no=cm_no_str).first()
+        if not cmf_obj:
+            continue
+
+        with transaction.atomic():
+            # 1. Resolve product code from final formula
+            final_formula = (
+                tbl_mb_extruder_formula.objects.filter(cm_no=cmf_obj, is_final=True).select_related('code').first() or
+                tbl_dc_extruder_formula.objects.filter(cm_no=cmf_obj, is_final=True).select_related('code').first()
+            )
+            prod_code_obj = final_formula.code if final_formula and final_formula.code else None
+
+            # 2. Tracking instance
+            tracking, _ = tbl_cmf_pending_completed.objects.get_or_create(cm_no=cmf_obj)
+            tracking.is_completed = True
+            tracking.reason = 'Done'
+            tracking.lot_no = 'N/A'
+            tracking.ar_no = None
+            tracking.date_submitted = today
+            tracking.ar_date = today
+            if prod_code_obj and not tracking.code:
+                tracking.code = prod_code_obj
+            tracking.save()
+
+            # 3. Feedback instance (null for qty_given & pieces)
+            feedback, _ = tbl_feedback_details.objects.get_or_create(cm_no=cmf_obj)
+            feedback.quantity_given = None
+            feedback.pieces = None
+            if tracking.code:
+                feedback.code = tracking.code
+            feedback.save()
+
+            # 4. Submitted options: Strictly 'Price'
+            if price_option:
+                tbl_submitted_selected.objects.filter(completed_id=tracking).exclude(option_id=price_option).delete()
+                tbl_submitted_selected.objects.get_or_create(
+                    completed_id=tracking,
+                    option_id=price_option
+                )
+
+            # Optional audit logging
+            if log_audit and request and hasattr(request, 'user') and request.user.is_authenticated:
+                log_audit(
+                    request,
+                    "Updated",
+                    f"Auto-completed tracking for CMF: {cmf_obj.cm_no} via Price First Excel export."
+                )
+
+    cache.delete('cmf_records_list')
+    cache.delete('feedback_records_list')

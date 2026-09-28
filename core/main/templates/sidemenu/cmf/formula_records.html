@@ -526,31 +526,54 @@ $(document).ready(function() {
             return;
         }
 
-        showLoader();
-        fetch("{% url 'download_price_first_excel' %}", {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-                'X-CSRFToken': getCookie('csrftoken')
-            },
-            body: JSON.stringify({ rows: rows })
-        })
-        .then(res => res.blob())
-        .then(blob => {
-            hideLoader();
-            const url = window.URL.createObjectURL(blob);
-            const a = document.createElement('a');
-            a.href = url;
-            a.download = 'Formula.xlsx';
-            document.body.appendChild(a);
-            a.click();
-            a.remove();
-            window.URL.revokeObjectURL(url);
-        })
-        .catch(err => {
-            hideLoader();
-            Preline.toast('Error downloading file.', 'danger');
-        });
+        // Helper to send request and trigger Excel file download
+        const executeDownload = (markCompleted) => {
+            showLoader();
+            fetch("{% url 'download_price_first_excel' %}", {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': getCookie('csrftoken')
+                },
+                body: JSON.stringify({ 
+                    rows: rows,
+                    mark_completed: markCompleted 
+                })
+            })
+            .then(res => {
+                if (!res.ok) throw new Error('Download failed');
+                return res.blob();
+            })
+            .then(blob => {
+                hideLoader();
+                const url = window.URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = 'Formula.xlsx';
+                document.body.appendChild(a);
+                a.click();
+                a.remove();
+                window.URL.revokeObjectURL(url);
+
+                if (markCompleted) {
+                    Preline.toast('Excel downloaded. Records marked as Completed (Price).', 'success');
+                } else {
+                    Preline.toast('Excel downloaded. Records remained unchanged.', 'info');
+                }
+            })
+            .catch(err => {
+                hideLoader();
+                Preline.toast('Error downloading file.', 'danger');
+            });
+        };
+        // Prompt user before proceeding
+        Preline.confirm(
+            'Complete Tracking?',
+            'Do you want to mark the selected CMF(s) as Completed with "Price" submitted option?',
+            'question',
+            () => { executeDownload(true); },  // Confirmed -> Update & Download
+            () => { executeDownload(false); }  // Cancelled -> Download without updating
+        );
     });
 
     function getCookie(name) {
