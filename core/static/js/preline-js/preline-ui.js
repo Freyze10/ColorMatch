@@ -114,15 +114,17 @@ const Preline = {
         
         // 1. Normalize type
         const cleanType = (type === 'error') ? 'danger' : (type || 'success');
-        
+        let circleClass = cleanType === 'question' ? 'icon-info' : 'icon-' + cleanType;
         // 2. Set Circle Color Class (Ensure .icon-info exists in your CSS)
-        iconContainer.className = 'modal-icon-circle icon-' + cleanType;
+        iconContainer.className = 'modal-icon-circle icon-' + circleClass;
         
         // 3. Set the specific Icon (ADDED 'info' HERE)
         if (cleanType === 'danger') {
             icon.className = 'bi bi-exclamation-triangle'; // Error Triangle
         } else if (cleanType === 'warning') {
-            icon.className = 'bi bi-exclamation-circle';   // Warning Circle
+            icon.className = 'bi bi-exclamation-circle';
+        } else if (cleanType === 'question') {
+            icon.className = 'bi bi-question-circle'; // Question Mark icon   // Warning Circle
         } else if (cleanType === 'info') {
             icon.className = 'bi bi-info-circle';          // Info Circle <--- ADDED
         } else {

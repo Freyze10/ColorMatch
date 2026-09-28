@@ -118,6 +118,13 @@ def save_pending_completed_entry(request, log_audit):
                     diff_logs.append(f"{label} ({curr_str} -> {new_str})")
                     setattr(inst, attr, new_val)
 
+             # If lot_no was hidden/omitted from POST (e.g. Price only was selected), default to 'N/A'
+            if 'lot_no' not in data:
+                current_lot = tracking_instance.lot_no or ''
+                if current_lot != 'N/A':
+                    diff_logs.append(f"Lot Number ({format_val(current_lot)} -> N/A)")
+                    tracking_instance.lot_no = 'N/A'
+                    
             # Process Feedback Diffs
             for post_key, (inst, attr, label, transform) in feedback_map.items():
                 if post_key not in data:

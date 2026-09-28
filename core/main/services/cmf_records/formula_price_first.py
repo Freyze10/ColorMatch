@@ -248,7 +248,7 @@ def download_price_first_excel(request):
             _auto_complete_cmf_price_first(cmf_numbers, request)
         except Exception:
             pass
-        
+
     template_abs_path = os.path.abspath(FORMULA_TEMPLATE_PATH)
     if not os.path.exists(template_abs_path):
         return HttpResponseBadRequest("Formula.xlsx template not found on server.")
@@ -276,16 +276,13 @@ def download_price_first_excel(request):
     return response
 
 
-
 def _auto_complete_cmf_price_first(cmf_numbers, request=None):
     """
     Automates pending/completed tracking for CMFs exported via Price First:
-    - Status: Completed
-    - Reason: 'Done'
-    - Submitted: 'Price'
-    - Lot No: 'N/A'
-    - Qty Given, Set Pc, AR No: None (SQL NULL)
-    - Date Submitted & AR Date: today's date
+    - If ALREADY completed: Keeps existing tracking, dates, and lots untouched,
+      and strictly ensures 'Price' is added to the submitted options.
+    - If NOT completed: Performs full auto-completion (Status=Completed, Reason='Done',
+      Lot='N/A', Qty/Set/AR=None, Dates=today, Submitted='Price').
     """
     if not cmf_numbers:
         return
@@ -299,48 +296,65 @@ def _auto_complete_cmf_price_first(cmf_numbers, request=None):
             continue
 
         with transaction.atomic():
-            # 1. Resolve product code from final formula
-            final_formula = (
-                tbl_mb_extruder_formula.objects.filter(cm_no=cmf_obj, is_final=True).select_related('code').first() or
-                tbl_dc_extruder_formula.objects.filter(cm_no=cmf_obj, is_final=True).select_related('code').first()
-            )
-            prod_code_obj = final_formula.code if final_formula and final_formula.code else None
+            tracking, created = tbl_cmf_pending_completed.objects.get_or_create(cm_no=cmf_obj)
 
-            # 2. Tracking instance
-            tracking, _ = tbl_cmf_pending_completed.objects.get_or_create(cm_no=cmf_obj)
-            tracking.is_completed = True
-            tracking.reason = 'Done'
-            tracking.lot_no = 'N/A'
-            tracking.ar_no = None
-            tracking.date_submitted = today
-            tracking.ar_date = today
-            if prod_code_obj and not tracking.code:
-                tracking.code = prod_code_obj
-            tracking.save()
+            # SCENARIO 1: CMF is ALREADY completed -> Only add 'Price' to submitted options
+            if not created and tracking.is_completed:
+                if price_option:
+                    tbl_submitted_selected.objects.get_or_create(
+                        completed_id=tracking,
+                        option_id=price_option
+                    )
+                
+                if log_audit and request and hasattr(request, 'user') and request.user.is_authenticated:
+                    log_audit(
+                        request,
+                        "Updated",
+                        f"Added 'Price' to submitted options for already-completed CMF: {cmf_obj.cm_no} (Price First Export)."
+                    )
 
-            # 3. Feedback instance (null for qty_given & pieces)
-            feedback, _ = tbl_feedback_details.objects.get_or_create(cm_no=cmf_obj)
-            feedback.quantity_given = None
-            feedback.pieces = None
-            if tracking.code:
-                feedback.code = tracking.code
-            feedback.save()
-
-            # 4. Submitted options: Strictly 'Price'
-            if price_option:
-                tbl_submitted_selected.objects.filter(completed_id=tracking).exclude(option_id=price_option).delete()
-                tbl_submitted_selected.objects.get_or_create(
-                    completed_id=tracking,
-                    option_id=price_option
+            # SCENARIO 2: CMF is NOT completed yet -> Perform full auto-completion
+            else:
+                # 1. Resolve product code from final formula
+                final_formula = (
+                    tbl_mb_extruder_formula.objects.filter(cm_no=cmf_obj, is_final=True).select_related('code').first() or
+                    tbl_dc_extruder_formula.objects.filter(cm_no=cmf_obj, is_final=True).select_related('code').first()
                 )
+                prod_code_obj = final_formula.code if final_formula and final_formula.code else None
 
-            # Optional audit logging
-            if log_audit and request and hasattr(request, 'user') and request.user.is_authenticated:
-                log_audit(
-                    request,
-                    "Updated",
-                    f"Auto-completed tracking for CMF: {cmf_obj.cm_no} via Price First Excel export."
-                )
+                # 2. Tracking instance
+                tracking.is_completed = True
+                tracking.reason = 'Done'
+                tracking.lot_no = 'N/A'
+                tracking.ar_no = None
+                tracking.date_submitted = today
+                tracking.ar_date = today
+                if prod_code_obj and not tracking.code:
+                    tracking.code = prod_code_obj
+                tracking.save()
+
+                # 3. Feedback instance (null for qty_given & pieces)
+                feedback, _ = tbl_feedback_details.objects.get_or_create(cm_no=cmf_obj)
+                feedback.quantity_given = None
+                feedback.pieces = None
+                if tracking.code:
+                    feedback.code = tracking.code
+                feedback.save()
+
+                # 4. Submitted options: Strictly 'Price'
+                if price_option:
+                    tbl_submitted_selected.objects.filter(completed_id=tracking).exclude(option_id=price_option).delete()
+                    tbl_submitted_selected.objects.get_or_create(
+                        completed_id=tracking,
+                        option_id=price_option
+                    )
+
+                if log_audit and request and hasattr(request, 'user') and request.user.is_authenticated:
+                    log_audit(
+                        request,
+                        "Updated",
+                        f"Auto-completed tracking for CMF: {cmf_obj.cm_no} via Price First Excel export."
+                    )
 
     cache.delete('cmf_records_list')
     cache.delete('feedback_records_list')
