@@ -56,7 +56,8 @@ Formula Records
                                 <th>Lot No</th>
                                 <th>Color Description</th>
                                 <th>Dosage</th>
-                                <th>Swatch</th>
+                                <th class="no-wrap text-center">Swatch</th>
+                                <th class="no-wrap text-center" title="Final Formula"><i class="bi bi-star"></i></th>
                             </tr>
                         </thead>
                         <tbody class="extra-small"></tbody>
@@ -183,10 +184,23 @@ $(document).ready(function() {
             { data: "dosage_display", className: "no-wrap fw-semibold" },
             {
                 data: "html",
+                className: "no-wrap text-center",
                 orderable: false,
                 searchable: false,
                 render: function(data) { 
                     return `<div class="color-swatch-rect" style="background-color: ${data}"></div>`; 
+                }
+            },
+            {
+                data: "is_final",
+                className: "no-wrap text-center pe-3",
+                orderable: false,
+                searchable: false,
+                className: "text-center",
+                render: function(data) {
+                    return data 
+                        ? '<i class="bi bi-star-fill text-warning fs-6" title="Final Formula"></i>' 
+                        : '';
                 }
             }
         ],

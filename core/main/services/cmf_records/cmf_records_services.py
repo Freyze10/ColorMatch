@@ -246,7 +246,8 @@ def get_all_formula_records():
             "color": color,
             "dosage": float(raw_dosage) if raw_dosage is not None else None,
             "dosage_display": dosage_display,
-            "html": f.html or "#ffffff"
+            "html": f.html or "#ffffff",
+            "is_final": bool(getattr(f, 'is_final', False))
         })
 
     # DC Formulas
@@ -273,7 +274,8 @@ def get_all_formula_records():
             "color": color,
             "dosage": float(raw_dosage) if raw_dosage is not None else None,
             "dosage_display": dosage_display,
-            "html": f.html or "#ffffff"
+            "html": f.html or "#ffffff",
+            "is_final": bool(getattr(f, 'is_final', False))
         })
 
     return combined_results
