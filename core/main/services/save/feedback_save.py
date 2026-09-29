@@ -6,6 +6,7 @@ from django.http import JsonResponse
 from django.db.models import F, Q, DateField, Value, CharField
 from django.db.models.functions import Coalesce
 from django.db.models.expressions import OuterRef, Subquery, Case, When
+from main.services.cmf_records import cmf_records_services
 from main.utils.log_audit_trail import log_audit
 from main.models import (
     tbl_feedback_details, tbl_cmf_pending_completed, tbl_cmf_formula,
@@ -159,7 +160,6 @@ def get_feedback_form_data(feedback_no):
         'due_date': dates.due_date_lab.strftime('%m/%d/%Y') if dates and dates.due_date_lab else '',
         'finished_product': formula.finished_product if formula else '',
         'color_description': cmf.color_desc or '',
-        'matching_type': cmf.matching_type or '',
         'sales_person': cmf.sm.name if cmf.sm else '',
         'product_code': final_prod_code,
 
@@ -181,6 +181,8 @@ def get_feedback_form_data(feedback_no):
         'has_chips': any('chip' in n.lower() for n in selected_names),
         'has_price': any('price' in n.lower() for n in selected_names),
         'submitted_str': ", ".join(selected_names),
+
+        "salesman": cmf_records_services.get_salesman_list(),
 
         # Feedback specific editable fields
         'record_type': 'cmf',
