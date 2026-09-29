@@ -591,6 +591,46 @@ class tbl_dc_extruder_version(models.Model):
         return f"v{self.version_no} for {self.material.material}"
 
 
+class tbl_formula_resin(models.Model):
+    formula_resin_id = models.AutoField(primary_key=True)
+    resin = models.CharField(max_length=50, unique=True)
+
+    class Meta:
+        db_table = "tbl_formula_resin"
+
+    def __str__(self):
+        return self.resin
+
+
+class tbl_formula_resin_selected(models.Model):
+    id = models.AutoField(primary_key=True)
+    formula_resin_id = models.ForeignKey(
+        tbl_formula_resin,
+        on_delete=models.CASCADE,
+        db_column="formula_resin_id"
+    )
+    mb_no = models.ForeignKey(
+        'tbl_mb_extruder_formula',
+        on_delete=models.CASCADE,
+        null=True,
+        blank=True,
+        db_column="mb_no"
+    )
+    dc_no = models.ForeignKey(
+        'tbl_dc_extruder_formula',
+        on_delete=models.CASCADE,
+        null=True,
+        blank=True,
+        db_column="dc_no"
+    )
+
+    class Meta:
+        db_table = "tbl_formula_resin_selected"
+
+    def __str__(self):
+        parent = f"MB #{self.mb_no_id}" if self.mb_no_id else f"DC #{self.dc_no_id}"
+        return f"{self.formula_resin_id.resin} ({parent})"
+
 # ==========================================
 # 6. MASTER & DAILY FORMULAS
 # ==========================================
