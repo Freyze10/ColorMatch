@@ -241,6 +241,17 @@ document.addEventListener('DOMContentLoaded', function() {
             iframe.src = `/cmf/print/${encodeURIComponent(cmNo)}/`;
 
             iframe.onload = function () {
+                // Reverse the Django URL pattern using a placeholder
+                const logUrl = "{% url 'log_cmf_print' '0' %}".replace('0', encodeURIComponent(cmNo));
+
+                // Call the audit log view when the preview opens
+                fetch(logUrl, {
+                    method: 'GET',
+                    headers: {
+                        'X-Requested-With': 'XMLHttpRequest'
+                    }
+                }).catch(err => console.error('Audit trail logging failed:', err));
+
                 // Small delay to ensure styles are loaded
                 setTimeout(() => {
                     iframe.contentWindow.focus();
