@@ -332,12 +332,97 @@
             }
 
             const isUpdate = form.querySelector('[name="formula_id"]')?.value.trim() !== '';
-            Preline.confirm(
-                isUpdate ? 'Update Formula?' : 'Save Formula?',
-                'Please verify all technical specs before confirming.',
-                'success',
-                () => { form.submit(); }
-            );
+            // If updating an existing formula record, proceed with standard confirmation
+            if (isUpdate) {
+                Preline.confirm(
+                    'Update Formula?',
+                    'Please verify all technical specs before confirming.',
+                    'success',
+                    () => { form.submit(); }
+                );
+                return;
+            }
+            // --- NEW FORMULA PRODUCT CODE CONFLICT VALIDATION ---
+            const productCode = (form.querySelector('[name="product"]') || form.querySelector('[name="product_code"]'))?.value.trim() || '';
+            const materials = [];
+
+            if (isMB) {
+                for (let i = 1; i <= 10; i++) {
+                    const mat = form.querySelector(`[name="material_${i}"]`)?.value.trim();
+                    const val = form.querySelector(`[name="percentage_${i}"]`)?.value.trim();
+                    if (mat && val && parseFloat(val) > 0) {
+                        materials.push({ material: mat, value: parseFloat(val) });
+                    }
+                }
+            } else if (isDC) {
+                for (let r = 1; r <= 10; r++) {
+                    const mat = form.querySelector(`[name="material_${r}"]`)?.value.trim();
+                    if (!mat) continue;
+                    for (let v = 1; v <= 10; v++) {
+                        const val = form.querySelector(`[name="value_${r}_${v}"]`)?.value.trim();
+                        if (val && parseFloat(val) > 0) {
+                            materials.push({ material: mat, version_no: v, value: parseFloat(val) });
+                        }
+                    }
+                }
+            }
+
+            // Helper to get CSRF token
+            const csrfToken = form.querySelector('[name="csrfmiddlewaretoken"]')?.value || '';
+
+            // Call pre-save validation API
+            fetch('/cmf/formula/check-product-code/', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': csrfToken
+                },
+                body: JSON.stringify({
+                    product_code: productCode,
+                    formula_type: isDC ? 'DC' : 'MB',
+                    materials: materials
+                })
+            })
+            .then(res => res.json())
+            .then(data => {
+                if (data.exists) {
+                    if (data.is_same) {
+                        // Scenario: Same Product Code & Same Formula
+                        Preline.confirm(
+                            'Duplicate Formula',
+                            `This product code (${productCode}) already exists with the SAME formula. Do you want to continue?`,
+                            'warning',
+                            () => { form.submit(); }
+                        );
+                    } else {
+                        // Scenario: Same Product Code & Different Formula (Error/Danger Modal)
+                        Preline.confirm(
+                            'Formula Conflict',
+                            `This product code (${productCode}) already exists with a DIFFERENT formula. Do you still want to continue?`,
+                            'danger',
+                            () => { form.submit(); }
+                        );
+                    }
+                } else {
+                    // New unique product code -> Standard Save
+                    Preline.confirm(
+                        'Save Formula?',
+                        'Please verify all technical specs before confirming.',
+                        'success',
+                        () => { form.submit(); }
+                    );
+                }
+            })
+            .catch(err => {
+                console.error('Pre-save validation check failed:', err);
+                // Fallback in case of network issue
+                Preline.confirm(
+                    'Save Formula?',
+                    'Please verify all technical specs before confirming.',
+                    'success',
+                    () => { form.submit(); }
+                );
+            });
         });
     }
 

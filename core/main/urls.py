@@ -77,6 +77,7 @@ urlpatterns = [
     path('cmf/attachment/<int:attachment_id>/download/', cmf_entry_save.download_cmf_attachment, name='download_cmf_attachment'),
     path('cmf/formula-records/materials/<str:formula_type>/<int:formula_id>/', cmf_records_services.get_formula_materials, name='get_formula_materials'),
     path('cmf/formula/<str:formula_type>/<int:formula_id>/toggle-final/', cmf_records_services.toggle_final_formula, name='toggle_final_formula'),
+    path('cmf/formula/check-product-code/', mb_dc_formulation_services.check_product_code_formula, name='check_product_code_formula'),
     path('cmf/rs-records/<int:rs_id>/', views.rs_record_detail, name='rs_record_detail'),
     path('cmf/print/<str:cm_no>/', print_cmf.print_cmf, name='print_cmf'), # for flexible print (uses html css for print)
     # path('cmf/print/<str:cm_no>/preview', print_cmf.print_cmf_preview, name='cmf_print_preview'),

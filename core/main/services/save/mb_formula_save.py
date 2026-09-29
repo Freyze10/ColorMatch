@@ -244,3 +244,4 @@ def save_mb_complete_formula(request):
         raise Exception("The Lot Number provided already exists.")
     except Exception as e:
         raise Exception(f"Database Error: {str(e)}")
+
