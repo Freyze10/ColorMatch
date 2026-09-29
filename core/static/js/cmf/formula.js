@@ -485,9 +485,9 @@
     }
 
     async function fetchCmfDetails(cmfNo, matId = null) {
+        
         const fields = {
             customer: isDC ? 'id_dc_customer' : 'id_customer',
-            resin: isDC ? 'id_dc_resin' : 'id_resin_used',
             color: isDC ? 'id_dc_color' : 'id_color',
             product: isDC ? 'id_dc_product_code' : 'id_product',
             dosage: isDC ? 'id_dc_dosage' : 'id_dosage',
@@ -499,6 +499,43 @@
             const el = document.getElementById(id);
             if (el) el.value = val || '';
         };
+
+        // Helper to update the dropdown's placeholder dynamically
+        const updateResinPlaceholder = (placeholderText) => {
+            const resinSelectId = isDC ? 'id_dc_formula_resin' : 'id_formula_resin';
+            const el = document.getElementById(resinSelectId);
+            if (!el) return;
+
+            const text = (placeholderText && placeholderText.trim()) ? placeholderText.trim() : 'Select resin...';
+
+            // 1. Update native HTML placeholder option & attribute
+            el.setAttribute('placeholder', text);
+
+            // 2. Update TomSelect instance if initialized
+            if (el.tomselect) {
+                const ts = el.tomselect;
+
+                // 1. Clear any selected value
+                ts.clear(true);
+
+                // 2. Update placeholder in settings & control input
+                ts.settings.placeholder = text;
+                if (ts.control_input) {
+                    ts.control_input.placeholder = text;
+                    ts.control_input.setAttribute('placeholder', text);
+                    ts.control_input.style.width = '100%';
+                }
+
+                // 3. Remove .has-items class so single-select displays the placeholder input
+                ts.wrapper.classList.remove('has-items');
+
+                // 4. Force TomSelect to recalculate input visibility
+                if (typeof ts.inputState === 'function') {
+                    ts.inputState();
+                }
+            }
+        };
+
         try {
             // Pass matId as an extra parameter
             let url = `/cmf/mb-dc-formula/?cm_no=${encodeURIComponent(cmfNo)}`;
@@ -509,13 +546,17 @@
             const data = await response.json();
 
             setVal(fields.customer, data.customer);
-            setVal(fields.resin, data.resin_used || data.resin);
+            
             setVal(fields.color, data.color);
             setVal(fields.application, data.application);
             setVal(fields.finished_product, data.finished_product);
             setVal(fields.product, data.product_code); // Priority to generated code
             setVal(fields.dosage, data.dosage);
             setVal(fields.lot_no, data.lot_no);
+
+            // Update the resin dropdown placeholder with the CMF's original resin
+            updateResinPlaceholder(data.resin_used || data.resin);
+            
 
             if (data.product_code === "(Select Material)") {
                 Preline.toast("CMF details loaded. Please select a Material Code to generate the Product Code.", "info");
@@ -525,6 +566,7 @@
             
         } catch (error) {
             Object.values(fields).forEach(id => setVal(id, ''));
+            updateResinPlaceholder('Select resin...');
             Preline.toast('Error fetching details.', 'danger');
         }
     }
