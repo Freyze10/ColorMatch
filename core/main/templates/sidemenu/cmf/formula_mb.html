@@ -68,11 +68,20 @@
                     </div>
                     <!-- ... (Resin Used) ... -->
                     <div class="row g-2 align-items-center mb-2">
-                        <div class="col-5"><label class="extra-small fw-bold">Resin Used:</label></div>
+                        <div class="col-5"><label class="extra-small fw-bold required-label">Resin Used:</label></div>
                         <div class="col-7">
-                            <input type="text" name="resin_used" id="id_resin_used" 
-                                   value="{{ form_data.resin_used|default:'' }}" 
-                                   class="form-control form-control-sm uniform-input readonly-gray" readonly required>
+                            <select name="formula_resin" id="id_formula_resin" 
+                                    class="form-select form-select-sm ts-select" 
+                                    placeholder="{{ form_data.resin_used|default:'Select resin...' }}"
+                                    required>
+                                <option value=""></option>
+                                {% for r in formula_resins %}
+                                    <option value="{{ r.formula_resin_id }}" 
+                                        {% if r.formula_resin_id in form_data.selected_resins %}selected{% endif %}>
+                                        {{ r.resin }}
+                                    </option>
+                                {% endfor %}
+                            </select>
                         </div>
                     </div>
                     
