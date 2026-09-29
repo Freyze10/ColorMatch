@@ -9,7 +9,7 @@ from django.db.models.expressions import OuterRef, Subquery, Case, When
 from main.services.cmf_records import cmf_records_services
 from main.utils.log_audit_trail import log_audit
 from main.models import (
-    tbl_feedback_details, tbl_cmf_pending_completed, tbl_cmf_formula,
+    tbl_cmf_salesman, tbl_feedback_details, tbl_cmf_pending_completed, tbl_cmf_formula,
     tbl_cmf_dates, tbl_mb_extruder_formula, tbl_dc_extruder_formula, tbl_submitted_option,
     tbl_submitted_selected,
 )
@@ -183,10 +183,13 @@ def get_feedback_form_data(feedback_no):
         'submitted_str': ", ".join(selected_names),
 
         "salesman": cmf_records_services.get_salesman_list(),
+        'submitted_by_id': fb.submitted_by,
 
         # Feedback specific editable fields
         'record_type': 'cmf',
         'feedback_status': fb.status or 'Pending',
+        'abandoned_reason': fb.abandoned_reason or '',  # <-- ADDED
+        'order_form_no': fb.order_form_no or '',   
         'date_sample_received': fb.date_sample_received.strftime('%m/%d/%Y') if fb.date_sample_received else '',
         'comments': fb.comment or '',
         'storage_details': fb.storage_details or '',
@@ -346,22 +349,22 @@ def get_feedback_records_data(request):
     })
 
 def save_feedback_entry(request, feedback_no):
-    """
-    Handles the save/update + audit-diff logic for a single feedback
-    record, validating the submitted status against the allowed set
-    for this record's submitted items. Returns (success: bool, message: str).
-    """
     try:
         with transaction.atomic():
             data = request.POST
 
-            fb_instance = tbl_feedback_details.objects.select_related('cm_no', 'rs_no').filter(feedback_no=feedback_no).first()
+            fb_instance = (
+                tbl_feedback_details.objects
+                .select_related('cm_no', 'rs_no', 'submitted_by')
+                .filter(feedback_no=feedback_no)
+                .first()
+            )
             if not fb_instance:
                 return False, "Feedback record not found."
 
-            parent_no = fb_instance.cm_no.cm_no if fb_instance.cm_no else fb_instance.rs_no.rs_no
+            parent_no = fb_instance.cm_no.cm_no if fb_instance.cm_no else (fb_instance.rs_no.rs_no if fb_instance.rs_no else "N/A")
 
-            # --- Validate submitted status against the allowed set for this record ---
+            # --- Validation for status ---
             tracking = None
             if fb_instance.cm_no:
                 tracking = tbl_cmf_pending_completed.objects.filter(cm_no=fb_instance.cm_no).first()
@@ -371,16 +374,53 @@ def save_feedback_entry(request, feedback_no):
             selected_names = _get_selected_option_names(tracking)
             allowed_statuses = get_feedback_status_choices(selected_names)
 
-            submitted_status = data.get('feedback_status', '')
+            submitted_status = data.get('feedback_status', '').strip()
             if submitted_status and submitted_status not in allowed_statuses:
                 return False, f"'{submitted_status}' is not a valid status for this record's submitted items."
 
+            status_clean = submitted_status.lower()
+
+            # --- Foreign Key: Submitted By (sm_no) ---
+            submitted_by_raw = data.get('submitted_by', '').strip()
+            if not submitted_by_raw:
+                return False, "Please select who submitted this feedback."
+
+            try:
+                new_sm_id = int(submitted_by_raw)
+            except (ValueError, TypeError):
+                return False, "Invalid sales person selected."
+
+            # --- Conditional Fields Validation & Clean ---
+            abandoned_reason = data.get('abandoned_reason', '').strip()
+            if status_clean == 'abandoned' and not abandoned_reason:
+                return False, "Please provide the reason why matching was abandoned."
+
+            order_form_no = data.get('order_form_no', '').strip()
+            if status_clean == 'ordered' and not order_form_no:
+                return False, "Please provide the Order Form No."
+
+            clean_abandoned_reason = abandoned_reason if status_clean == 'abandoned' else None
+            clean_order_form_no = order_form_no if status_clean == 'ordered' else None
+
             diff_logs = []
+
+            # 1. Audit diff for Submitted By (Names instead of raw IDs)
+            old_sm_id = fb_instance.submitted_by_id
+            if old_sm_id != new_sm_id:
+                old_name = fb_instance.submitted_by.name if fb_instance.submitted_by else "None"
+                new_sm_obj = tbl_cmf_salesman.objects.filter(sm_no=new_sm_id).first()
+                new_name = new_sm_obj.name if new_sm_obj else "None"
+                diff_logs.append(f"Submitted By ({old_name} -> {new_name})")
+                fb_instance.submitted_by_id = new_sm_id
+
+            # 2. Standard field diffs
             update_map = {
-                'feedback_status': ('status', 'Status'),
+                'feedback_status': ('status', 'Status', lambda v: v.strip() if v else None),
+                'abandoned_reason': ('abandoned_reason', 'Abandoned Reason', lambda _: clean_abandoned_reason),
+                'order_form_no': ('order_form_no', 'Order Form No', lambda _: clean_order_form_no),
                 'date_sample_received': ('date_sample_received', 'Sample Received Date', _parse_date),
-                'comments': ('comment', 'Comments'),
-                'storage_details': ('storage_details', 'Storage Details'),
+                'comments': ('comment', 'Comments', lambda v: v.strip() if v else None),
+                'storage_details': ('storage_details', 'Storage Details', lambda v: v.strip() if v else None),
             }
 
             for post_key, mapping in update_map.items():
@@ -389,7 +429,7 @@ def save_feedback_entry(request, feedback_no):
 
                 old_db_val = getattr(fb_instance, attr)
                 raw_new_val = data.get(post_key, '')
-                new_form_val = transform(raw_new_val) if transform else raw_new_val
+                new_form_val = transform(raw_new_val) if transform else (raw_new_val.strip() if isinstance(raw_new_val, str) else raw_new_val)
 
                 curr_str = _format_val(old_db_val)
                 new_str = _format_val(new_form_val)

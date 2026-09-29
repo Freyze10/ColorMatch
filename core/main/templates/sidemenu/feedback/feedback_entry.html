@@ -296,16 +296,11 @@
                             <div class="col-sm-8">
                                 <select name="submitted_by" id="id_f_submitted_by" class="form-select form-select-sm uniform-input" required>
                                     <option value="">Select sales person...</option>
-                                    {% for s in salesman %}
-                                        <option value="{{ s.name|default:s }}" {% if form_data.submitted_by == s.name or form_data.submitted_by == s %}selected{% endif %}>
-                                            {{ s.name|default:s }}
+                                    {% for s in form_data.salesman %}
+                                        <option value="{{ s.sm_no }}" 
+                                            {% if form_data.submitted_by_id == s.sm_no or form_data.submitted_by_id|stringformat:"s" == s.sm_no|stringformat:"s" %}selected{% endif %}>
+                                            {{ s.name }}
                                         </option>
-                                    {% empty %}
-                                        {% for s in form_data.salesman %}
-                                            <option value="{{ s.name }}" {% if form_data.submitted_by == s.name %}selected{% endif %}>
-                                                {{ s }}
-                                            </option>
-                                        {% endfor %}
                                     {% endfor %}
                                 </select>
                             </div>

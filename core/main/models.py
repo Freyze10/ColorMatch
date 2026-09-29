@@ -473,8 +473,15 @@ class tbl_feedback_details(models.Model):
 
     abandoned_reason = models.TextField(blank=True, null=True)
     order_form_no = models.CharField(max_length=100, blank=True, null=True)
-    submitted_by = models.CharField(max_length=100, blank=True, null=True)
-    
+    # --- FOREIGN KEY TO SALESMAN ---
+    submitted_by = models.ForeignKey(
+        'tbl_cmf_salesman',
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        db_column="sm_no"
+    )
+
     comment = models.TextField(blank=True, null=True)
     storage_details = models.CharField(max_length=100, blank=True, null=True)
     
