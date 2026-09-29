@@ -27,7 +27,7 @@ from main.decorators import access_required, role_required
 from main.models import (
     tbl_access_point, tbl_audit_trail, tbl_cmf, tbl_cmf_dates, tbl_cmf_formula, tbl_cmf_pending_completed, 
     tbl_cmf_process02, tbl_cmf_process02, tbl_cmf_scanned, tbl_cmf_specification02, tbl_coding_materials, tbl_dc_extruder_formula, 
-    tbl_dc_extruder_materials, tbl_feedback_details, tbl_field_note, tbl_generated_prod_code, tbl_internal_color_code, tbl_master_formula, tbl_master_formula_encode, tbl_master_formula_info, tbl_mb_extruder_formula, 
+    tbl_dc_extruder_materials, tbl_feedback_details, tbl_field_note, tbl_formula_resin, tbl_generated_prod_code, tbl_internal_color_code, tbl_master_formula, tbl_master_formula_encode, tbl_master_formula_info, tbl_mb_extruder_formula, 
     tbl_mb_extruder_formula02, tbl_resin, tbl_cmf_salesman, tbl_resins_selected, 
     tbl_cmf_color_req, tbl_cmf_specification, tbl_cmf_process, tbl_role, tbl_role_permissions, tbl_rs, tbl_submitted_option, tbl_submitted_selected
 )
@@ -652,6 +652,13 @@ def cmf_mb_formula(request):
     )
     combined_list = sorted(cmf_nos, reverse=True)
 
+    # Query all formula resins for the dropdown
+    formula_resins = list(
+        tbl_formula_resin.objects
+        .values('formula_resin_id', 'resin')
+        .order_by('resin')
+    )
+    
     context = {
         "form_data": form_data,
         "materials": cmf_records_services.get_raw_material_codes(),
@@ -659,6 +666,7 @@ def cmf_mb_formula(request):
         "colorant_mismatch": colorant_mismatch,
         "ingredients": ingredients,
         "cmf_list": combined_list,
+        "formula_resins": formula_resins,
     }
     return render(request, "sidemenu/cmf/formula_mb.html", context)
 
@@ -829,6 +837,13 @@ def cmf_dc_formula(request):
 
     coding_materials = tbl_coding_materials.objects.filter(is_deleted=False).order_by('name')
 
+    # Query all formula resins for the dropdown
+    formula_resins = list(
+        tbl_formula_resin.objects
+        .values('formula_resin_id', 'resin')
+        .order_by('resin')
+    )
+    
     context = {
         "form_data": form_data,
         "materials": cmf_records_services.get_raw_material_codes(),
@@ -837,6 +852,7 @@ def cmf_dc_formula(request):
         "material_rows": material_rows,
         "cmf_list": combined_list,
         "coding_materials": coding_materials,
+        "formula_resins": formula_resins,
     }
     return render(request, "sidemenu/cmf/formula_dc.html", context)
 
