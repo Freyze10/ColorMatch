@@ -144,9 +144,10 @@ CMF Entry
                             <label class="fw-bold extra-small required-label">Finished Product:</label>
                             <input type="text" name="finished_product" value="{{ form_data.finished_product|default:'' }}" class="form-control form-control-sm uniform-input" required>
                         </div>
-
+    
                         <!-- Primary Color + Description -->
                         <div class="row g-2">
+                            {% if user.role.department != "Sales" %}
                             <div class="col-4">
                                 <label class="fw-bold extra-small required-label">Primary Color:</label>
                                 <select class="form-select form-select-sm ts-select" name="primary_color" placeholder="Select color" required>
@@ -156,7 +157,13 @@ CMF Entry
                                     {% endfor %}
                                 </select>
                             </div>
-                            <div class="col-8">
+                            {% else %}
+                                {% if form_data.primary_color %}
+                                <input type="hidden" name="primary_color" value="{{ form_data.primary_color }}">
+                                {% endif %}
+                            {% endif %}
+
+                            <div class="{% if user.role.department != 'Sales' %}col-8{% else %}col-12{% endif %}">
                                 <label class="fw-bold extra-small required-label">Color Description:</label>
                                 <input type="text" name="color_description" value="{{ form_data.color_description|default:'' }}" class="form-control form-control-sm uniform-input" placeholder="Enter color description..." autocomplete="off" required>
                             </div>
