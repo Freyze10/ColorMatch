@@ -168,7 +168,7 @@ def _auto_complete_cmf_price_first(cmf_numbers, request=None):
                 if log_audit and request and hasattr(request, 'user') and request.user.is_authenticated:
                     log_audit(
                         request,
-                        "Export",
+                        "Exported",
                         f"Updated: Add 'Price' to submitted options for already-completed CMF: {cmf_obj.cm_no} (Price First Export)."
                     )
 
@@ -207,7 +207,7 @@ def _auto_complete_cmf_price_first(cmf_numbers, request=None):
                 if log_audit and request and hasattr(request, 'user') and request.user.is_authenticated:
                     log_audit(
                         request,
-                        "Export",
+                        "Exported",
                         f"Updated: Auto-completed tracking for CMF: {cmf_obj.cm_no} via Price First Excel export."
                     )
 
@@ -333,7 +333,7 @@ def export_formula_by_date(request):
         if log_audit and hasattr(request, 'user') and request.user.is_authenticated:
             log_audit(
                 request,
-                "Export",
+                "Exported",
                 f"Bulk exported formulas from {date_from_str} to {date_to_str} ({len(items)} records)."
             )
         
@@ -383,7 +383,7 @@ def download_price_first_excel(request):
         if log_audit and hasattr(request, 'user') and request.user.is_authenticated:
             log_audit(
                 request,
-                "Export",
+                "Exported",
                 f"Using Price First {cmf_display} without updating tracking status."
             )
 
