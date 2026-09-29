@@ -470,6 +470,11 @@ class tbl_feedback_details(models.Model):
     )
     date_sample_received = models.DateField(blank=True, null=True)
     status = models.CharField(max_length=100, default='pending')
+
+    abandoned_reason = models.TextField(blank=True, null=True)
+    order_form_no = models.CharField(max_length=100, blank=True, null=True)
+    submitted_by = models.CharField(max_length=100, blank=True, null=True)
+    
     comment = models.TextField(blank=True, null=True)
     storage_details = models.CharField(max_length=100, blank=True, null=True)
     
