@@ -1,8 +1,9 @@
+import json
 import re
 from django.http import JsonResponse
 from django.db.models import Q, Max
 from main.models import (
-    tbl_cmf, tbl_cmf_formula, tbl_coding_materials, tbl_mb_extruder_formula, tbl_resins_selected, 
+    tbl_cmf, tbl_cmf_formula, tbl_coding_materials, tbl_dc_extruder_formula, tbl_dc_extruder_version, tbl_mb_extruder_formula, tbl_mb_extruder_formula02, tbl_resins_selected, 
     tbl_cmf_process02, tbl_master_formula, tbl_generated_prod_code, tbl_field_note
 )
 
@@ -155,3 +156,105 @@ def check_lot_number(request):
         exists = qs.exists()
 
     return JsonResponse({'exists': exists})
+
+
+def check_product_code_formula(request):
+    """
+    Checks if a product code already exists in MB/DC formulas and whether
+    its material composition matches the incoming formula.
+    """
+    if request.method != 'POST':
+        return JsonResponse({'error': 'POST required'}, status=400)
+
+    try:
+        payload = json.loads(request.body)
+    except Exception:
+        payload = request.POST
+
+    product_code = (payload.get('product_code') or '').strip()
+    formula_type = (payload.get('formula_type') or 'MB').upper()
+    formula_id = payload.get('formula_id')
+    submitted_materials = payload.get('materials', [])
+
+    if not product_code:
+        return JsonResponse({'exists': False})
+
+    # Helper: normalizes MB ingredients list ignoring zero values
+    def _norm_mb(items):
+        norm = []
+        for item in items:
+            m_name = (item.get('material') or '').strip().lower()
+            try:
+                val = round(float(item.get('value') or item.get('percentage') or 0), 4)
+            except (ValueError, TypeError):
+                val = 0.0
+            if m_name and val != 0:
+                norm.append((m_name, val))
+        return sorted(norm)
+
+    # Helper: normalizes DC versions list ignoring zero values
+    def _norm_dc(items):
+        norm = []
+        for item in items:
+            m_name = (item.get('material') or '').strip().lower()
+            v_no = int(item.get('version_no') or 1)
+            try:
+                val = round(float(item.get('value') or 0), 4)
+            except (ValueError, TypeError):
+                val = 0.0
+            if m_name and val != 0:
+                norm.append((m_name, v_no, val))
+        return sorted(norm)
+
+    if formula_type == 'MB':
+        norm_submitted = _norm_mb(submitted_materials)
+        qs = tbl_mb_extruder_formula.objects.filter(code__product_code__iexact=product_code)
+        if formula_id and str(formula_id).isdigit():
+            qs = qs.exclude(pk=int(formula_id))
+
+        if not qs.exists():
+            return JsonResponse({'exists': False})
+
+        has_same_formula = False
+        for f in qs:
+            db_items = list(tbl_mb_extruder_formula02.objects.filter(mb=f).values('material', 'value'))
+            if _norm_mb(db_items) == norm_submitted:
+                has_same_formula = True
+                break
+
+        return JsonResponse({
+            'exists': True,
+            'is_same': has_same_formula,
+            'count': qs.count()
+        })
+
+    elif formula_type == 'DC':
+        norm_submitted = _norm_dc(submitted_materials)
+        qs = tbl_dc_extruder_formula.objects.filter(code__product_code__iexact=product_code)
+        if formula_id and str(formula_id).isdigit():
+            qs = qs.exclude(pk=int(formula_id))
+
+        if not qs.exists():
+            return JsonResponse({'exists': False})
+
+        has_same_formula = False
+        for f in qs:
+            db_items = list(
+                tbl_dc_extruder_version.objects.filter(material__dc=f)
+                .values('material__material', 'version_no', 'value')
+            )
+            formatted_items = [
+                {'material': d['material__material'], 'version_no': d['version_no'], 'value': d['value']}
+                for d in db_items
+            ]
+            if _norm_dc(formatted_items) == norm_submitted:
+                has_same_formula = True
+                break
+
+        return JsonResponse({
+            'exists': True,
+            'is_same': has_same_formula,
+            'count': qs.count()
+        })
+
+    return JsonResponse({'exists': False})
