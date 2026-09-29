@@ -5,7 +5,7 @@ from django.contrib.auth import get_user_model
 from django.db import IntegrityError, transaction
 from main.utils.log_audit_trail import log_audit
 from ...models import (
-    tbl_cmf, tbl_generated_prod_code,
+    tbl_cmf, tbl_formula_resin, tbl_formula_resin_selected, tbl_generated_prod_code,
     tbl_dc_extruder_formula, tbl_dc_extruder_materials, tbl_dc_extruder_version,
     tbl_coding_materials, tbl_cmf_formula
 )
@@ -82,7 +82,11 @@ def save_dc_complete_formula(request):
             raw_date = post_data.get('date_matched')
             formatted_date = datetime.strptime(raw_date, '%m/%d/%Y').date() if raw_date else None
 
-            # 4. Header Data
+            # 4. Parse Selected Resins (supports single or multi-select)
+            posted_resins_raw = post_data.getlist('formula_resin')
+            posted_resin_ids = [int(r) for r in posted_resins_raw if str(r).isdigit()]
+
+            # 5. Header Data
             header_params = {
                 'date': formatted_date,
                 'cm_no': cmf_obj,
@@ -122,18 +126,27 @@ def save_dc_complete_formula(request):
                         cmf_formula.dosage = posted_dosage
                         cmf_formula.save(update_fields=['dosage'])
 
-            # --- Capture old materials/versions BEFORE any changes, for
-            # the audit-log diff comparison further down.
-            old_snapshot = []
+            # =========================================================
+            # 6. CAPTURE EXISTING DATA BEFORE SAVING (FOR ACCURATE DIFF)
+            # =========================================================
+            old_materials_map = {}
+
             if formula_id:
                 header = tbl_dc_extruder_formula.objects.get(pk=formula_id)
-                old_snapshot = list(
-                    tbl_dc_extruder_version.objects
-                    .filter(material__dc=header)
-                    .select_related('material')
-                    .values('material__material', 'version_no', 'value')
-                )
 
+                # Capture existing materials & non-zero values: {(mat_name, version_no): round(val, 4)}
+                existing_versions = tbl_dc_extruder_version.objects.filter(
+                    material__dc=header
+                ).select_related('material')
+
+                for v in existing_versions:
+                    m_name = (v.material.material or '').strip().lower()
+                    val_float = float(v.value or 0)
+                    if m_name and round(val_float, 4) != 0:
+                        key = (m_name, v.version_no)
+                        old_materials_map[key] = round(old_materials_map.get(key, 0.0) + val_float, 4)
+
+                # Track Header Changes
                 for field, new_val in header_params.items():
                     current_val = getattr(header, field)
                     if field == 'code':
@@ -151,22 +164,52 @@ def save_dc_complete_formula(request):
                         diff_logs.append(f"{get_pretty_name(field)} ({curr_str} -> {new_str})")
                         setattr(header, field, new_val)
                 header.save()
+
+                # --- TRACK & SAVE RESIN SELECTION CHANGES ---
+                existing_resins = list(
+                    tbl_formula_resin_selected.objects.filter(dc_no=header)
+                    .select_related('formula_resin_id')
+                )
+                existing_resin_ids = [r.formula_resin_id.pk for r in existing_resins]
+
+                if set(existing_resin_ids) != set(posted_resin_ids):
+                    old_names = [r.formula_resin_id.resin for r in existing_resins if r.formula_resin_id]
+                    new_names = list(
+                        tbl_formula_resin.objects.filter(formula_resin_id__in=posted_resin_ids)
+                        .values_list('resin', flat=True)
+                    )
+                    diff_logs.append(
+                        f"Resin Used ({', '.join(old_names) or '---'} -> {', '.join(new_names) or '---'})"
+                    )
+
+                    # Replace old selections with new selections
+                    tbl_formula_resin_selected.objects.filter(dc_no=header).delete()
+                    new_records = [
+                        tbl_formula_resin_selected(dc_no=header, formula_resin_id_id=rid)
+                        for rid in posted_resin_ids
+                    ]
+                    tbl_formula_resin_selected.objects.bulk_create(new_records)
                 action_type = "Updated"
             else:
                 header = tbl_dc_extruder_formula.objects.create(**header_params)
+                # Save Selected Resins
+                if posted_resin_ids:
+                    new_records = [
+                        tbl_formula_resin_selected(dc_no=header, formula_resin_id_id=rid)
+                        for rid in posted_resin_ids
+                    ]
+                    tbl_formula_resin_selected.objects.bulk_create(new_records)
                 action_type = "Saved"
 
-            # --- MATERIALS & VERSIONS ---
-            # Delete-and-recreate, same pattern as the original ingredients
-            # logic: whatever grid cells were actually filled in on submit
-            # become the new source of truth. A material added only under
-            # version 3, for example, simply has no version rows for 1-2
-            # because those cells were left blank — no explicit "no
-            # relation" bookkeeping needed beyond that.
+            # =========================================================
+            #  PARSE SUBMITTED MATERIALS & VERSIONS
+            # =========================================================
+            new_materials_map = {}
+
+            # Clear old records to write the new grid
             tbl_dc_extruder_version.objects.filter(material__dc=header).delete()
             tbl_dc_extruder_materials.objects.filter(dc=header).delete()
 
-            new_snapshot = []
             for row in range(1, MAX_MATERIAL_ROWS + 1):
                 mat_name = post_data.get(f'material_{row}', '').strip()
                 if not mat_name:
@@ -178,25 +221,25 @@ def save_dc_complete_formula(request):
                     raw_val = clean_num(post_data.get(f'value_{row}_{version_no}'))
                     if raw_val is None:
                         continue
-                    value_decimal = Decimal(raw_val)
+                    try:
+                        val_float = float(raw_val)
+                        value_decimal = Decimal(raw_val)
+                    except (ValueError, TypeError):
+                        continue
+
                     tbl_dc_extruder_version.objects.create(
                         material=material_obj,
                         version_no=version_no,
                         value=value_decimal,
                     )
-                    new_snapshot.append({
-                        'material__material': mat_name,
-                        'version_no': version_no,
-                        'value': value_decimal,
-                    })
-            # Audit Diff Comparison
-            def _norm(snapshot):
-                return sorted(
-                    (s['material__material'], s['version_no'], str(s['value']))
-                    for s in snapshot
-                )
 
-            ingredients_changed = _norm(old_snapshot) != _norm(new_snapshot)
+                    # Only track non-zero values in the comparison map
+                    if round(val_float, 4) != 0:
+                        key = (mat_name.lower(), version_no)
+                        new_materials_map[key] = round(new_materials_map.get(key, 0.0) + val_float, 4)
+
+            # Strict Numerical Comparison: ignores zeros and decimal precision formatting
+            ingredients_changed = (old_materials_map != new_materials_map)
 
             # --- FINAL LOGGING ---
             code_display = prod_code_obj.product_code if prod_code_obj else "---"
@@ -212,6 +255,8 @@ def save_dc_complete_formula(request):
                         msg += "Material composition updated."
             else:
                 msg = f"New DC Formula (CMF: {cm_display} | Code: {code_display} )."
+                if diff_logs:
+                    msg += f" Changes: {', '.join(diff_logs)}."
 
             log_audit(request, action_type, msg)
             return header
