@@ -5,7 +5,7 @@ from django.contrib.auth import get_user_model
 from django.db import IntegrityError, transaction
 from main.utils.log_audit_trail import log_audit
 from ...models import (
-    tbl_cmf, tbl_cmf_formula, tbl_generated_prod_code,
+    tbl_cmf, tbl_cmf_formula, tbl_formula_resin, tbl_formula_resin_selected, tbl_generated_prod_code,
     tbl_mb_extruder_formula, tbl_mb_extruder_formula02
 )
 User = get_user_model()
@@ -42,6 +42,25 @@ def save_mb_complete_formula(request):
         }
         return mapping.get(field, field.replace('_', ' ').title())
 
+    # Normalizer for materials: ignores 0 values and formats numbers identically
+    def _norm_ings(ing_list):
+        normalized = []
+        for item in ing_list:
+            m_name = (item.get('material') or '').strip().lower()
+            try:
+                val_f = round(float(item.get('value') or 0), 4)
+            except (ValueError, TypeError):
+                val_f = 0.0
+            try:
+                wgt_f = round(float(item.get('weight') or 0), 4)
+            except (ValueError, TypeError):
+                wgt_f = 0.0
+
+            # Only track if material exists and either value or weight is non-zero
+            if m_name and (val_f != 0 or wgt_f != 0):
+                normalized.append((m_name, val_f, wgt_f))
+        return sorted(normalized)
+
     try:
         with transaction.atomic():
             # 1. Resolve Product Code
@@ -73,7 +92,12 @@ def save_mb_complete_formula(request):
             raw_date = post_data.get('date')
             formatted_date = datetime.strptime(raw_date, '%m/%d/%Y').date() if raw_date else None
 
-            # 4. Header Params
+            # 4. Parse Selected Resins (supports single or multi-select)
+            posted_resins_raw = post_data.getlist('formula_resin')
+            posted_resin_ids = [int(r) for r in posted_resins_raw if str(r).isdigit()]
+
+
+            # 5. Header Params
             header_params = {
                 'date': formatted_date,
                 'cm_no': cmf_obj,
@@ -102,7 +126,7 @@ def save_mb_complete_formula(request):
             diff_logs = []
             ingredients_changed = False
 
-            # --- 4.5 SYNC DOSAGE BACK TO THE CMF-LEVEL FORMULA RECORD ---
+            # --- 5.5 SYNC DOSAGE BACK TO THE CMF-LEVEL FORMULA RECORD ---
             # touch it (and only log it) if the posted value actually
             # differs from what's on file.
             if cmf_obj:
@@ -115,6 +139,16 @@ def save_mb_complete_formula(request):
                         )
                         cmf_formula.dosage = posted_dosage
                         cmf_formula.save(update_fields=['dosage'])
+            # Gather newly submitted ingredient rows
+            new_ings = []
+            for i in range(1, 11):
+                mat = post_data.get(f'material_{i}', '').strip()
+                if mat:
+                    new_ings.append({
+                        'material': mat,
+                        'value': Decimal(clean_num(post_data.get(f'percentage_{i}')) or 0),
+                        'weight': Decimal(clean_num(post_data.get(f'weight_{i}')) or 0)
+                    })
 
             if formula_id:
                 header = tbl_mb_extruder_formula.objects.get(pk=formula_id)
@@ -138,23 +172,37 @@ def save_mb_complete_formula(request):
                         setattr(header, field, new_val)
                 header.save()
 
+                # --- TRACK & SAVE RESIN SELECTION CHANGES ---
+                existing_resins = list(
+                    tbl_formula_resin_selected.objects.filter(mb_no=header)
+                    .select_related('formula_resin_id')
+                )
+                existing_resin_ids = [r.formula_resin_id.pk for r in existing_resins]
+
+                if set(existing_resin_ids) != set(posted_resin_ids):
+                    old_names = [r.formula_resin_id.resin for r in existing_resins if r.formula_resin_id]
+                    new_names = list(
+                        tbl_formula_resin.objects.filter(formula_resin_id__in=posted_resin_ids)
+                        .values_list('resin', flat=True)
+                    )
+                    diff_logs.append(
+                        f"Resin Used ({', '.join(old_names) or '---'} -> {', '.join(new_names) or '---'})"
+                    )
+
+                    # Replace old selections with new selections
+                    tbl_formula_resin_selected.objects.filter(mb_no=header).delete()
+                    new_records = [
+                        tbl_formula_resin_selected(mb_no=header, formula_resin_id_id=rid)
+                        for rid in posted_resin_ids
+                    ]
+                    tbl_formula_resin_selected.objects.bulk_create(new_records)
+                
                 # --- TRACK INGREDIENT CHANGES ---
                 old_ings = list(tbl_mb_extruder_formula02.objects.filter(mb=header).values('material', 'value', 'weight'))
-                
-                new_ings = []
-                for i in range(1, 11):
-                    mat = post_data.get(f'material_{i}', '').strip()
-                    if mat:
-                        new_ings.append({
-                            'material': mat,
-                            'value': Decimal(clean_num(post_data.get(f'percentage_{i}')) or 0),
-                            'weight': Decimal(clean_num(post_data.get(f'weight_{i}')) or 0)
-                        })
+                # Compare ignoring zero/blank values and rounding discrepancies
+                ingredients_changed = _norm_ings(old_ings) != _norm_ings(new_ings)
 
-                # Deep compare lists
-                if json.dumps([(i['material'], str(i['value']), str(i['weight'])) for i in old_ings]) != \
-                   json.dumps([(i['material'], str(i['value']), str(i['weight'])) for i in new_ings]):
-                    ingredients_changed = True
+                if ingredients_changed:
                     tbl_mb_extruder_formula02.objects.filter(mb=header).delete()
                     for ing in new_ings:
                         tbl_mb_extruder_formula02.objects.create(mb=header, **ing)
@@ -162,15 +210,17 @@ def save_mb_complete_formula(request):
                 action_type = "Updated"
             else:
                 header = tbl_mb_extruder_formula.objects.create(**header_params)
-                for i in range(1, 11):
-                    mat = post_data.get(f'material_{i}', '').strip()
-                    if mat:
-                        tbl_mb_extruder_formula02.objects.create(
-                            mb=header,
-                            material=mat,
-                            value=clean_num(post_data.get(f'percentage_{i}')) or 0,
-                            weight=clean_num(post_data.get(f'weight_{i}')) or 0
-                        )
+                 # Save Selected Resins
+                if posted_resin_ids:
+                    new_records = [
+                        tbl_formula_resin_selected(mb_no=header, formula_resin_id_id=rid)
+                        for rid in posted_resin_ids
+                    ]
+                    tbl_formula_resin_selected.objects.bulk_create(new_records)
+
+                for ing in new_ings:
+                    tbl_mb_extruder_formula02.objects.create(mb=header, **ing)
+                    
                 action_type = "Saved"
 
             # --- FINAL LOGGING ---
