@@ -92,7 +92,7 @@
 
             table.querySelectorAll('.js-version-total').forEach(totalInput => {
                 const v = totalInput.dataset.version;
-                totalInput.value = (totals[v] || 0).toFixed(6);
+                totalInput.value = (totals[v] || 0).toFixed(4);
             });
         }
     }
@@ -161,6 +161,103 @@
             if (visibleInput) visibleInput.value = hidden.value;
         }
     });
+    // final icon toggle logic
+    const finalIcon = document.querySelector('.formula-final-star');
+    const finalInput = document.querySelector('input[name="is_final"]');
+
+    if (finalIcon && finalInput) {
+        finalIcon.addEventListener('click', function() {
+            // 1. Check current state from hidden input
+            const isCurrentlyFinal = finalInput.value === 'true';
+            
+            // 2. Toggle state
+            const newState = !isCurrentlyFinal;
+            finalInput.value = newState ? 'true' : 'false';
+
+            // 3. Update UI (Classes and Title)
+            if (newState) {
+                // Change to Filled Star
+                this.classList.remove('bi-star', 'text-muted');
+                this.classList.add('bi-star-fill', 'text-warning');
+                this.title = "Final formula — click to unmark";
+                Preline.toast("Marked as Final Formula", "success");
+            } else {
+                // Change to Empty Star
+                this.classList.remove('bi-star-fill', 'text-warning');
+                this.classList.add('bi-star', 'text-muted');
+                this.title = "Mark as final formula";
+                Preline.toast("Unmarked from Final", "info");
+            }
+        });
+    }
+
+    // --- CHECK EXISTING LOT NUMBER ---
+    const lotNumberInput = document.getElementById('id_lot_number');
+
+    async function checkExistingLotNumber() {
+        if (!lotNumberInput) return;
+        const lotNo = lotNumberInput.value.trim();
+        if (!lotNo || lotNo.toUpperCase() === 'N/A') return;
+
+        // Pass formula_id so editing an existing record won't flag its own lot number
+        const formulaId = document.querySelector('input[name="formula_id"]')?.value || '';
+
+        try {
+            let url = `/cmf/mb-dc-formula/check-lot-number/?lot_no=${encodeURIComponent(lotNo)}`;
+            if (formulaId) url += `&formula_id=${encodeURIComponent(formulaId)}`;
+
+            const response = await fetch(url);
+            if (!response.ok) return;
+            const data = await response.json();
+
+            if (data.exists) {
+                if (saveBtn) saveBtn.disabled = true;
+
+                if (typeof Preline !== 'undefined' && typeof Preline.alert === 'function') {
+                    Preline.alert(
+                        'Duplicate Lot Number',
+                        `Lot Number "${lotNo}" already exists! Please use a unique lot number.`,
+                        'danger',
+                        () => { setTimeout(() => lotNumberInput.focus(), 10); }
+                    );
+                } else if (typeof Preline !== 'undefined' && typeof Preline.toast === 'function') {
+                    Preline.toast(`Lot Number "${lotNo}" already exists!`, 'error');
+                    setTimeout(() => lotNumberInput.focus(), 10);
+                }
+            } else {
+                if (saveBtn) saveBtn.disabled = false;
+            }
+        } catch (err) {
+            console.error('Error checking lot number:', err);
+        }
+    }
+
+    if (lotNumberInput) {
+        // Real-time check as the user types (600ms debounce)
+        const handleLotInput = debounce(() => {
+            checkExistingLotNumber();
+        }, 600);
+
+        lotNumberInput.addEventListener('input', handleLotInput);
+        lotNumberInput.addEventListener('blur', checkExistingLotNumber);
+    }
+
+    // --- FORMAT TOTAL WEIGHT TO 4 DECIMALS ---
+    const totalWeightInput = document.querySelector('.total-weight-input');
+    if (totalWeightInput) {
+        // 1. Restrict typing to numbers and a single decimal point
+        totalWeightInput.addEventListener('keypress', restrictToNumbers);
+
+        // 2. Format to 4 decimal places when user leaves the field
+        totalWeightInput.addEventListener('blur', function () {
+            const val = parseFloat(this.value);
+            if (!isNaN(val)) {
+                this.value = val.toFixed(4);
+            } else {
+                this.value = '';
+            }
+        });
+    }
 
     // --- 4. SAVE / NEW / PRINT BUTTONS ---
     const saveBtn = document.querySelector('.btn-save-formula');
@@ -187,11 +284,11 @@
                 const totalPct = parseFloat(document.querySelector('.js-total-percent-summary')?.value) || 0;
                 const totalWgt = parseFloat(document.querySelector('.js-total-weight-summary')?.value) || 0;
                 
-                if (totalPct.toFixed(2) !== "100.00") {
+                if (totalPct.toFixed(4) !== "100.0000") {
                     Preline.toast(`MB Error: Total percentage must be 100%. Current: ${totalPct}%`, 'error');
                     return;
                 }
-                if (totalWgt.toFixed(2) !== masterWgt.toFixed(2)) {
+                if (totalWgt.toFixed(4) !== masterWgt.toFixed(4)) {
                     Preline.toast(`MB Error: Summary weight mismatch.`, 'error');
                     return;
                 }
@@ -246,7 +343,12 @@
                 Preline.confirm('Not Yet Saved', 'Please save this formula before printing.', 'warning', () => {});
                 return;
             }
-            openFormulaPreview(config.urlPrefix, config.formulaId);
+            // function for print preview using Com/ms office and modifying the template in print excel
+            // openFormulaPreview(config.urlPrefix, config.formulaId);
+            
+            // print using html css for flexible print
+            printFormula(config.urlPrefix, config.formulaId);
+
         });
     }
 
@@ -259,31 +361,57 @@
         };
     }
 
-    function openFormulaPreview(urlPrefix, formulaId) {
-        const previewUrl = `/${urlPrefix}/print/${encodeURIComponent(formulaId)}/preview`;
-        showLoader();
-        const dialog = document.createElement('dialog');
-        dialog.className = 'p-0 border-0 rounded-3 shadow-lg';
-        dialog.style.width = '90vw'; dialog.style.height = '90vh'; dialog.style.maxWidth = '1200px';
-        dialog.innerHTML = `
-            <div class="d-flex flex-column w-100 h-100">
-                <div class="d-flex justify-content-end gap-2 p-2 bg-dark">
-                    <button id="formulaPreviewPrintBtn" class="btn btn-primary btn-sm"><i class="bi bi-printer"></i> Print</button>
-                    <button id="formulaPreviewCloseBtn" class="btn btn-secondary btn-sm">Close</button>
-                </div>
-                <iframe id="formulaPreviewFrame" src="${previewUrl}" class="flex-grow-1 w-100 border-0"></iframe>
-            </div>
-        `;
-        document.body.appendChild(dialog);
-        const iframe = dialog.querySelector('#formulaPreviewFrame');
-        iframe.addEventListener('load', () => { hideLoader(); dialog.showModal(); });
-        dialog.querySelector('#formulaPreviewPrintBtn').addEventListener('click', () => {
-            iframe.contentWindow.print();
-            fetch(`/formula-log-print/${urlPrefix}/${formulaId}/`);
-        });
-        dialog.querySelector('#formulaPreviewCloseBtn').addEventListener('click', () => dialog.close());
-        dialog.addEventListener('close', () => dialog.remove());
+    function printFormula(urlPrefix, formulaId) {
+        const oldFrame = document.getElementById('formulaPrintFrame');
+        if (oldFrame) oldFrame.remove();
+
+        const iframe = document.createElement('iframe');
+        iframe.id = 'formulaPrintFrame';
+        iframe.style.display = 'none'
+        iframe.src = `/${urlPrefix}/print/${formulaId}/`;
+
+        iframe.onload = function () {
+            setTimeout(() => {
+                iframe.contentWindow.focus();
+                iframe.contentWindow.print();
+
+                const csrfToken = document.querySelector('[name=csrfmiddlewaretoken]')?.value;
+                fetch(`/${urlPrefix}/log-print/${formulaId}/`, {
+                    method: 'POST',
+                    headers: { 'X-CSRFToken': csrfToken }
+                });
+            }, 500);
+        };
+
+        document.body.appendChild(iframe);
     }
+
+    // function for print preview using Com/ms office and modifying the template in print excel
+    // function openFormulaPreview(urlPrefix, formulaId) {
+    //     const previewUrl = `/${urlPrefix}/print/${encodeURIComponent(formulaId)}/preview`;
+    //     showLoader();
+    //     const dialog = document.createElement('dialog');
+    //     dialog.className = 'p-0 border-0 rounded-3 shadow-lg';
+    //     dialog.style.width = '90vw'; dialog.style.height = '90vh'; dialog.style.maxWidth = '1200px';
+    //     dialog.innerHTML = `
+    //         <div class="d-flex flex-column w-100 h-100">
+    //             <div class="d-flex justify-content-end gap-2 p-2 bg-dark">
+    //                 <button id="formulaPreviewPrintBtn" class="btn btn-primary btn-sm"><i class="bi bi-printer"></i> Print</button>
+    //                 <button id="formulaPreviewCloseBtn" class="btn btn-secondary btn-sm">Close</button>
+    //             </div>
+    //             <iframe id="formulaPreviewFrame" src="${previewUrl}" class="flex-grow-1 w-100 border-0"></iframe>
+    //         </div>
+    //     `;
+    //     document.body.appendChild(dialog);
+    //     const iframe = dialog.querySelector('#formulaPreviewFrame');
+    //     iframe.addEventListener('load', () => { hideLoader(); dialog.showModal(); });
+    //     dialog.querySelector('#formulaPreviewPrintBtn').addEventListener('click', () => {
+    //         iframe.contentWindow.print();
+    //         fetch(`//${urlPrefix}/log-print/${formulaId}/`);
+    //     });
+    //     dialog.querySelector('#formulaPreviewCloseBtn').addEventListener('click', () => dialog.close());
+    //     dialog.addEventListener('close', () => dialog.remove());
+    // }
 
     // --- 5. INITIALIZATION ---
     const initialTable = document.querySelector('.js-formula-table');
@@ -293,13 +421,54 @@
     if (document.querySelector('.js-dc-formula')) {
         applyDcReadonlyLogic();
     }
-
-
+    
+    
     //  Shared AJAX Auto-population Logic for MB and DC
     const cmfSelectMB = document.getElementById('id_mb_cmf_number');
     const cmfSelectDC = document.getElementById('id_dc_cmf_number');
     const isDC = !!cmfSelectDC;
     const cmfSelectEl = cmfSelectMB || cmfSelectDC;
+// Target fields map
+    const targetFieldIds = [
+        isDC ? 'id_dc_customer' : 'id_customer',
+        isDC ? 'id_dc_resin' : 'id_resin_used',
+        isDC ? 'id_dc_color' : 'id_color',
+        isDC ? 'id_dc_dosage' : 'id_dosage',
+        isDC ? 'id_dc_application' : 'id_application',
+        isDC ? 'id_dc_product_used' : 'id_finished_product',
+    ];
+
+    /**
+     * Enable or disable fields based on selection
+     */
+    function setFieldsEditable(isEditable) {
+        targetFieldIds.forEach(id => {
+            const el = document.getElementById(id);
+            if (!el) return;
+
+            if (isEditable) {
+                el.removeAttribute('readonly');
+                el.removeAttribute('disabled');
+                el.readOnly = false;
+                el.disabled = false;
+                // Clean up typical read-only/disabled styles (Tailwind/Preline)
+                el.classList.remove('readonly-gray');
+            } else {
+                el.setAttribute('readonly', 'readonly');
+                el.readOnly = true;
+                el.classList.add('readonly-gray');
+            }
+        });
+    }
+
+    /**
+     * Checks if the selected value is N/A
+     */
+    function isNA(val) {
+        if (!val) return false;
+        const clean = String(val).trim().toLowerCase();
+        return clean === 'n/a' || clean === 'N/A' || clean === 'na' || clean === 'none';
+    }
 
     async function fetchCmfDetails(cmfNo, matId = null) {
         const fields = {
@@ -309,7 +478,7 @@
             product: isDC ? 'id_dc_product_code' : 'id_product',
             dosage: isDC ? 'id_dc_dosage' : 'id_dosage',
             application: isDC ? 'id_dc_application' : 'id_application',
-            finished_product: isDC ? 'id_dc_finished_product' : 'id_finished_product',
+            finished_product: isDC ? 'id_dc_product_used' : 'id_finished_product',
             lot_no: 'id_lot_number' 
         };
         const setVal = (id, val) => {
@@ -382,6 +551,12 @@
                     cmfSelectEl.tomselect.on('change', function(value) {
                         if (!value) return;
 
+                        if (isNA(value)) {
+                            setFieldsEditable(true);
+                            return;
+                        }
+                        // --- If a valid CMF record is chosen, relock fields and prompt ---
+                        setFieldsEditable(false);
                        
                         Preline.confirm(
                             'Load Record Details?',
@@ -424,31 +599,6 @@
             }, 100);
         }
 
-        // 2. Handle Manual Selection Changes
-        if (cmfSelectEl.tagName === 'SELECT') {
-            const checkTSManual = setInterval(() => {
-                if (cmfSelectEl.tomselect) {
-                    clearInterval(checkTSManual);
-                    
-                    cmfSelectEl.tomselect.on('change', function(value) {
-                        if (!value) return;
-
-                        // Check if value was already populated by Django (for RS)
-                        // If it's a manual change by user, we always show confirmation
-                        if (window.Preline && typeof Preline.confirm === 'function') {
-                            Preline.confirm(
-                                'Load Record Details?',
-                                `Do you want to automatically fill the form with details from CMF #${value}?`,
-                                'info',
-                                () => fetchCmfDetails(value),
-                                () => {}
-                            );
-                        } else {
-                        }
-                    });
-                }
-            }, 100);
-        }
     };
 
     // Run when page is ready

@@ -16,6 +16,7 @@
     --text-muted: #64748b;
     --navbar-bg: #ffffff;
     --table-header: #94a3b8;
+    --setting-section-title: #495057;
 
     /* Global Button Colors */
     --btn-teal: #0d9488;
@@ -23,6 +24,10 @@
     --btn-dark-teal: #134e4a;
     --btn-success: #10b981;
     --btn-primary: #3b82f6;
+
+    --scrollbar-bg: #e2e8f0;
+    --scrollbar-thumb: #cbd5e1;
+    --scrollbar-thumb-hover: #94a3b8;
 }
 
 body.dark-mode {
@@ -40,6 +45,7 @@ body.dark-mode {
     --text-muted: #94a3b8;
     --navbar-bg: #1e293b;
     --table-header: #334155;
+    --setting-section-title: #e9e9e9;
 
      /* Bootstrap variables Tom Select reads directly */
     --bs-body-bg: #0f172a;
@@ -49,6 +55,10 @@ body.dark-mode {
     --bs-tertiary-bg: #334155;
     --bs-secondary-bg: #1e293b;
     --bs-secondary-color: #94a3b8;
+
+    --scrollbar-bg: #0f172a;     
+    --scrollbar-thumb: #334155;   
+    --scrollbar-thumb-hover: #475569;
 }
 
 /* ===================================
@@ -72,6 +82,7 @@ body {
 /* ===================================
    3. GLOBAL FORM COMPONENTS (Uniform)
 =================================== */
+
 .uniform-input, 
 .input-group-text.uniform-input,
 select.uniform-input {
@@ -109,7 +120,7 @@ select.uniform-input {
 }
 
 /* Global Button Overrides */
-.btn-teal { background-color: var(--btn-teal); color: white !important; border: none; border-radius: 0.4rem; }
+.btn-teal { background-color: var(--btn-teal); border: none; border-radius: 0.4rem; }
 .btn-teal:hover { background-color: var(--btn-teal-hover); }
 .btn-teal:active { background-color: var(--btn-teal-hover) !important; }
 
@@ -238,6 +249,33 @@ body.dark-mode .ts-dropdown .active {
 .bg-purple-subtle { background-color: #f3e8ff !important; }
 .text-purple { color: #7e22ce !important; }
 .border-purple-subtle { border-color: #e9d5ff !important; }
+
+/* Custom Scrollbar Styles */
+
+/* For Webkit Browsers (Chrome, Edge, Safari) */
+::-webkit-scrollbar {
+    width: 8px;
+    height: 8px;
+}
+
+::-webkit-scrollbar-track {
+    background: var(--scrollbar-bg);
+}
+
+::-webkit-scrollbar-thumb {
+    background: var(--scrollbar-thumb);
+    border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+    background: var(--scrollbar-thumb-hover);
+}
+
+/* Firefox */
+* {
+    scrollbar-width: thin;
+    scrollbar-color: var(--scrollbar-thumb) var(--scrollbar-bg);
+}
 /* ===================================
    5. SIDEBAR STRUCTURE
 =================================== */
@@ -279,8 +317,50 @@ body.dark-mode .ts-dropdown .active {
 .navbar { background: var(--navbar-bg); border-bottom: 1px solid var(--sidebar-border); height: 64px; display: flex; align-items: center; padding: 0 1.5rem; position: sticky; top: 0; z-index: 1030; transition: transform 0.3s ease-in-out; width: 100%; }
 .nav-hidden { transform: translateY(-100%); }
 
+.ts-dropdown,
+.ts-dropdown .ts-dropdown-content,
+.ts-control,
+.ts-wrapper {
+    transition: none !important;
+    animation: none !important;
+}
 /* ===================================
    7. RESPONSIVE
 =================================== */
-@media (max-width: 991.98px) { .sidebar { transform: translateX(-100%); } .sidebar.show { transform: translateX(0); } .main { margin-left: 0 !important; } .sidebar-overlay.show { display: block; } .content { padding-top: 1rem !important; } }
-@media (min-width: 992px) { .sidebar.collapsed { width: 80px; } .sidebar.collapsed ~ .main { margin-left: 80px; } .sidebar.collapsed .logo-text, .sidebar.collapsed span, .sidebar.collapsed .user-info, .sidebar.collapsed .arrow-icon, .sidebar.collapsed .user-name, .sidebar.collapsed .user-role { display: none !important; } .sidebar.collapsed .nav-link { justify-content: center; } .sidebar.collapsed .sidebar-footer .dropdown-toggle::after { display: none !important; } }
+@media (max-width: 991.98px) {
+    .sidebar {
+        transform: translateX(-100%);
+    }
+
+    .sidebar.show {
+        transform: translateX(0);
+    }
+
+    .main {
+        margin-left: 0 !important;
+    }
+
+    .sidebar-overlay.show {
+        display: block;
+    }
+
+    .content {
+        padding-top: 1rem !important;
+    }
+    #globalBackBtn { display: none !important; }
+}
+
+@media (min-width: 992px) {
+    .sidebar.collapsed {
+        width: 80px;
+    }
+
+    .sidebar.collapsed~.main {
+        margin-left: 80px;
+    }
+
+    .sidebar.collapsed .logo-text,
+    .sidebar.collapsed span,
+    .sidebar.collapsed .user-info,
+    .sidebar.collapsed .arrow-icon,
+    .sidebar.collapsed .user-name, .sidebar.collapsed .user-role { display: none !important; } .sidebar.collapsed .nav-link { justify-content: center; } .sidebar.collapsed .sidebar-footer .dropdown-toggle::after { display: none !important; } }

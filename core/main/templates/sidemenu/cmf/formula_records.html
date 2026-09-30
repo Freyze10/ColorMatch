@@ -1,6 +1,10 @@
 {% extends "base.html" %}
+{% load static %}
 {% block navigation %} 
 Formula Records
+{% block style %}
+<link rel="stylesheet" href="{% static 'css/cmf/formula_records.css' %}">
+{% endblock %}
 {% endblock navigation %}
 {% block content %}
 <div class="container-fluid h-100 d-flex flex-column p-3 bg-light">
@@ -38,7 +42,7 @@ Formula Records
     </div>
 
     <!-- MAIN BODY -->
-    <div class="row g-3 flex-grow-1 overflow-hidden min-vh-0">
+    <div class="row g-3 flex-grow-1 overflow-hidden min-vh-0" style="height: 70vh; max-height: 80vh;">
         <!-- MAIN TABLE -->
         <div class="col-lg-9 h-100 d-flex flex-column">
             <div class="rounded-3 border h-100 bg-white shadow-sm d-flex flex-column overflow-hidden">
@@ -118,33 +122,6 @@ Formula Records
 
 {% include "modal/cmf-record/formula_pricefirst.html" %}
 
-<style>
-    select.uniform-input {
-        line-height: 1.5 !important;
-        padding-top: 0.25rem !important;
-        padding-bottom: 0.25rem !important;
-        background-color: #fff !important;
-    }
-
-    .flex-shrink-0 {
-        position: relative;
-        z-index: 20;
-    }
-    .no-wrap { white-space: nowrap !important; width: 1%; padding-right: 15px !important; }
-    .text-teal { color: #2c7a7b; }
-    .btn-dark-teal { background-color: #234e52; }
-    .btn-outline-teal { color: #2c7a7b; border-color: #2c7a7b; }
-    .btn-outline-teal:hover, .btn-outline-teal.active { background-color: #2c7a7b; color: #fff; }
-    .table-active { background-color: #f0fff4 !important; border-left: 3px solid #38b2ac !important; }
-    .table-selected { background-color: #e6fffa !important; }
-    .color-swatch-rect { width: 45px; height: 18px; border-radius: 2px; border: 1px solid #dee2e6; display: inline-block; vertical-align: middle; }
-    .uniform-input { font-size: 0.8rem; border-radius: 6px; }
-
-    .dataTables_wrapper { height: 100%; display: flex; flex-direction: column; }
-    .dataTables_scroll { flex-grow: 1; display: flex; flex-direction: column; }
-    .dataTables_scrollBody { flex-grow: 1; }
-</style>
-
 <script>
 $(document).ready(function() {
     let selectionMode = false;
@@ -206,7 +183,7 @@ $(document).ready(function() {
         ],
         dom: 'rtp',
         pageLength: 100,
-        scrollY: '100%',
+        scrollY: 'calc(80vh - 110px)',
         scrollCollapse: true,
         order: [[1, 'desc']],
         language: {
@@ -220,6 +197,10 @@ $(document).ready(function() {
                 $('#tableInfo').text(`Showing ${info.recordsDisplay.toLocaleString()} of ${info.recordsTotal.toLocaleString()} formulas`);
             }
             syncSelectAllCheckbox();
+            
+            // Re-align header columns with scrollbody columns
+            const api = this.api();
+            setTimeout(() => api.columns.adjust(), 20);
         }
     });
 
