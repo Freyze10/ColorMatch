@@ -82,9 +82,28 @@ def save_dc_complete_formula(request):
             raw_date = post_data.get('date_matched')
             formatted_date = datetime.strptime(raw_date, '%m/%d/%Y').date() if raw_date else None
 
-            # 4. Parse Selected Resins (supports single or multi-select)
+            # 4. RESOLVE RESINS (EXISTING ID OR NEW CUSTOM ENTRY)
             posted_resins_raw = post_data.getlist('formula_resin')
-            posted_resin_ids = [int(r) for r in posted_resins_raw if str(r).isdigit()]
+            posted_resin_ids = []
+
+            for raw_val in posted_resins_raw:
+                val_str = str(raw_val).strip()
+                if not val_str:
+                    continue
+
+                if val_str.isdigit():
+                    # Existing Resin ID
+                    r_id = int(val_str)
+                    if tbl_formula_resin.objects.filter(pk=r_id).exists():
+                        posted_resin_ids.append(r_id)
+                else:
+                    # New Custom Resin Entry -> Check if already exists (case-insensitive) or create new
+                    existing_r = tbl_formula_resin.objects.filter(resin__iexact=val_str).first()
+                    if existing_r:
+                        posted_resin_ids.append(existing_r.formula_resin_id)
+                    else:
+                        new_r = tbl_formula_resin.objects.create(resin=val_str)
+                        posted_resin_ids.append(new_r.formula_resin_id)
 
             # 5. Header Data
             header_params = {
