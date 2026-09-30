@@ -104,7 +104,16 @@ const Preline = {
     // 3. CONFIRMATION MODAL
     confirm: function(title, message, type, onConfirm, onCancel) {
         const modalEl = document.getElementById('dynamicModal');
-        const modal = new bootstrap.Modal(modalEl);
+        if (!modalEl) return;
+        
+        // Flexible argument handling: if 3rd argument is a function, shift arguments
+        if (typeof type === 'function') {
+            onCancel = onConfirm;
+            onConfirm = type;
+            type = 'success';
+        }
+        
+        const modal = bootstrap.Modal.getOrCreateInstance(modalEl);
         
         document.getElementById('modalTitle').innerText = title;
         document.getElementById('modalMessage').innerText = message;
@@ -114,21 +123,22 @@ const Preline = {
         
         // 1. Normalize type
         const cleanType = (type === 'error') ? 'danger' : (type || 'success');
-        let circleClass = cleanType === 'question' ? 'icon-info' : 'icon-' + cleanType;
-        // 2. Set Circle Color Class (Ensure .icon-info exists in your CSS)
-        iconContainer.className = 'modal-icon-circle icon-' + circleClass;
+        const circleType = (cleanType === 'question') ? 'info' : cleanType;
+
+        // 2. Set Circle Color Class
+        iconContainer.className = 'modal-icon-circle icon-' + circleType;
         
-        // 3. Set the specific Icon (ADDED 'info' HERE)
+        // 3. Set the specific Icon
         if (cleanType === 'danger') {
-            icon.className = 'bi bi-exclamation-triangle'; // Error Triangle
+            icon.className = 'bi bi-exclamation-triangle';
         } else if (cleanType === 'warning') {
             icon.className = 'bi bi-exclamation-circle';
         } else if (cleanType === 'question') {
-            icon.className = 'bi bi-question-circle'; // Question Mark icon   // Warning Circle
+            icon.className = 'bi bi-question-circle';
         } else if (cleanType === 'info') {
-            icon.className = 'bi bi-info-circle';          // Info Circle <--- ADDED
+            icon.className = 'bi bi-info-circle';
         } else {
-            icon.className = 'bi bi-check-lg';              // Success Check
+            icon.className = 'bi bi-check-lg';
         }
 
         const confirmBtn = document.getElementById('modalConfirmBtn');

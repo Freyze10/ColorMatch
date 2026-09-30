@@ -2,7 +2,7 @@
     background-color: var(--card-bg);
     border-radius: 0.5rem;
     min-height: 280px;
-    max-height: 70vh;
+    max-height: 80vh;
     border: 1px solid var(--sidebar-border);
     overflow: hidden;
 }
