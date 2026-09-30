@@ -190,12 +190,15 @@ def cmf_entry(request):
             if original_cmf_no and is_new == '0':
                 saved_record = cmf_entry_save.update_cmf_complete_entry(request, original_cmf_no)
                 messages.success(request, f"Successfully updated CMF No. {saved_record.cm_no}")
+                cache.delete('cmf_records_list')
+                return redirect('cmf_records')
             else:
                 saved_record = cmf_entry_save.save_cmf_complete_entry(request)
                 messages.success(request, f"Successfully saved CMF No. {saved_record.cm_no}")
+                cache.delete('cmf_records_list')
+                return redirect('cmf_entry')
 
-            cache.delete('cmf_records_list')
-            return redirect('cmf_entry')
+            
         except Exception as e:
             messages.error(request, str(e))
             form_data = request.POST
