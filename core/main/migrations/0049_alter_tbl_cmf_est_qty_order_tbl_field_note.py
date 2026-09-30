@@ -3,6 +3,12 @@
 import django.db.models.deletion
 from django.db import migrations, models
 
+def create_field_note_if_not_exists(apps, schema_editor):
+    table_names = schema_editor.connection.introspection.table_names()
+    # Only create the table if it is missing from the database; otherwise, skip and do nothing
+    if 'tbl_field_note' not in table_names:
+        model = apps.get_model('main', 'tbl_field_note')
+        schema_editor.create_model(model)
 
 class Migration(migrations.Migration):
 
@@ -16,17 +22,32 @@ class Migration(migrations.Migration):
             name='est_qty_order',
             field=models.CharField(blank=True, help_text='Estimated quantity in KG/MT', max_length=100, null=True),
         ),
-        migrations.CreateModel(
-            name='tbl_field_note',
-            fields=[
-                ('id', models.AutoField(primary_key=True, serialize=False)),
-                ('note', models.TextField(blank=True, null=True)),
-                ('field', models.CharField(max_length=50)),
-                ('cmf_formula_no', models.ForeignKey(db_column='cmf_formula_no', on_delete=django.db.models.deletion.CASCADE, related_name='field_notes', to='main.tbl_cmf_formula')),
+        migrations.SeparateDatabaseAndState(
+            state_operations=[
+                migrations.CreateModel(
+                    name='tbl_field_note',
+                    fields=[
+                        ('id', models.AutoField(primary_key=True, serialize=False)),
+                        ('note', models.TextField(blank=True, null=True)),
+                        ('field', models.CharField(max_length=50)),
+                        ('cmf_formula_no', models.ForeignKey(
+                            db_column='cmf_formula_no', 
+                            on_delete=django.db.models.deletion.CASCADE, 
+                            related_name='field_notes', 
+                            to='main.tbl_cmf_formula'
+                        )),
+                    ],
+                    options={
+                        'db_table': 'tbl_field_note',
+                        'unique_together': {('cmf_formula_no', 'field')},
+                    },
+                ),
             ],
-            options={
-                'db_table': 'tbl_field_note',
-                'unique_together': {('cmf_formula_no', 'field')},
-            },
+            database_operations=[
+                migrations.RunPython(
+                    create_field_note_if_not_exists,
+                    reverse_code=migrations.RunPython.noop,  # Guarantees the table is NEVER dropped
+                ),
+            ],
         ),
     ]

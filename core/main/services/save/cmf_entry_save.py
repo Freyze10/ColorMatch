@@ -65,7 +65,7 @@ def save_cmf_complete_entry(request):
             cm_no=cm_no,
             matching_type=data.get('matchType'),
             product_status=data.get('product_status'),
-            est_qty_order=clean_numeric(data.get('est_qty_order')),
+            est_qty_order=data.get('est_qty_order'),
             in_code_no_id=data.get('primary_color'),
             color_desc=data.get('color_description'),
             qty_resin_testing=data.get('qty_resin_test'),
@@ -224,7 +224,7 @@ def update_cmf_complete_entry(request, original_cmf_no):
         header_map = {
             'matching_type': data.get('matchType'),
             'product_status': data.get('product_status'),
-            'est_qty_order': clean_numeric(data.get('est_qty_order')),
+            'est_qty_order': data.get('est_qty_order'),
             'in_code_no_id': int(data.get('primary_color')) if data.get('primary_color') else None,
             'color_desc': data.get('color_description'),
             'qty_resin_testing': data.get('qty_resin_test'),
@@ -243,9 +243,6 @@ def update_cmf_complete_entry(request, original_cmf_no):
             current_val = getattr(old_cmf, field)
             curr_str = format_val(current_val.name if field == 'sm' and current_val else current_val)
             new_str = format_val(new_val.name if field == 'sm' and new_val else new_val)
-            if field == 'est_qty_order':
-                curr_str = str(float(current_val or 0))
-                new_str = str(float(new_val or 0))
 
             if curr_str != new_str:
                 diff_logs.append(f"{get_pretty_name(field)} ({curr_str} -> {new_str})")
