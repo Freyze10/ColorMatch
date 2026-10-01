@@ -7,7 +7,7 @@ from django.http import JsonResponse
 from main.utils.log_audit_trail import log_audit
 from ...models import (
     tbl_cmf, tbl_cmf_formula, tbl_cmf_dates, 
-    tbl_cmf_pending_completed, tbl_cmf_salesman, tbl_customer, tbl_dc_extruder_formula, tbl_dc_extruder_materials, tbl_dc_extruder_version, tbl_generated_prod_code, tbl_internal_color_code, tbl_mb_extruder_formula, tbl_mb_extruder_formula02, tbl_resin, tbl_rm_incoming, tbl_rs
+    tbl_cmf_pending_completed, tbl_cmf_salesman, tbl_customer, tbl_dc_extruder_formula, tbl_dc_extruder_materials, tbl_dc_extruder_version, tbl_feedback_details, tbl_generated_prod_code, tbl_internal_color_code, tbl_mb_extruder_formula, tbl_mb_extruder_formula02, tbl_resin, tbl_rm_incoming, tbl_rs, tbl_submitted_selected
 )
 
 def get_salesman_list():
@@ -396,22 +396,26 @@ def get_formula_materials(request, formula_type, formula_id):
 # left to right as drawn in <thead>). These lists are indexed by that
 # position and must stay in the same order as the <th> elements in the
 # template.
+# Updated to match the new 18 column positions (0-based)
 ORDER_COLUMNS = [
     'cm_no__cm_no',                # 0 - id (hidden)
     'cm_no__cm_no',                # 1 - CMF No.
-    'customer',                    # 2 - Customer (annotated)
+    'customer',                    # 2 - Customer
     'cm_no__in_code_no__color',    # 3 - Primary Color
     'cm_no__color_desc',           # 4 - Color Description
-    'finished_product',            # 5 - Finished Product (annotated)
-    'date_required',               # 6 - Required Date (annotated)
-    'due_date_lab',                # 7 - Target Date (annotated)
+    'finished_product',            # 5 - Finished Product
+    'date_required',               # 6 - Required Date
+    'due_date_lab',                # 7 - Target Date
     'cm_no__matching_type',        # 8 - Matching Type
     'cm_no__colorant_type',        # 9 - Colorant
     'code__product_code',          # 10 - Product Code
     'is_completed',                # 11 - Status
     'date_submitted',              # 12 - Submitted Date
     'ar_no',                       # 13 - AR No.
-    'reason',                      # 14 - Reason
+    'cm_no__cm_no',                # 14 - Submitted Option (fallback order)
+    'cm_no__cm_no',                # 15 - Qty (fallback order)
+    'cm_no__cm_no',                # 16 - Set (fallback order)
+    'reason',                      # 17 - Reason
 ]
  
 # Maps the search-field dropdown's <option value="..."> (unchanged from
@@ -502,10 +506,65 @@ def get_cmf_records_page(*, show_completed, show_pending, search_col,
     qs = qs.order_by(order_field)
  
     page_qs = qs[start:start + length]
+
+     # --- BATCH PRE-FETCH FOR PERFORMANCE (2 queries for the whole page) ---
+    cm_nos = [entry.cm_no_id for entry in page_qs if entry.cm_no_id]
+    completed_ids = [entry.completed_id for entry in page_qs if entry.completed_id]
+
+    # 1. Batch Feedback (for Qty & Set)
+    feedback_map = {}
+    if cm_nos:
+        for fb in tbl_feedback_details.objects.filter(cm_no__in=cm_nos).values('cm_no', 'quantity_given', 'pieces'):
+            feedback_map[fb['cm_no']] = fb
+
+    # 2. Batch Submitted Selections
+    submitted_map = {}
+    if completed_ids:
+        for sub in tbl_submitted_selected.objects.filter(completed_id__in=completed_ids).select_related('option_id'):
+            c_id = sub.completed_id_id
+            if c_id not in submitted_map:
+                submitted_map[c_id] = []
+            if sub.option_id and sub.option_id.name:
+                submitted_map[c_id].append(sub.option_id.name.strip())
+
+    STANDARD_CANONICAL = {'sample', 'chips', 'price'}
  
     page = []
     for entry in page_qs:
         cmf = entry.cm_no
+
+        # 1. Submitted Option resolution
+        opt_names = submitted_map.get(entry.completed_id, [])
+        if not opt_names:
+            submitted_option_display = "---"
+        else:
+            display_opts = []
+            for name in opt_names:
+                if name.lower() in STANDARD_CANONICAL:
+                    display_opts.append(name.capitalize())
+                else:
+                    # Non-standard remark -> display "None"
+                    display_opts.append("None")
+            submitted_option_display = ", ".join(dict.fromkeys(display_opts))
+
+        # 2. Qty Resolution
+        fb_item = feedback_map.get(entry.cm_no_id)
+        qty_val = fb_item.get('quantity_given') if fb_item else None
+        if qty_val is not None and str(qty_val).strip() != '':
+            try:
+                qty_display = f"{float(qty_val):g} KG"
+            except (ValueError, TypeError):
+                qty_display = f"{qty_val} KG"
+        else:
+            qty_display = "---"
+
+        # 3. Set Resolution
+        set_val = fb_item.get('pieces') if fb_item else None
+        if set_val is not None and str(set_val).strip() != '':
+            set_display = str(set_val)
+        else:
+            set_display = "---"
+
         page.append({
             "id": cmf.cm_no,
             "no": cmf.cm_no,
@@ -521,6 +580,9 @@ def get_cmf_records_page(*, show_completed, show_pending, search_col,
             "status": "Completed" if entry.is_completed else "Pending",
             "submitted_date": entry.date_submitted.strftime('%m/%d/%y') if entry.date_submitted else "",
             "ar_no": entry.ar_no or "",
+            "submitted_option": submitted_option_display,  
+            "qty": qty_display,                            
+            "set": set_display,
             "reason": entry.reason or "",
         })
  

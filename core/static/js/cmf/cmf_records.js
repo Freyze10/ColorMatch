@@ -18,10 +18,13 @@ document.addEventListener('DOMContentLoaded', function () {
     // right as drawn in <thead>. Must match the <th> order in the template.
     const COL_POS = {
         id: 0, 0: 1, 1: 2, 2: 3, 3: 4, 4: 5, 5: 6, 6: 7,
-        7: 8, 13: 9, 8: 10, 9: 11, 10: 12, 11: 13, 12: 14
+        7: 8, 13: 9, 8: 10, 9: 11, 10: 12, 11: 13,
+        14: 14, 15: 15, 16: 16, //  Submitted Option, Qty, Set
+        12: 17                  // Reason
     };
+
     const COLS_BOTH = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 13];
-    const COLS_COMPLETED = [0, 1, 2, 3, 4, 7, 8, 10, 11];
+    const COLS_COMPLETED = [0, 1, 2, 3, 4, 7, 8, 10, 11, 14, 15, 16];
     const COLS_PENDING = [0, 1, 2, 3, 4, 5, 6, 7, 12];
 
     // --- DATATABLE (server-side) ---
@@ -77,6 +80,9 @@ document.addEventListener('DOMContentLoaded', function () {
             },
             { data: 'submitted_date' },
             { data: 'ar_no' },
+            { data: 'submitted_option', className: 'no-wrap' },
+            { data: 'qty', className: 'no-wrap' },
+            { data: 'set', className: 'no-wrap' },
             { data: 'reason', className: 'pe-3' }
         ],
         drawCallback: function () {
@@ -89,7 +95,10 @@ document.addEventListener('DOMContentLoaded', function () {
     function applyColumnVisibility() {
         const showCompleted = completedCheckbox ? completedCheckbox.checked : true;
         const showPending = pendingCheckbox ? pendingCheckbox.checked : true;
-        const activeCols = showCompleted && showPending ? COLS_BOTH : (showCompleted ? COLS_COMPLETED : COLS_PENDING);
+        // When Completed is checked ONLY -> shows COLS_COMPLETED (which contains 14, 15, 16)
+        const activeCols = showCompleted && showPending 
+            ? COLS_BOTH 
+            : (showCompleted ? COLS_COMPLETED : COLS_PENDING);
 
         Object.keys(COL_POS).forEach(function (logicalKey) {
             if (logicalKey === 'id') return; // stays hidden regardless of filters
