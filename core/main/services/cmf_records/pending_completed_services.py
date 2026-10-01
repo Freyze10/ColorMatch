@@ -118,6 +118,11 @@ def save_pending_completed_entry(request, log_audit):
                     diff_logs.append(f"{label} ({curr_str} -> {new_str})")
                     setattr(inst, attr, new_val)
 
+            # Auto-set Reason to 'Done' when marked Completed
+            if data.get('status') == 'Completed':
+                if tracking_instance.reason != 'Done':
+                    tracking_instance.reason = 'Done'
+
              # If lot_no was hidden/omitted from POST (e.g. Price only was selected), default to 'N/A'
             if 'lot_no' not in data:
                 current_lot = tracking_instance.lot_no or ''
@@ -150,7 +155,21 @@ def save_pending_completed_entry(request, log_audit):
             if tracking_instance.pk is None:
                 tracking_instance.save()
 
-            submitted_ids = set(int(i) for i in data.getlist('submitted_options') if i.isdigit())
+            is_none_submitted = data.get('is_none_submitted') == '1'
+            submitted_ids = set()
+
+            if is_none_submitted:
+                remarks_val = data.get('remarks', '').strip()
+                if not remarks_val:
+                    raise Exception("Remarks are required when 'None' is selected.")
+                
+                # Truncate to 50 chars to fit tbl_submitted_option.name
+                safe_remarks = remarks_val[:50]
+                none_opt_obj, _ = tbl_submitted_option.objects.get_or_create(name=safe_remarks)
+                submitted_ids.add(none_opt_obj.option_id)
+            else:
+                submitted_ids = set(int(i) for i in data.getlist('submitted_options') if i.isdigit())
+
             existing_ids = set(
                 tbl_submitted_selected.objects
                 .filter(completed_id=tracking_instance)

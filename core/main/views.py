@@ -883,8 +883,34 @@ def cmf_pending_completed(request):
         pending_completed_services.save_pending_completed_entry(request, log_audit)
         return redirect(f"{request.path}?no={record_no}&type={record_type}")
 
-    # --- GET LOGIC ---
-    all_options = list(tbl_submitted_option.objects.all())
+     # --- HELPER TO RESOLVE SUBMITTED OPTIONS & NONE REMARKS ---
+    CANONICAL_NAMES = {'sample', 'chips', 'price'}
+
+    def resolve_submitted_options(tracking_obj, is_rs=False):
+        # 1. Canonical list for the checkboxes (RS only uses Sample & Chips)
+        valid_names = ['Sample', 'Chips'] if is_rs else ['Sample', 'Chips', 'Price']
+        canonical_opts = list(
+            tbl_submitted_option.objects.filter(name__in=valid_names).order_by('option_id')
+        )
+
+        selected_records = list(
+            tbl_submitted_selected.objects.filter(completed_id=tracking_obj).select_related('option_id')
+        ) if tracking_obj else []
+
+        selected_opt_ids = []
+        has_none = False
+        remarks_text = ""
+
+        for item in selected_records:
+            opt_name = item.option_id.name.strip()
+            if opt_name.lower() in CANONICAL_NAMES:
+                selected_opt_ids.append(item.option_id_id)
+            else:
+                # Any option NOT in Sample/Chips/Price is treated as a "None" remark!
+                has_none = True
+                remarks_text = opt_name
+
+        return canonical_opts, selected_opt_ids, has_none, remarks_text
 
     if record_no:
         if record_type == 'cmf':
@@ -909,9 +935,7 @@ def cmf_pending_completed(request):
                     mb_lots = tbl_mb_extruder_formula.objects.filter(cm_no=cmf, code=final_formula.code).values_list('lot_no', flat=True)
                     lot_options = sorted(list(set(filter(None, mb_lots))), reverse=True)
 
-                selected_option_ids = list(
-                    tbl_submitted_selected.objects.filter(completed_id=tracking).values_list('option_id', flat=True)
-                ) if tracking else []
+                canonical_opts, selected_opt_ids, has_none, none_remarks = resolve_submitted_options(tracking, is_rs=False)
 
                 form_data = {
                     'cmf_no': cmf.cm_no,
@@ -937,8 +961,13 @@ def cmf_pending_completed(request):
                     'date_submitted': pending_completed_services.format_val(tracking.date_submitted) if tracking else "",
                     'ar_no': tracking.ar_no if tracking else "",
                     'ar_date': pending_completed_services.format_val(tracking.ar_date) if tracking else "",
-                    'submitted_options': all_options,
-                    'selected_option_ids': selected_option_ids,
+                    # --- Options context for template ---
+                    'canonical_options': canonical_opts,
+                    'submitted_options': canonical_opts,
+                    'selected_option_ids': selected_opt_ids,
+                    'has_none_selected': has_none,
+                    'none_remarks': none_remarks,
+
                     'record_no': cmf.cm_no,
                     'record_type': 'cmf',
                 }
@@ -976,13 +1005,7 @@ def cmf_pending_completed(request):
 
                 salesman_name = rs.sm_no.name if getattr(rs, 'sm_no', None) else (getattr(rs, 'salesman', '') or '')
 
-                rs_submitted_options = [
-                    opt for opt in all_options if opt.name.strip().lower() in ['sample', 'chips']
-                ]
-
-                selected_option_ids = list(
-                    tbl_submitted_selected.objects.filter(completed_id=tracking).values_list('option_id', flat=True)
-                ) if tracking else []
+                canonical_opts, selected_opt_ids, has_none, none_remarks = resolve_submitted_options(tracking, is_rs=True)
 
                 form_data = {
                     'rs_no': rs.rs_no,
@@ -1007,14 +1030,26 @@ def cmf_pending_completed(request):
                     'date_submitted': pending_completed_services.format_val(tracking.date_submitted) if tracking else "",
                     'ar_no': tracking.ar_no if tracking else "",
                     'ar_date': pending_completed_services.format_val(tracking.ar_date) if tracking else "",
-                    'submitted_options': rs_submitted_options,
-                    'selected_option_ids': selected_option_ids,
+                    # --- Options context for template ---
+                    'canonical_options': canonical_opts,
+                    'submitted_options': canonical_opts,
+                    'selected_option_ids': selected_opt_ids,
+                    'has_none_selected': has_none,
+                    'none_remarks': none_remarks,
+
                     'record_no': rs.id,
                     'record_type': 'rs',
                 }
     else:
-        form_data['submitted_options'] = all_options
-        form_data['selected_option_ids'] = []
+        # Default fresh state
+        canonical_opts = list(tbl_submitted_option.objects.filter(name__in=['Sample', 'Chips', 'Price']).order_by('option_id'))
+        form_data = {
+            'canonical_options': canonical_opts,
+            'submitted_options': canonical_opts,
+            'selected_option_ids': [],
+            'has_none_selected': False,
+            'none_remarks': "",
+        }
 
     return render(request, "sidemenu/cmf/pending_completed.html", {"form_data": form_data})
 

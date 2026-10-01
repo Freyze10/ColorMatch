@@ -4,6 +4,11 @@ document.addEventListener('DOMContentLoaded', function () {
     const setPcCol = document.getElementById('setPcCol');
     const setPcInput = document.querySelector('input[name="set_pc"]');
     const submittedDetailsRow = document.getElementById('submittedDetailsRow');
+
+    const remarksInput = document.getElementById('id_submitted_remarks');
+    const remarksLabel = document.getElementById('submittedRemarksLabel');
+    const noneCheckbox = document.getElementById('opt_none');
+
     // Target fields for Lot No, AR No, and AR Date
     const lotInput = document.querySelector('input[name="lot_no"]');
     const arNoInput = document.querySelector('input[name="ar_no"]');
@@ -12,14 +17,13 @@ document.addEventListener('DOMContentLoaded', function () {
     const lotArRow = lotInput ? lotInput.closest('.row') : null;
     const arDateContainer = arDateInput ? (arDateInput.closest('.mb-0') || arDateInput.closest('.mb-3')) : null;
 
-    // Locate the "Sample" and "Chips" checkboxes dynamically by their label names
+    // Locate the "Sample" and "Chips" checkboxes dynamically by their label names\
+    const canonicalCheckboxes = Array.from(document.querySelectorAll('.canonical-option'));
     let sampleCheckbox = null;
     let chipsCheckbox = null;
     let priceCheckbox = null;
 
-    const submittedCheckboxes = Array.from(document.querySelectorAll('input[name="submitted_options"]'));
-
-    submittedCheckboxes.forEach(cb => {
+    canonicalCheckboxes.forEach(cb => {
         const label = document.querySelector(`label[for="${cb.id}"]`);
         if (label) {
             const text = label.textContent.trim().toLowerCase();
@@ -29,16 +33,70 @@ document.addEventListener('DOMContentLoaded', function () {
         }
     });
 
+    // --- MUTUAL EXCLUSIVITY ---
+    // If "None" is checked -> uncheck Sample, Chips, Price
+    if (noneCheckbox) {
+        noneCheckbox.addEventListener('change', function () {
+            if (this.checked) {
+                canonicalCheckboxes.forEach(cb => cb.checked = false);
+            }
+            updateFieldsVisibility();
+            if (this.checked && remarksInput) {
+                setTimeout(() => remarksInput.focus(), 50);
+            }
+        });
+    }
+
+    // If any canonical option is checked -> uncheck "None"
+    canonicalCheckboxes.forEach(cb => {
+        cb.addEventListener('change', function () {
+            if (this.checked && noneCheckbox) {
+                noneCheckbox.checked = false;
+            }
+            updateFieldsVisibility();
+        });
+    });
+
+    // const submittedCheckboxes = Array.from(document.querySelectorAll('input[name="submitted_options"]'));
+
+    // submittedCheckboxes.forEach(cb => {
+    //     const label = document.querySelector(`label[for="${cb.id}"]`);
+    //     if (label) {
+    //         const text = label.textContent.trim().toLowerCase();
+    //         if (text.includes('sample')) sampleCheckbox = cb;
+    //         if (text.includes('chip')) chipsCheckbox = cb;
+    //         if (text.includes('price')) priceCheckbox = cb;
+    //     }
+    // });
+
     function updateFieldsVisibility() {
         const isSampleChecked = sampleCheckbox ? sampleCheckbox.checked : false;
         const isChipsChecked = chipsCheckbox ? chipsCheckbox.checked : false;
         const isPriceChecked = priceCheckbox ? priceCheckbox.checked : false;
+        const isNoneChecked = noneCheckbox ? noneCheckbox.checked : false;
 
-        const checkedCount = submittedCheckboxes.filter(cb => cb.checked).length;
-        // True ONLY if Price is checked and no other option is checked
-        const isOnlyPrice = isPriceChecked && (checkedCount === 1);
+        const checkedCanonicalCount = canonicalCheckboxes.filter(cb => cb.checked).length;
+        const isOnlyPriceOrNone = isNoneChecked || (isPriceChecked && checkedCanonicalCount === 1);
 
-        // 1. Toggle Qty Given (Sample)
+        // 1. Remarks Field Toggle (Editable + Required ONLY when 'None' is checked)
+        if (remarksInput && remarksLabel) {
+            if (isNoneChecked) {
+                remarksInput.readOnly = false;
+                remarksInput.removeAttribute('readonly');
+                remarksInput.classList.remove('readonly-gray');
+                remarksInput.required = true;
+                remarksLabel.classList.add('required-label');
+            } else {
+                remarksInput.readOnly = true;
+                remarksInput.setAttribute('readonly', 'readonly');
+                remarksInput.classList.add('readonly-gray');
+                remarksInput.required = false;
+                remarksLabel.classList.remove('required-label');
+                remarksInput.value = '';
+            }
+        }
+
+        // 2. Qty Given (Sample)
         if (qtyGivenCol && qtyGivenInput) {
             if (isSampleChecked) {
                 qtyGivenCol.style.display = '';
@@ -47,11 +105,11 @@ document.addEventListener('DOMContentLoaded', function () {
             } else {
                 qtyGivenCol.style.display = 'none';
                 qtyGivenInput.required = false;
-                qtyGivenInput.disabled = true; // Prevents submitting empty value
+                qtyGivenInput.disabled = true;
             }
         }
 
-        // 2. Toggle Set Pc (Chips)
+        // 3. Set Pc (Chips)
         if (setPcCol && setPcInput) {
             if (isChipsChecked) {
                 setPcCol.style.display = '';
@@ -64,7 +122,7 @@ document.addEventListener('DOMContentLoaded', function () {
             }
         }
 
-        // 3. Adjust Column Width (Full-width col-12 if only one is shown, col-6 if both)
+        // 4. Adjust Column Width
         if (isSampleChecked && !isChipsChecked) {
             qtyGivenCol.className = 'col-12';
         } else if (!isSampleChecked && isChipsChecked) {
@@ -74,13 +132,12 @@ document.addEventListener('DOMContentLoaded', function () {
             setPcCol.className = 'col-6';
         }
 
-        // 4. Hide entire row if neither is checked
         if (submittedDetailsRow) {
             submittedDetailsRow.style.display = (!isSampleChecked && !isChipsChecked) ? 'none' : '';
         }
 
-        // 5. Toggle Lot No., AR No., and AR Date (Hide ONLY if Price is the sole selected option)
-        if (isOnlyPrice) {
+        // 5. Hide and relax Lot No / AR No / AR Date if only Price or None is selected
+        if (isOnlyPriceOrNone) {
             if (lotArRow) lotArRow.style.display = 'none';
             if (arDateContainer) arDateContainer.style.display = 'none';
 
@@ -97,10 +154,6 @@ document.addEventListener('DOMContentLoaded', function () {
         }
     }
 
-    // Attach change listener to all submitted checkboxes
-    submittedCheckboxes.forEach(cb => {
-        cb.addEventListener('change', updateFieldsVisibility);
-    });
 
     // Initial check on page load
     updateFieldsVisibility();
@@ -109,20 +162,22 @@ document.addEventListener('DOMContentLoaded', function () {
     // ENFORCE AT LEAST ONE "SUBMITTED" CHECKBOX IS CHECKED
     // ==================================================================
 
+    // Enforce at least one option is chosen (either None or one of the canonical options)
     function validateSubmittedOptions() {
-        if (!submittedCheckboxes.length) return true;
-        const anyChecked = submittedCheckboxes.some(cb => cb.checked);
-        
-        // Setting custom validity on the first checkbox enforces native HTML5 validation
-        submittedCheckboxes[0].setCustomValidity(
-            anyChecked ? '' : 'Please select at least one submitted option (e.g. Sample, Chips, or Price).'
-        );
-        return anyChecked;
+        const isNone = noneCheckbox ? noneCheckbox.checked : false;
+        const anyCanonical = canonicalCheckboxes.some(cb => cb.checked);
+        const isValid = isNone || anyCanonical;
+
+        if (canonicalCheckboxes.length > 0) {
+            canonicalCheckboxes[0].setCustomValidity(
+                isValid ? '' : 'Please select at least one Submitted option (or check None).'
+            );
+        }
+        return isValid;
     }
 
-    submittedCheckboxes.forEach(cb => {
-        cb.addEventListener('change', validateSubmittedOptions);
-    });
+    if (noneCheckbox) noneCheckbox.addEventListener('change', validateSubmittedOptions);
+    canonicalCheckboxes.forEach(cb => cb.addEventListener('change', validateSubmittedOptions));
 
     // Run initial validation check on load
     validateSubmittedOptions();
@@ -202,28 +257,21 @@ document.addEventListener('DOMContentLoaded', function () {
     const saveBtn = document.querySelector('.btn-update');
     const entryForm = saveBtn ? saveBtn.closest('form') : null;
     if (saveBtn && entryForm) {
-        saveBtn.addEventListener('click', function() {
-            // Guard: Validate that at least one Submitted option is checked
-            const hasSubmittedChecked = validateSubmittedOptions();
-            if (!hasSubmittedChecked) {
-                if (submittedCheckboxes[0]) {
-                    submittedCheckboxes[0].reportValidity();
-                }
+        saveBtn.addEventListener('click', function () {
+            if (!validateSubmittedOptions()) {
+                if (canonicalCheckboxes[0]) canonicalCheckboxes[0].reportValidity();
                 if (typeof Preline !== 'undefined' && Preline.toast) {
                     Preline.toast('Please select at least one Submitted option.', 'warning');
                 }
                 return;
             }
-            // Validate Form
-            if (entryForm.reportValidity()) {
 
+            if (entryForm.reportValidity()) {
                 Preline.confirm(
                     'Update Entry?',
                     'Are you sure you want to update this entry? Existing records will be modified.',
                     'success',
-                    () => {
-                        entryForm.submit();
-                    }
+                    () => { entryForm.submit(); }
                 );
             }
         });

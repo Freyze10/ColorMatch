@@ -162,15 +162,38 @@ Pending/Completed Forms
                         <div class="mb-3">
                             <label class="fw-bold extra-small d-block mb-1 required-label">Submitted:</label>
                             <div class="d-flex align-items-center flex-wrap gap-3">
-                                {% for opt in form_data.submitted_options %}
-                                <div class="form-check">
-                                    <input class="form-check-input visible-check" type="checkbox" name="submitted_options"
-                                        id="submitted_option_{{ opt.option_id }}" value="{{ opt.option_id }}"
+                                <!-- 1. Canonical Options -->
+                                {% for opt in form_data.canonical_options %}
+                                <div class="form-check mb-0">
+                                    <input class="form-check-input visible-check canonical-option" type="checkbox" 
+                                        name="submitted_options"
+                                        id="submitted_option_{{ opt.option_id }}" 
+                                        value="{{ opt.option_id }}"
                                         {% if opt.option_id in form_data.selected_option_ids %}checked{% endif %}>
                                     <label class="form-check-label extra-small" for="submitted_option_{{ opt.option_id }}">{{ opt.name }}</label>
                                 </div>
                                 {% endfor %}
+
+                                <!-- 2. None Option -->
+                                <div class="form-check mb-0">
+                                    <input class="form-check-input visible-check" type="checkbox" 
+                                        name="is_none_submitted" 
+                                        id="opt_none" 
+                                        value="1"
+                                        {% if form_data.has_none_selected %}checked{% endif %}>
+                                    <label class="form-check-label extra-small fw-bold text-danger" for="opt_none">None</label>
+                                </div>
                             </div>
+                        </div>
+
+                        <!-- Remarks (Enabled and required only if None is selected) -->
+                        <div class="mb-3" id="submittedRemarksGroup">
+                            <label class="fw-bold extra-small" id="submittedRemarksLabel">Remarks (Reason for None):</label>
+                            <input type="text" name="remarks" id="id_submitted_remarks" maxlength="50"
+                                class="form-control form-control-sm uniform-input {% if not form_data.has_none_selected %}readonly-gray{% endif %}" 
+                                placeholder="State reason when None is selected..." 
+                                value="{{ form_data.none_remarks|default:'' }}"
+                                {% if not form_data.has_none_selected %}readonly{% endif %}>
                         </div>
 
                         <!-- Qty Given & Set (Pc/Pcs) -->
