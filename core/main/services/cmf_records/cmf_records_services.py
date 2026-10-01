@@ -1,4 +1,4 @@
-from datetime import datetime
+from datetime import date, datetime
 from django.db.models import Q, Max, OuterRef, Subquery
 from django.views.decorators.http import require_POST
 from django.db import transaction
@@ -323,18 +323,37 @@ def formula_records_data(request):
 
     sort_field = None
     if order_col_index is not None:
-        sort_field = SORTABLE_COLUMNS.get(int(order_col_index))
+        try:
+            sort_field = SORTABLE_COLUMNS.get(int(order_col_index))
+        except (ValueError, TypeError):
+            sort_field = None
 
     if sort_field:
-        filtered.sort(
-            key=lambda item: (item.get(sort_field) is None, item.get(sort_field) or ''),
-            reverse=(order_dir == 'desc')
-        )
+        # ✅ TYPE-SAFE COMPARATOR (Never mixes floats, dates, or strings)
+        def get_sort_key(item):
+            val = item.get(sort_field)
+
+            if sort_field == 'dosage':
+                try:
+                    num = float(val) if val is not None else None
+                except (ValueError, TypeError):
+                    num = None
+                # None values sorted to the bottom (1), valid numbers first (0)
+                return (1 if num is None else 0, num if num is not None else -1.0)
+
+            elif sort_field == 'date':
+                return (1 if val is None else 0, val if val is not None else date.min)
+
+            else:
+                # Text fields: case-insensitive string comparison
+                s = str(val or '').strip().lower()
+                return (1 if not s else 0, s)
+
+        filtered.sort(key=get_sort_key, reverse=(order_dir == 'desc'))
     else:
-        # Fallback: original default (date desc), for the very first
-        # load or if an unmapped column index somehow comes through.
+        # Fallback default: date desc
         filtered.sort(
-            key=lambda x: x['date'] if x['date'] else datetime.min.date(),
+            key=lambda x: x['date'] if x.get('date') else date.min,
             reverse=True
         )
 

@@ -67,3 +67,22 @@ select.uniform-input {
 .overflow-auto::-webkit-scrollbar-thumb:hover {
     background: #94a3b8;
 }
+
+.text-teal { 
+    color: #094e48 !important; /* Deep, readable teal on white/light background */
+}
+
+body.dark-mode .text-teal { 
+    color: #2dd4bf !important; /* Vibrant, glowing teal on dark background */
+}
+
+#formulaRecordsTable tbody td.text-teal {
+    color: #0d9488 !important; /* Or #2c7a7b */
+}
+
+/* 2. Dark Mode: Bright, glowing teal matching the header */
+body.dark-mode #formulaRecordsTable tbody td.text-teal,
+[data-bs-theme="dark"] #formulaRecordsTable tbody td.text-teal,
+.dark-mode #formulaRecordsTable tbody td.text-teal {
+    color: #2dd4bf !important; /* Bright teal (or #38b2ac / #00c896) */
+}
