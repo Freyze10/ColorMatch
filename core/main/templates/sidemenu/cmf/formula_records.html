@@ -61,7 +61,12 @@ Formula Records
                                 <th>Color Description</th>
                                 <th>Dosage</th>
                                 <th class="no-wrap text-center">Swatch</th>
-                                <th class="no-wrap text-center" title="Final Formula"><i class="bi bi-star"></i></th>
+                                <th class="no-wrap text-center user-select-none" 
+                                    id="thFinalFilter" 
+                                    style="cursor: pointer; width: 35px;" 
+                                    title="Click to filter Final Formulas only">
+                                    <i class="bi bi-star text-muted fs-6" id="iconFinalFilter"></i>
+                                </th>
                             </tr>
                         </thead>
                         <tbody class="extra-small"></tbody>
@@ -126,6 +131,7 @@ Formula Records
 $(document).ready(function() {
     let selectionMode = false;
     let selectedIds = new Set();
+    let onlyFinalFilter = false;
 
     const CHECKBOX_COL_INDEX = 0;
 
@@ -137,6 +143,7 @@ $(document).ready(function() {
             url: "{% url 'formula_records_data' %}",
             data: function(d) {
                 d.length = $('#tableLength').val();
+                d.only_final = onlyFinalFilter ? 1 : 0;
             }
         },
         columns: [
@@ -293,6 +300,32 @@ $(document).ready(function() {
         tableBody.find('tr').toggleClass('table-selected', isChecked);
 
         updateSelectionInfo();
+    });
+
+    $('#thFinalFilter').on('click', function(e) {
+        e.stopPropagation(); // Prevents default sorting action
+
+        onlyFinalFilter = !onlyFinalFilter;
+        const icon = $('#iconFinalFilter');
+
+        if (onlyFinalFilter) {
+            // Active: Filled Yellow Star
+            icon.removeClass('bi-star text-muted').addClass('bi-star-fill text-warning');
+            $(this).attr('title', 'Showing Final Formulas only (click to show all)');
+            if (typeof Preline !== 'undefined' && typeof Preline.toast === 'function') {
+                Preline.toast('Showing Final Formulas only', 'info');
+            }
+        } else {
+            // Inactive: Outlined Muted Star
+            icon.removeClass('bi-star-fill text-warning').addClass('bi-star text-muted');
+            $(this).attr('title', 'Click to filter Final Formulas only');
+            if (typeof Preline !== 'undefined' && typeof Preline.toast === 'function') {
+                Preline.toast('Showing all formulas', 'info');
+            }
+        }
+
+        // Reload table data from server
+        table.ajax.reload();
     });
 
     $('#formulaRecordsTable tbody').on('change', '.row-checkbox', function(e) {

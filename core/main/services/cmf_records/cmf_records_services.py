@@ -286,8 +286,11 @@ def formula_records_data(request):
     start = int(request.GET.get('start', 0))
     length = int(request.GET.get('length', 100))
     global_search = request.GET.get('search[value]', '').strip()
+    only_final = request.GET.get('only_final') == '1'
 
     all_records = get_all_formula_records()
+    if only_final:
+        all_records = [item for item in all_records if item.get('is_final')]
     total_unfiltered = len(all_records)
 
     for item in all_records:
