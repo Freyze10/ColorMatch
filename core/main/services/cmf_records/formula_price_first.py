@@ -9,7 +9,7 @@ from datetime import datetime, date
 
 # Cross-platform Excel libraries
 import openpyxl
-from openpyxl.styles import Font, Alignment
+from openpyxl.styles import Font, Alignment, PatternFill
 import msoffcrypto
 
 from django.db import transaction
@@ -39,6 +39,45 @@ COLUMN_ORDER = [
     'cmf_no', 'html', 'c', 'm', 'y', 'k', 'remarks'
 ]
 DATA_START_ROW = 2 
+
+# 🛑 EXPORT BY DATE ONLY: Includes 'lot_no' right between 'prod_code' and 'resin'
+DATE_EXPORT_COLUMN_ORDER = [
+    'date', 'customer', 'classification', 'prod_code', 'lot_no', 'resin', 'mat_code',
+    'mat_conc', 'end_product', 'total', 'others', 'dosage', 'salesman_name',
+    'cmf_no', 'html', 'c', 'm', 'y', 'k', 'remarks'
+]
+
+DATE_EXPORT_HEADERS = [
+    "Date", "Customer", "Classification", "Product Code", "Lot Number", "Resin",
+    "Material Code", "Concentration", "End Product", "Total", "Others",
+    "Dosage", "Salesman", "CMF No.", "HTML", "C", "M", "Y", "K", "Remarks"
+]
+
+def _autofit_columns_content(ws):
+    """
+    Adjusts every column's width dynamically based on the longest content
+    in that column, factoring in size-14 bold headers.
+    """
+    for col in ws.columns:
+        max_len = 0
+        col_letter = col[0].column_letter
+        for cell in col:
+            if cell.value is not None:
+                val_str = str(cell.value)
+                # If formatted as float with 2 decimals
+                if getattr(cell, 'number_format', '') == '0.00' and isinstance(cell.value, (int, float)):
+                    val_str = f"{cell.value:.2f}"
+                
+                lines = val_str.split('\n')
+                for line in lines:
+                    line_len = len(line)
+                    # Header row (size 14 bold) needs ~30% extra visual space
+                    if cell.row == 1:
+                        line_len = int(line_len * 1.3) + 2
+                    if line_len > max_len:
+                        max_len = line_len
+        # Set column width with safety margin
+        ws.column_dimensions[col_letter].width = max(max_len + 4, 12)
 
 
 def _autofit_columns(ws):
@@ -311,25 +350,129 @@ def get_price_first_data(request):
         return HttpResponseBadRequest(str(e))
 
 
+def _build_fresh_formula_excel(rows):
+    """
+    Creates a new Excel workbook for Date Range Export:
+    - Headers: Arial size 14 bold with light-gray fill.
+    - Lot Number placed between Product Code and Resin.
+    - Light-green fill for all cells in rows where is_final is True.
+    - Dosage formatted strictly to 2 decimal places (0.00).
+    - Auto-adjusts columns based on the cell contents.
+    """
+    wb = openpyxl.Workbook()
+    ws = wb.active
+    ws.title = "Formula"
+    
+    ws.views.sheetView[0].showGridLines = True
+
+    header_font = Font(name='Arial', size=14, bold=True)
+    content_font = Font(name='Arial', size=11, bold=True)
+    header_fill = PatternFill(start_color="F2F2F2", end_color="F2F2F2", fill_type="solid")
+    
+    # Soft light green highlight for Final Formulas (Bootstrap/Excel success-subtle)
+    final_formula_fill = PatternFill(start_color="D1E7DD", end_color="D1E7DD", fill_type="solid")
+
+    align_center = Alignment(horizontal='center', vertical='center')
+    align_left = Alignment(horizontal='left', vertical='center')
+    align_right = Alignment(horizontal='right', vertical='center')
+
+    column_alignments = {
+        'date': align_left,
+        'customer': align_left,
+        'classification': align_center,
+        'prod_code': align_left,
+        'lot_no': align_center,       # Centered Lot Number
+        'resin': align_left,
+        'mat_code': align_center,
+        'mat_conc': align_right,
+        'end_product': align_left,
+        'total': align_right,
+        'others': align_left,
+        'dosage': align_right,        # Right aligned for 2-decimal numbers
+        'salesman_name': align_left,
+        'cmf_no': align_center,
+        'html': align_center,
+        'c': align_center,
+        'm': align_center,
+        'y': align_center,
+        'k': align_center,
+        'remarks': align_left,
+    }
+
+    # 1. Write Headers (Row 1, Font Size 14)
+    for col_idx, header_title in enumerate(DATE_EXPORT_HEADERS, 1):
+        cell = ws.cell(row=1, column=col_idx, value=header_title)
+        cell.font = header_font
+        cell.fill = header_fill
+        cell.alignment = align_center
+
+    # 2. Write Data Rows
+    for r_idx, row_data in enumerate(rows):
+        excel_row = DATA_START_ROW + r_idx
+        is_final_row = bool(row_data.get('is_final', False))
+
+        for c_idx, field in enumerate(DATE_EXPORT_COLUMN_ORDER):
+            cell = ws.cell(row=excel_row, column=c_idx + 1)
+            val = row_data.get(field, "")
+
+            # 🛑 2 DECIMAL PLACES FOR DOSAGE
+            if field == 'dosage':
+                try:
+                    cell.value = round(float(val), 2)
+                    cell.number_format = '0.00'
+                except (ValueError, TypeError):
+                    cell.value = str(val or "0.00")
+            elif val in ("no data", "None", "", None):
+                cell.value = str(val or "")
+            else:
+                try:
+                    cell.value = float(val)
+                except (ValueError, TypeError):
+                    cell.value = str(val)
+
+            cell.font = content_font
+            cell.alignment = column_alignments.get(field, align_left)
+
+            # 🛑 Apply light green background to all cells in the row if is_final is True
+            if is_final_row:
+                cell.fill = final_formula_fill
+
+    # 3. Adjust columns dynamically to cell contents
+    _autofit_columns_content(ws)
+
+    # 4. Save to buffer
+    buffer = io.BytesIO()
+    wb.save(buffer)
+    buffer.seek(0)
+    return buffer.getvalue()
+
+
 def export_formula_by_date(request):
+    """
+    Exports formulas within a date range into a fresh Excel file.
+    Includes Lot Number, 14pt headers, auto-adjusted columns, and light-green final rows.
+    """
     date_from_str = request.GET.get('from')
     date_to_str = request.GET.get('to')
+    
+    if not date_from_str or not date_to_str:
+        return HttpResponseBadRequest("Both 'from' and 'to' date parameters are required.")
+
     try:
         date_from = datetime.strptime(date_from_str, '%m/%d/%Y').date()
         date_to = datetime.strptime(date_to_str, '%m/%d/%Y').date()
         
-        mb_ids = tbl_mb_extruder_formula.objects.filter(date__range=[date_from, date_to]).values_list('mb_no', flat=True)
-        dc_ids = tbl_dc_extruder_formula.objects.filter(date__range=[date_from, date_to]).values_list('dc_no', flat=True)
+        mb_ids = list(tbl_mb_extruder_formula.objects.filter(date__range=[date_from, date_to]).values_list('mb_no', flat=True))
+        dc_ids = list(tbl_dc_extruder_formula.objects.filter(date__range=[date_from, date_to]).values_list('dc_no', flat=True))
+        
         items = [{'type': 'MB', 'id': i} for i in mb_ids] + [{'type': 'DC', 'id': i} for i in dc_ids]
         
         if not items:
-            return HttpResponseBadRequest("No records found.")
+            return HttpResponseBadRequest("No formula records found in the selected date range.")
             
         row_dicts = _build_price_first_row_list(items)
-        template_abs_path = os.path.abspath(FORMULA_TEMPLATE_PATH)
-        file_bytes = _fill_formula_sheet_logic(template_abs_path, row_dicts)
+        file_bytes = _build_fresh_formula_excel(row_dicts)
 
-        # Audit trail for bulk date export
         if log_audit and hasattr(request, 'user') and request.user.is_authenticated:
             log_audit(
                 request,
@@ -337,9 +480,17 @@ def export_formula_by_date(request):
                 f"Bulk exported formulas from {date_from_str} to {date_to_str} ({len(items)} records)."
             )
         
-        response = HttpResponse(file_bytes, content_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet')
-        response['Content-Disposition'] = f'attachment; filename="Formula_Export_{date_from_str.replace("/","-")}.xlsx"'
+        filename = f"Formula_Export_{date_from_str.replace('/', '-')}_to_{date_to_str.replace('/', '-')}.xlsx"
+        
+        response = HttpResponse(
+            file_bytes, 
+            content_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+        )
+        response['Content-Disposition'] = f'attachment; filename="{filename}"'
         return response
+
+    except ValueError:
+        return HttpResponseBadRequest("Invalid date format. Expected MM/DD/YYYY.")
     except Exception as e:
         return HttpResponseBadRequest(f"Export failed: {str(e)}")
 
