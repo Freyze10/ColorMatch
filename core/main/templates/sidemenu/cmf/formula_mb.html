@@ -66,8 +66,9 @@
                                    class="form-control form-control-sm uniform-input" required>
                         </div>
                     </div>
-                    <!-- ... (Resin Used) ... -->
-                    <div class="row g-2 align-items-center mb-2">
+                    <!-- ... (Resin Used) ... --> 
+                     <!-- For future use of entering resin that is diifferent from the CMF Resin -->
+                    <!-- <div class="row g-2 align-items-center mb-2">
                         <div class="col-5"><label class="extra-small fw-bold required-label">Resin Used:</label></div>
                         <div class="col-7">
                             <select name="formula_resin" id="id_formula_resin" 
@@ -83,6 +84,14 @@
                                     </option>
                                 {% endfor %}
                             </select>
+                        </div>
+                    </div> -->
+                    <div class="row g-2 align-items-center mb-2">
+                        <div class="col-5"><label class="extra-small fw-bold">Resin Used:</label></div>
+                        <div class="col-7">
+                            <input type="text" name="resin_used" id="id_resin_used" 
+                                   value="{{ form_data.resin_used|default:'' }}" 
+                                   class="form-control form-control-sm uniform-input readonly-gray" readonly required>
                         </div>
                     </div>
                     

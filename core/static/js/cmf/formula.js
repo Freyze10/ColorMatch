@@ -572,6 +572,7 @@
         
         const fields = {
             customer: isDC ? 'id_dc_customer' : 'id_customer',
+            resin: isDC ? 'id_dc_resin' : 'id_resin_used', // remove this when using the other resin field
             color: isDC ? 'id_dc_color' : 'id_color',
             product: isDC ? 'id_dc_product_code' : 'id_product',
             dosage: isDC ? 'id_dc_dosage' : 'id_dosage',
@@ -637,6 +638,8 @@
             setVal(fields.product, data.product_code); // Priority to generated code
             setVal(fields.dosage, data.dosage);
             setVal(fields.lot_no, data.lot_no);
+            setVal(fields.resin, data.resin_used || data.resin);
+
 
             // Update the resin dropdown placeholder with the CMF's original resin
             updateResinPlaceholder(data.resin_used || data.resin);

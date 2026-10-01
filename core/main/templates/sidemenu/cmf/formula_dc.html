@@ -62,7 +62,8 @@ Formula DC
                             </div>
                         </div>
                         <!-- ... (Resin Used) ... -->
-                        <div class="row g-2 align-items-center mb-2">
+                         <!-- For future use of entering resin that is diifferent from the CMF Resin -->
+                        <!-- <div class="row g-2 align-items-center mb-2">
                             <div class="col-5"><label class="extra-small fw-bold required-label">Resin Used:</label></div>
                             <div class="col-7">
                                 <select name="formula_resin" id="id_dc_formula_resin" 
@@ -78,6 +79,15 @@ Formula DC
                                         </option>
                                     {% endfor %}
                                 </select>
+                            </div>
+                        </div> -->
+                        <div class="row g-2 align-items-center mb-2">
+                            <div class="col-5"><label class="extra-small fw-bold">Resin:</label></div>
+                            <div class="col-7">
+                                <input type="text" name="resin" id="id_dc_resin" 
+                                       value="{{ form_data.resin|default:'' }}" 
+                                       class="form-control form-control-sm uniform-input readonly-gray" readonly
+                                       required>
                             </div>
                         </div>
                     
