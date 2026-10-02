@@ -141,6 +141,20 @@ const Preline = {
             icon.className = 'bi bi-check-lg';
         }
 
+        // 🛑 4. STYLE CANCEL BUTTON TO DANGER
+        const cancelBtn = modalEl.querySelector('button[data-bs-dismiss="modal"]:not(.btn-close)') || 
+                          modalEl.querySelector('.modal-footer .btn-secondary, .modal-footer .btn-light');
+        if (cancelBtn) {
+            // Remove neutralizing classes
+            cancelBtn.classList.remove('btn-secondary', 'btn-light', 'btn-outline-secondary', 'border-0', 'border-none');
+            cancelBtn.classList.add('btn-outline-danger');
+
+            // Clear any inline styles that block hover
+            cancelBtn.style.removeProperty('background-color');
+            cancelBtn.style.removeProperty('color');
+            cancelBtn.style.removeProperty('border');
+        }
+
         const confirmBtn = document.getElementById('modalConfirmBtn');
         const newConfirmBtn = confirmBtn.cloneNode(true);
         confirmBtn.parentNode.replaceChild(newConfirmBtn, confirmBtn);

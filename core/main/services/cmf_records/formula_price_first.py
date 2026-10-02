@@ -368,16 +368,20 @@ def download_price_first_excel(request):
 # 2. DEDICATED EXPORT FORMULA BY DATE (NEW CUSTOM EXCEL BUILDER)
 # ==============================================================================
 
+EXPORT_PASSWORD = "maranatha101"
+
+# Exact column key sequence as requested
 DATE_EXPORT_COLUMN_ORDER = [
-    'date', 'customer', 'classification', 'prod_code', 'lot_no', 'resin', 'mat_code',
-    'mat_conc', 'end_product', 'total', 'others', 'dosage', 'salesman_name',
-    'cmf_no', 'html', 'c', 'm', 'y', 'k', 'remarks'
+    'date', 'customer', 'classification', 'prod_code', 'color', 'lot_no', 'resin',
+    'mat_code', 'mat_conc', 'total', 'dosage', 'qty_produced', 'end_product',
+    'others', 'salesman_name', 'cmf_no', 'html', 'c', 'm', 'y', 'k', 'remarks'
 ]
 
+# Exact headers matching DATE_EXPORT_COLUMN_ORDER
 DATE_EXPORT_HEADERS = [
-    "Date", "Customer", "Classification", "Product Code", "Lot Number", "Resin",
-    "Material Code", "Concentration", "End Product", "Total", "Others",
-    "Dosage", "Salesman", "CMF No.", "HTML", "C", "M", "Y", "K", "Remarks"
+    "Date", "Customer", "Classification", "Product Code", "Color", "Lot Number", "Resin",
+    "Material Code", "Concentration", "Total Conc", "Dosage", "Qty Produced", "End Product",
+    "Others", "Salesman", "CMF No.", "HTML", "C", "M", "Y", "K", "Remarks"
 ]
 
 
@@ -390,7 +394,7 @@ def _autofit_columns_content(ws):
             if cell.value is not None:
                 val_str = str(cell.value)
                 
-                # Format check for length calculation
+                # Check formatted decimal lengths
                 num_fmt = getattr(cell, 'number_format', '')
                 if isinstance(cell.value, (int, float)):
                     if num_fmt == '0.00':
@@ -400,7 +404,7 @@ def _autofit_columns_content(ws):
                 
                 for line in val_str.split('\n'):
                     line_len = len(line)
-                    # Header row (size 14 bold) requires ~30% extra visual space
+                    # Header row (size 14 bold) requires extra visual spacing
                     if cell.row == 1:
                         line_len = int(line_len * 1.3) + 2
                     if line_len > max_len:
@@ -410,8 +414,11 @@ def _autofit_columns_content(ws):
 
 def _build_date_export_row_list(items):
     """
-    Dedicated builder for Date Range Export that explicitly extracts
-    'lot_no' and 'is_final' so they are guaranteed to exist.
+    Dedicated builder for Date Range Export:
+    - Date formatted to MM/DD/YYYY
+    - Color from cmf.color_desc
+    - Qty Produced from header.total_weight
+    - Remarks from header.notes (default: 'no data')
     """
     results = []
     for item in items:
@@ -432,7 +439,7 @@ def _build_date_export_row_list(items):
                 ingredients_list = [{'material': v.material.material, 'value': float(v.value or 0)} for v in version_data]
             lot_no_val = getattr(header, 'lot_no', '') or ''
 
-        # Fallback to CMF tracking record if lot is empty on formula
+        # Fallback for lot number if not set directly on formula
         if not lot_no_val and header.cm_no:
             pending_record = tbl_cmf_pending_completed.objects.filter(cm_no=header.cm_no).first()
             if pending_record and pending_record.lot_no:
@@ -441,13 +448,14 @@ def _build_date_export_row_list(items):
         if not lot_no_val:
             lot_no_val = "N/A"
 
-        # Explicitly evaluate is_final boolean state
+        # Explicitly evaluate is_final
         is_final_raw = getattr(header, 'is_final', False)
         is_final_val = bool(is_final_raw) and str(is_final_raw).lower() not in ('0', 'false', 'none', '')
 
-        customer, dosage, end_product, salesman, matching_type = "", 0, "", "", ""
+        customer, dosage, end_product, salesman, matching_type, color_desc = "", 0, "", "", "", "---"
         
         if header.cm_no:
+            color_desc = header.cm_no.color_desc or "---"
             formula_info = tbl_cmf_formula.objects.filter(cm_no=header.cm_no).first()
             if formula_info:
                 customer = formula_info.customer or ""
@@ -460,6 +468,14 @@ def _build_date_export_row_list(items):
         if hasattr(header, 'dosage') and header.dosage is not None:
             dosage = header.dosage
 
+        # Qty Produced from total_weight
+        qty_produced = getattr(header, 'total_weight', None) or 0
+
+        # Remarks from formula notes (defaults to 'no data' if empty)
+        raw_notes = getattr(header, 'notes', '') or ''
+        remarks_val = raw_notes.strip() if raw_notes.strip() else "no data"
+
+        # Resins
         resins_list = list(tbl_resins_selected.objects.filter(
             cm_no=header.cm_no
         ).values_list('resin_no__abbreviation', flat=True)) if header.cm_no else []
@@ -471,6 +487,7 @@ def _build_date_export_row_list(items):
         else:
             resin_str = ", ".join(resins_list[:-1]) + " and " + resins_list[-1]
 
+        # Others
         others_val = "new matching"
         if matching_type == 'rematch' and header.cm_no:
             curr_cm = header.cm_no.cm_no
@@ -491,19 +508,21 @@ def _build_date_export_row_list(items):
         
         for ing in ingredients_list:
             results.append({
-                'date': header.date.strftime('%B %d, %Y') if header.date else "no data",
+                'date': header.date.strftime('%m/%d/%Y') if header.date else "no data",  # 🛑 MM/DD/YYYY
                 'customer': customer or "---",
                 'classification': f_type.lower(),
                 'prod_code': header.code.product_code if header.code else "no data",
+                'color': color_desc,                                                    # 🛑 Color
                 'lot_no': lot_no_val,
                 'is_final': is_final_val,
                 'resin': resin_str,
                 'mat_code': ing['material'] or "---",
-                'mat_conc': ing['value'],    # Raw float/decimal concentration
+                'mat_conc': ing['value'],                                                # 4 decimals
+                'total': total_conc,                                                     # 2 decimals (Total Conc)
+                'dosage': dosage,                                                        # 2 decimals
+                'qty_produced': qty_produced,                                            # 🛑 Qty Produced
                 'end_product': end_product or "---",
-                'total': total_conc,         # Raw float/decimal total concentration
                 'others': others_val,
-                'dosage': dosage,            # Raw numeric dosage
                 'salesman_name': salesman or "---",
                 'cmf_no': header.cm_no.cm_no if header.cm_no else "none",
                 'html': (header.html or "no data").replace('#', ''),
@@ -511,7 +530,7 @@ def _build_date_export_row_list(items):
                 'm': int(header.m) if header.m is not None else "no data",
                 'y': int(header.y) if header.y is not None else "no data",
                 'k': int(header.k) if header.k is not None else "no data",
-                'remarks': ''
+                'remarks': remarks_val                                                   # 🛑 From notes
             })
     return results
 
@@ -520,11 +539,11 @@ def _build_fresh_formula_excel(rows):
     """
     Generates a new Excel file for Date Range Export:
     - Headers: Arial 14pt Bold with light-gray fill.
-    - Lot Number placed between Product Code and Resin.
-    - Dosage & Total formatted strictly to 2 decimal places (0.00).
-    - Concentration (mat_conc) formatted strictly to 4 decimal places (0.0000).
-    - Entire row shaded in light green (#D1E7DD) if is_final is True.
-    - Auto-adjusts columns based on content length.
+    - Encrypted using password 'maranatha101'.
+    - Concentration (mat_conc) formatted to 4 decimals (0.0000).
+    - Dosage, Total Conc, and Qty Produced formatted to 2 decimals (0.00).
+    - Rows marked as is_final=True highlighted in soft light green (#D1E7DD).
+    - Columns auto-fitted based on cell content.
     """
     wb = openpyxl.Workbook()
     ws = wb.active
@@ -536,7 +555,7 @@ def _build_fresh_formula_excel(rows):
     content_font = Font(name='Arial', size=11, bold=True)
     header_fill = PatternFill(start_color="F2F2F2", end_color="F2F2F2", fill_type="solid")
     
-    # Soft light green background for final formulas (Bootstrap success-subtle)
+    # Soft light green highlight for Final Formulas (#D1E7DD)
     final_formula_fill = PatternFill(start_color="D1E7DD", end_color="D1E7DD", fill_type="solid")
 
     align_center = Alignment(horizontal='center', vertical='center')
@@ -548,14 +567,16 @@ def _build_fresh_formula_excel(rows):
         'customer': align_left,
         'classification': align_center,
         'prod_code': align_left,
+        'color': align_left,
         'lot_no': align_center,
         'resin': align_left,
         'mat_code': align_center,
-        'mat_conc': align_right,       # Right-aligned for 4-decimal concentration
+        'mat_conc': align_right,       # 4 decimals
+        'total': align_right,          # 2 decimals (Total Conc)
+        'dosage': align_right,         # 2 decimals
+        'qty_produced': align_right,   # 2 decimals
         'end_product': align_left,
-        'total': align_right,          # Right-aligned for 2-decimal total
         'others': align_left,
-        'dosage': align_right,         # Right-aligned for 2-decimal dosage
         'salesman_name': align_left,
         'cmf_no': align_center,
         'html': align_center,
@@ -582,15 +603,15 @@ def _build_fresh_formula_excel(rows):
             cell = ws.cell(row=excel_row, column=c_idx + 1)
             val = row_data.get(field, "")
 
-            # 🛑 2 DECIMAL PLACES FOR DOSAGE & TOTAL
-            if field in ('dosage', 'total'):
+            # 🛑 2 DECIMAL PLACES: Dosage, Total Conc, Qty Produced
+            if field in ('dosage', 'total', 'qty_produced'):
                 try:
                     cell.value = round(float(val), 2)
                     cell.number_format = '0.00'
                 except (ValueError, TypeError):
                     cell.value = str(val or "0.00")
 
-            # 🛑 4 DECIMAL PLACES FOR CONCENTRATION (mat_conc)
+            # 🛑 4 DECIMAL PLACES: Concentration (mat_conc)
             elif field == 'mat_conc':
                 try:
                     cell.value = round(float(val), 4)
@@ -609,23 +630,30 @@ def _build_fresh_formula_excel(rows):
             cell.font = content_font
             cell.alignment = column_alignments.get(field, align_left)
 
-            # Highlight row in light green if formula is final
+            # 🛑 Light green highlight for Final Formulas
             if is_final_row:
                 cell.fill = final_formula_fill
 
-    # 3. Dynamically adjust column widths based on content
+    # 3. Dynamically adjust column widths based on contents
     _autofit_columns_content(ws)
 
-    # 4. Save to buffer
-    buffer = io.BytesIO()
-    wb.save(buffer)
-    buffer.seek(0)
-    return buffer.getvalue()
+    # 4. Save unprotected workbook to in-memory buffer
+    unprotected_buffer = io.BytesIO()
+    wb.save(unprotected_buffer)
+    unprotected_buffer.seek(0)
+
+    # 5. Encrypt with password 'maranatha101'
+    encrypted_buffer = io.BytesIO()
+    file_to_encrypt = msoffcrypto.OfficeFile(unprotected_buffer)
+    file_to_encrypt.encrypt(EXPORT_PASSWORD, encrypted_buffer)
+    encrypted_buffer.seek(0)
+
+    return encrypted_buffer.getvalue()
 
 
 def export_formula_by_date(request):
     """
-    Exports formulas within a date range using the dedicated builder.
+    Exports formulas within a date range into a password-encrypted Excel file ('maranatha101').
     """
     date_from_str = request.GET.get('from')
     date_to_str = request.GET.get('to')
