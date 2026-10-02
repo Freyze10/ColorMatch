@@ -88,8 +88,36 @@ document.addEventListener('DOMContentLoaded', function() {
         return true;
     };
 
-    document.querySelectorAll('.qty-resin-input, .dosage-input').forEach(input => {
+    document.querySelectorAll('.qty-resin-input').forEach(input => {
         input.addEventListener('keypress', restrictToNumbers);
+    });
+
+    // Allow numbers, decimal point, and 'N', 'A', '/' for Dosage
+    const restrictDosageInput = (e) => {
+        const char = e.key;
+        if (e.ctrlKey || e.altKey || char.length > 1) return true;
+
+        // Accepts 0-9, '.', and 'N', 'A', '/', 'n', 'a'
+        if (/^[0-9.naNA/]$/.test(char)) {
+            if (char === '.' && e.target.value.includes('.')) {
+                e.preventDefault();
+                return false;
+            }
+            return true;
+        }
+        e.preventDefault();
+        return false;
+    };
+    document.querySelectorAll('.dosage-input').forEach(input => {
+        input.addEventListener('keypress', restrictDosageInput);
+        
+        // Auto-uppercase "na" or "n/a" on blur
+        input.addEventListener('blur', function() {
+            const val = this.value.trim().toUpperCase();
+            if (val === 'NA' || val === 'N/A') {
+                this.value = val;
+            }
+        });
     });
 
     // --- DOSAGE & DOSAGE NOTE SYNC LOGIC ---

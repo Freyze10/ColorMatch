@@ -133,7 +133,7 @@ Formula DC
                                     name="dosage" 
                                     id="id_dc_dosage" 
                                     value="{{ form_data.dosage|default:'' }}" 
-                                    class="form-control form-control-sm uniform-input{% if form_data.formula_id %} readonly-gray{% endif %}" 
+                                    class="form-control form-control-sm uniform-input dosage-input{% if form_data.formula_id %} readonly-gray{% endif %}" 
                                     {% if form_data.formula_id %}readonly{% endif %} 
                                     required>
                             </div>

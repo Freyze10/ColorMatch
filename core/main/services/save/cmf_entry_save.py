@@ -1,3 +1,4 @@
+from decimal import Decimal, InvalidOperation
 import re
 import json
 from django.core.cache import cache
@@ -33,6 +34,18 @@ def blank_to_none(val):
         return None
     val = val.strip()
     return val if val else None
+
+def parse_dosage(raw_val):
+    """Converts numeric inputs to Decimal, saves non-numeric ('NA', 'N/A', etc.) as None (NULL)."""
+    if not raw_val:
+        return None
+    cleaned = str(raw_val).replace('%', '').strip()
+    if cleaned.upper() in ('NA', 'N/A', 'NONE'):
+        return None
+    try:
+        return Decimal(cleaned)
+    except (ValueError, TypeError, InvalidOperation):
+        return None
 
 def save_cmf_complete_entry(request):
     data = request.POST
@@ -97,7 +110,7 @@ def save_cmf_complete_entry(request):
         formula_obj = tbl_cmf_formula.objects.create(
             customer=data.get('customer'),
             finished_product=data.get('finished_product'),
-            dosage=clean_numeric(data.get('dosage')),
+            dosage_val = parse_dosage(request.POST.get('dosage')),
             cm_no=cmf_main
         )
         dosage_note = (data.get('dosage_note') or '').strip()
@@ -280,7 +293,7 @@ def update_cmf_complete_entry(request, original_cmf_no):
         formula_map = {
             'customer': data.get('customer'),
             'finished_product': data.get('finished_product'),
-            'dosage': str(clean_numeric(data.get('dosage')))
+            'dosage': parse_dosage(data.get('dosage'))
         }
         for f_field, f_val in formula_map.items():
             curr_f_val = format_val(getattr(formula_obj, f_field))

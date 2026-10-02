@@ -229,7 +229,10 @@ CMF Entry
                         <div class="row g-2 mb-2">
                             <div class="col-4">
                                 <label class="fw-bold extra-small required-label">Dosage (%):</label>
-                                <input type="text" name="dosage" value="{{ form_data.dosage|default:'' }}" class="form-control form-control-sm uniform-input dosage-input" placeholder="Enter Dosage" autocomplete="off" required>
+                                <input type="text" name="dosage" 
+                                    value="{% if form_data.dosage is not None and form_data.dosage != '' %}{{ form_data.dosage }}{% elif form_data.is_new == '0' %}NA{% else %}{{ form_data.dosage|default:'' }}{% endif %}" 
+                                    class="form-control form-control-sm uniform-input dosage-input" 
+                                    placeholder="Enter Dosage or NA" autocomplete="off" required>
                             </div>
                             <div class="col-4">
                                 <label class="fw-bold extra-small">Dosage Note:</label>
