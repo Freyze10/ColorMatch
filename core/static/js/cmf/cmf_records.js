@@ -38,6 +38,8 @@ document.addEventListener('DOMContentLoaded', function () {
         // built-in page-length control — #recordCounter and #pageLengthSelect
         // (in the Filter Status row) replace them — and put the page-number
         // buttons on the left instead of the default bottom-right.
+        scrollY: 'calc(80vh - 140px)',
+        scrollCollapse: true,
         layout: {
             topStart: null,
             topEnd: null,
@@ -55,6 +57,18 @@ document.addEventListener('DOMContentLoaded', function () {
                 d.status_pending = pendingCheckbox ? pendingCheckbox.checked : true;
                 d.search_col = searchFieldSelect ? searchFieldSelect.value : 'all';
                 d.search_term = searchInput ? searchInput.value.trim() : '';
+                // DataTables' default request includes a columns[i][...]
+                // block (data, name, searchable, orderable, search) for
+                // EVERY column. With 18 columns that pushes the GET query
+                // string past Gunicorn's request-line limit (its default
+                // is 4094 bytes — see "Request Line is too large" in the
+                // server log). Nothing server-side reads any of this: the
+                // view sorts/searches by column POSITION via
+                // ORDER_COLUMNS/SEARCH_FIELDS, not from this payload. The
+                // top-level `search` object (global search box) is equally
+                // unused since `searching: false` above. Drop both.
+                delete d.columns;
+                delete d.search;
             }
         },
         columns: [
@@ -88,8 +102,13 @@ document.addEventListener('DOMContentLoaded', function () {
         drawCallback: function () {
             const info = this.api().page.info();
             if (recordCounter) recordCounter.textContent = `Showing ${info.recordsDisplay} records`;
+
+            // Re-align headers with columns on every redraw
+            const api = this.api();
+            setTimeout(() => api.columns.adjust(), 20);
         }
     });
+    window.addEventListener('resize', () => table.columns.adjust());
 
     // --- COLUMN VISIBILITY (per Completed/Pending checkboxes) ---
     function applyColumnVisibility() {

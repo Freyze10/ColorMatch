@@ -112,3 +112,48 @@ body.dark-mode .custom-context-menu .bg-light {
     width: 320px;
     z-index: 1000;
 }
+/* --- CMF TABLE CARD --- */
+.cmf-table-card {
+    background-color: var(--card-bg, #ffffff);
+    border: 1px solid var(--sidebar-border, #dee2e6) !important;
+    border-radius: 0.5rem;
+    overflow: hidden;
+}
+
+/* Ensure DataTables 2 scroll container works cleanly */
+.cmf-table-card .dt-container {
+    width: 100% !important;
+}
+
+.cmf-table-card .dt-scroll-body {
+    max-height: calc(80vh - 130px) !important;
+    overflow-y: auto !important;
+}
+
+/* Slim scrollbar so rows are never obscured */
+.cmf-table-card .dt-scroll-body::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+}
+.cmf-table-card .dt-scroll-body::-webkit-scrollbar-track {
+    background: #f1f5f9;
+}
+.cmf-table-card .dt-scroll-body::-webkit-scrollbar-thumb {
+    background: #cbd5e1;
+    border-radius: 4px;
+}
+
+/* Pinned pagination footer */
+.cmf-table-card .dt-layout-row:last-child {
+    border-top: 1px solid #dee2e6 !important;
+    padding: 0.5rem 1rem !important;
+    background-color: #ffffff;
+    margin: 0 !important;
+    display: flex;
+    align-items: center;
+}
+
+body.dark-mode .cmf-table-card .dt-layout-row:last-child {
+    background-color: #1e293b !important;
+    border-top-color: rgba(255, 255, 255, 0.1) !important;
+}

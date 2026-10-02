@@ -5,11 +5,7 @@
 Color Matching Records
 {% endblock navigation %}
 
-{% block extra_head %}
-<!-- DataTables (standalone build — no jQuery dependency). Self-host these
-     two files under your static/vendor/ folder if this app runs on a
-     network without reliable internet access. -->
-<link rel="stylesheet" href="https://cdn.datatables.net/2.1.8/css/dataTables.dataTables.min.css">
+{% block style %}
 {% endblock %}
 
 {% block content %}
@@ -58,36 +54,31 @@ Color Matching Records
 
     <!-- TABLE CARD -->
     <div class="card border-0 shadow-sm rounded-3 cmf-table-card">
-        <div class="cmf-scroll-body">
-            <table class="table table-hover align-middle mb-0 cmf-records-table" style="width: 100%;">
-                <thead>
-                    <tr class="small text-uppercase">
-                        <th class="d-none" data-col-index="id">ID</th>
-                        <th class="ps-3" data-col-index="0">CMF No.</th>
-                        <th data-col-index="1">Customer</th>
-                        <th data-col-index="2">Primary Color</th>
-                        <th data-col-index="3">Color Description</th>
-                        <th data-col-index="4">Finished Product</th>
-                        <th data-col-index="5">Required Date</th>
-                        <th data-col-index="6">Target Date</th>
-                        <th data-col-index="7">Matching Type</th>
-                        <th data-col-index="13">Colorant</th>
-                        <th data-col-index="8">Product Code</th>
-                        <th data-col-index="9">Status</th>
-                        <th data-col-index="10">Submitted Date</th>
-                        <th data-col-index="11">AR No.</th>
-                        <!-- 14, 15, 16: Visible ONLY on Completed -->
-                        <th class="no-wrap" data-col-index="14">Submitted Option</th>
-                        <th class="no-wrap" data-col-index="15">Qty</th>
-                        <th class="no-wrap" data-col-index="16">Set</th>
-                        <!-- 12: Visible ONLY on Pending -->
-                        <th class="pe-3" data-col-index="12">Reason</th>
-                    </tr>
-                </thead>
-                <!-- Rows are drawn by DataTables via AJAX — nothing to render server-side here. -->
-                <tbody class="small" id="recordsTbody"></tbody>
-            </table>
-        </div>
+        <table class="table table-hover align-middle mb-0 cmf-records-table" style="width: 100%;">
+            <thead>
+                <tr class="small text-uppercase">
+                    <th class="d-none" data-col-index="id">ID</th>
+                    <th class="ps-3" data-col-index="0">CMF No.</th>
+                    <th data-col-index="1">Customer</th>
+                    <th data-col-index="2">Primary Color</th>
+                    <th data-col-index="3">Color Description</th>
+                    <th data-col-index="4">Finished Product</th>
+                    <th data-col-index="5">Required Date</th>
+                    <th data-col-index="6">Target Date</th>
+                    <th data-col-index="7">Matching Type</th>
+                    <th data-col-index="13">Colorant</th>
+                    <th data-col-index="8">Product Code</th>
+                    <th data-col-index="9">Status</th>
+                    <th data-col-index="10">Submitted Date</th>
+                    <th data-col-index="11">AR No.</th>
+                    <th class="no-wrap" data-col-index="14">Submitted Option</th>
+                    <th class="no-wrap" data-col-index="15">Qty</th>
+                    <th class="no-wrap" data-col-index="16">Set</th>
+                    <th class="pe-3" data-col-index="12">Reason</th>
+                </tr>
+            </thead>
+            <tbody class="small" id="recordsTbody"></tbody>
+        </table>
     </div>
 
     <!-- Footer Area -->
