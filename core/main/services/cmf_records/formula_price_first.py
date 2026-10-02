@@ -368,6 +368,8 @@ def download_price_first_excel(request):
 # 2. DEDICATED EXPORT FORMULA BY DATE (NEW CUSTOM EXCEL BUILDER)
 # ==============================================================================
 
+from openpyxl.styles import Font, Alignment, PatternFill, Border, Side
+
 EXPORT_PASSWORD = "maranatha101"
 
 # Exact column key sequence as requested
@@ -377,7 +379,6 @@ DATE_EXPORT_COLUMN_ORDER = [
     'others', 'salesman_name', 'cmf_no', 'html', 'c', 'm', 'y', 'k', 'remarks'
 ]
 
-# Exact headers matching DATE_EXPORT_COLUMN_ORDER
 DATE_EXPORT_HEADERS = [
     "Date", "Customer", "Classification", "Product Code", "Color", "Lot Number", "Resin",
     "Material Code", "Concentration", "Total Conc", "Dosage", "Qty Produced", "End Product",
@@ -386,10 +387,7 @@ DATE_EXPORT_HEADERS = [
 
 
 def _autofit_columns_content(ws):
-    """
-    Adjusts every column's width dynamically based on the longest line of content
-    in each cell, factoring in multiline text (\n) and size-14 bold headers.
-    """
+    """Dynamically adjusts column widths based on the longest cell content."""
     for col in ws.columns:
         max_len = 0
         col_letter = col[0].column_letter
@@ -397,7 +395,6 @@ def _autofit_columns_content(ws):
             if cell.value is not None:
                 val_str = str(cell.value)
                 
-                # Check formatted decimal lengths
                 num_fmt = getattr(cell, 'number_format', '')
                 if isinstance(cell.value, (int, float)):
                     if num_fmt == '0.00':
@@ -405,29 +402,20 @@ def _autofit_columns_content(ws):
                     elif num_fmt == '0.0000':
                         val_str = f"{cell.value:.4f}"
                 
-                # Normalize linebreaks and check longest single line
-                clean_lines = val_str.replace('\r\n', '\n').replace('\r', '\n').split('\n')
-                for line in clean_lines:
-                    line_len = len(line.strip())
-                    # Header row (size 14 bold) requires extra visual spacing
+                for line in val_str.split('\n'):
+                    line_len = len(line)
                     if cell.row == 1:
-                        line_len = int(line_len * 1.3) + 2
+                        line_len = int(line_len * 1.25) + 2
                     if line_len > max_len:
                         max_len = line_len
-                        
-        # Cap maximum column width at 50 so multiline text wraps cleanly
         ws.column_dimensions[col_letter].width = min(max(max_len + 4, 12), 50)
 
 
 def _build_date_export_row_list(items):
     """
     Dedicated builder for Date Range Export:
-    - Date formatted to MM/DD/YYYY
-    - Color from cmf.color_desc
-    - Qty Produced:
-        * MB: Sum of all weights in tbl_mb_extruder_formula02
-        * DC: sample_size from tbl_dc_extruder_formula
-    - Remarks from header.notes (default: 'no data')
+    - MB Qty Produced: Sum of weights + 'kg' in lowercase.
+    - DC Qty Produced: sample_size lowercased.
     """
     results = []
     for item in items:
@@ -439,14 +427,16 @@ def _build_date_export_row_list(items):
             qs = tbl_mb_extruder_formula02.objects.filter(mb=header).order_by('id')
             ingredients_list = [{'material': ing.material, 'value': float(ing.value or 0)} for ing in qs]
             
-            # 🛑 MB: Sum of all tbl_mb_extruder_formula02.weight
-            qty_produced = sum(float(ing.weight or 0) for ing in qs)
+            # 🛑 MB: Sum of weights with 'kg' appended in lowercase
+            mb_weight_sum = sum(float(ing.weight or 0) for ing in qs)
+            qty_produced = f"{round(mb_weight_sum, 2):.2f} kg".lower()
             lot_no_val = getattr(header, 'lot_no', '') or ''
         else:
             header = tbl_dc_extruder_formula.objects.select_related('code', 'cm_no').get(pk=f_id)
             
-            # 🛑 DC: sample_size from tbl_dc_extruder_formula
-            qty_produced = getattr(header, 'sample_size', None) or 0
+            # 🛑 DC: sample_size strictly lowercased
+            sample_size_raw = getattr(header, 'sample_size', '') or ''
+            qty_produced = str(sample_size_raw).strip().lower() if sample_size_raw else "0.00"
             
             max_v = tbl_dc_extruder_version.objects.filter(material__dc=header).aggregate(Max('version_no'))['version_no__max']
             ingredients_list = []
@@ -455,7 +445,7 @@ def _build_date_export_row_list(items):
                 ingredients_list = [{'material': v.material.material, 'value': float(v.value or 0)} for v in version_data]
             lot_no_val = getattr(header, 'lot_no', '') or ''
 
-        # Fallback for lot number if not set directly on formula
+        # Fallback for lot number if not on formula header
         if not lot_no_val and header.cm_no:
             pending_record = tbl_cmf_pending_completed.objects.filter(cm_no=header.cm_no).first()
             if pending_record and pending_record.lot_no:
@@ -464,7 +454,6 @@ def _build_date_export_row_list(items):
         if not lot_no_val:
             lot_no_val = "N/A"
 
-        # Explicitly evaluate is_final
         is_final_raw = getattr(header, 'is_final', False)
         is_final_val = bool(is_final_raw) and str(is_final_raw).lower() not in ('0', 'false', 'none', '')
 
@@ -480,7 +469,6 @@ def _build_date_export_row_list(items):
             salesman = header.cm_no.sm.name if (header.cm_no.sm and hasattr(header.cm_no.sm, 'name')) else ""
             matching_type = header.cm_no.matching_type or ""
 
-        # Prioritize dosage recorded directly on formula header if available
         if hasattr(header, 'dosage') and header.dosage is not None:
             dosage = header.dosage
 
@@ -501,7 +489,6 @@ def _build_date_export_row_list(items):
         else:
             resin_str = ", ".join(resins_list[:-1]) + " and " + resins_list[-1]
 
-        # Others
         others_val = "new matching"
         if matching_type == 'rematch' and header.cm_no:
             curr_cm = header.cm_no.cm_no
@@ -534,7 +521,7 @@ def _build_date_export_row_list(items):
                 'mat_conc': ing['value'],
                 'total': total_conc,
                 'dosage': dosage,
-                'qty_produced': qty_produced,  # 🛑 MB sum(weights) or DC sample_size
+                'qty_produced': qty_produced,  # 🛑 Lowercase value
                 'end_product': end_product or "---",
                 'others': others_val,
                 'salesman_name': salesman or "---",
@@ -550,24 +537,41 @@ def _build_date_export_row_list(items):
 
 
 def _build_fresh_formula_excel(rows):
+    """
+    Generates a new Excel file for Date Range Export:
+    - Sticky Header (Freeze Panes at A2).
+    - Header height: 28pt, Teal (#2C7A7B) fill, White bold 14pt font.
+    - Thin borders applied across all cells.
+    - Soft light green (#D1E7DD) fill on final formula rows.
+    - Password encrypted with 'maranatha101'.
+    """
     wb = openpyxl.Workbook()
     ws = wb.active
     ws.title = "Formula"
     
     ws.views.sheetView[0].showGridLines = True
 
-    header_font = Font(name='Arial', size=14, bold=True)
-    content_font = Font(name='Arial', size=11, bold=True)
-    header_fill = PatternFill(start_color="F2F2F2", end_color="F2F2F2", fill_type="solid")
+    # 🛑 1. MAKE HEADER STICKY
+    ws.freeze_panes = 'A2'
+
+    # 🛑 2. ENHANCED HEADER STYLING (Teal background, White bold 14pt text)
+    ws.row_dimensions[1].height = 28
+    header_font = Font(name='Arial', size=14, bold=True, color="FFFFFF")
+    header_fill = PatternFill(start_color="3A9A9B", end_color="3A9A9B", fill_type="solid")
     
-    # Soft light green highlight for Final Formulas (#D1E7DD)
+    content_font = Font(name='Arial', size=11, bold=True)
     final_formula_fill = PatternFill(start_color="D1E7DD", end_color="D1E7DD", fill_type="solid")
+
+    # 🛑 3. THIN CELL BORDERS
+    thin_side = Side(style='thin', color='D4D4D4')
+    cell_border = Border(left=thin_side, right=thin_side, top=thin_side, bottom=thin_side)
+
+    header_side = Side(style='thin', color='1F5657')
+    header_border = Border(left=header_side, right=header_side, top=header_side, bottom=header_side)
 
     align_center = Alignment(horizontal='center', vertical='center')
     align_left = Alignment(horizontal='left', vertical='center')
     align_right = Alignment(horizontal='right', vertical='center')
-    
-    # 🛑 Enables wrap_text so \n displays on new lines within the same cell
     align_wrap_left = Alignment(horizontal='left', vertical='center', wrap_text=True)
 
     column_alignments = {
@@ -582,7 +586,7 @@ def _build_fresh_formula_excel(rows):
         'mat_conc': align_right,       # 4 decimals
         'total': align_right,          # 2 decimals (Total Conc)
         'dosage': align_right,         # 2 decimals
-        'qty_produced': align_right,   # 2 decimals
+        'qty_produced': align_right,   # Lowercase string
         'end_product': align_left,
         'others': align_left,
         'salesman_name': align_left,
@@ -592,17 +596,18 @@ def _build_fresh_formula_excel(rows):
         'm': align_center,
         'y': align_center,
         'k': align_center,
-        'remarks': align_wrap_left,    # 🛑 Multiline text wrapping
+        'remarks': align_wrap_left,    # Multiline wrap
     }
 
-    # 1. Write Header Row (Row 1, 14pt Bold)
+    # 4. Write Header Row (Row 1)
     for col_idx, header_title in enumerate(DATE_EXPORT_HEADERS, 1):
         cell = ws.cell(row=1, column=col_idx, value=header_title)
         cell.font = header_font
         cell.fill = header_fill
+        cell.border = header_border
         cell.alignment = align_center
 
-    # 2. Write Data Rows
+    # 5. Write Data Rows
     for r_idx, row_data in enumerate(rows):
         excel_row = DATA_START_ROW + r_idx
         is_final_row = bool(row_data.get('is_final', False))
@@ -611,21 +616,25 @@ def _build_fresh_formula_excel(rows):
             cell = ws.cell(row=excel_row, column=c_idx + 1)
             val = row_data.get(field, "")
 
-            # 2 Decimal places
-            if field in ('dosage', 'total', 'qty_produced'):
+            # Numbers: 2 Decimal places
+            if field in ('dosage', 'total'):
                 try:
                     cell.value = round(float(val), 2)
                     cell.number_format = '0.00'
                 except (ValueError, TypeError):
                     cell.value = str(val or "0.00")
 
-            # 4 Decimal places
+            # Numbers: 4 Decimal places (mat_conc)
             elif field == 'mat_conc':
                 try:
                     cell.value = round(float(val), 4)
                     cell.number_format = '0.0000'
                 except (ValueError, TypeError):
                     cell.value = str(val or "0.0000")
+
+            # 🛑 Qty Produced: strictly lowercase text
+            elif field == 'qty_produced':
+                cell.value = str(val or "0.00").strip().lower()
 
             elif val in ("no data", "None", "", None):
                 cell.value = str(val or "")
@@ -637,20 +646,20 @@ def _build_fresh_formula_excel(rows):
 
             cell.font = content_font
             cell.alignment = column_alignments.get(field, align_left)
+            cell.border = cell_border
 
-            # Highlight row if formula is final
+            # 🛑 Highlight Final Formula row in light green
             if is_final_row:
                 cell.fill = final_formula_fill
 
-    # 3. Adjust column widths factoring in multiline text
+    # 6. Adjust column widths
     _autofit_columns_content(ws)
 
-    # 4. Save unprotected workbook to in-memory buffer
+    # 7. Save and encrypt with password 'maranatha101'
     unprotected_buffer = io.BytesIO()
     wb.save(unprotected_buffer)
     unprotected_buffer.seek(0)
 
-    # 5. Encrypt with password 'maranatha101'
     encrypted_buffer = io.BytesIO()
     file_to_encrypt = msoffcrypto.OfficeFile(unprotected_buffer)
     file_to_encrypt.encrypt(EXPORT_PASSWORD, encrypted_buffer)
