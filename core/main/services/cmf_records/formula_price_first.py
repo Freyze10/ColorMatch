@@ -386,7 +386,10 @@ DATE_EXPORT_HEADERS = [
 
 
 def _autofit_columns_content(ws):
-    """Dynamically adjusts column widths based on the longest cell content."""
+    """
+    Adjusts every column's width dynamically based on the longest line of content
+    in each cell, factoring in multiline text (\n) and size-14 bold headers.
+    """
     for col in ws.columns:
         max_len = 0
         col_letter = col[0].column_letter
@@ -402,14 +405,18 @@ def _autofit_columns_content(ws):
                     elif num_fmt == '0.0000':
                         val_str = f"{cell.value:.4f}"
                 
-                for line in val_str.split('\n'):
-                    line_len = len(line)
+                # Normalize linebreaks and check longest single line
+                clean_lines = val_str.replace('\r\n', '\n').replace('\r', '\n').split('\n')
+                for line in clean_lines:
+                    line_len = len(line.strip())
                     # Header row (size 14 bold) requires extra visual spacing
                     if cell.row == 1:
                         line_len = int(line_len * 1.3) + 2
                     if line_len > max_len:
                         max_len = line_len
-        ws.column_dimensions[col_letter].width = max(max_len + 4, 12)
+                        
+        # Cap maximum column width at 50 so multiline text wraps cleanly
+        ws.column_dimensions[col_letter].width = min(max(max_len + 4, 12), 50)
 
 
 def _build_date_export_row_list(items):
@@ -417,7 +424,9 @@ def _build_date_export_row_list(items):
     Dedicated builder for Date Range Export:
     - Date formatted to MM/DD/YYYY
     - Color from cmf.color_desc
-    - Qty Produced from header.total_weight
+    - Qty Produced:
+        * MB: Sum of all weights in tbl_mb_extruder_formula02
+        * DC: sample_size from tbl_dc_extruder_formula
     - Remarks from header.notes (default: 'no data')
     """
     results = []
@@ -429,9 +438,16 @@ def _build_date_export_row_list(items):
             header = tbl_mb_extruder_formula.objects.select_related('code', 'cm_no').get(pk=f_id)
             qs = tbl_mb_extruder_formula02.objects.filter(mb=header).order_by('id')
             ingredients_list = [{'material': ing.material, 'value': float(ing.value or 0)} for ing in qs]
+            
+            # 🛑 MB: Sum of all tbl_mb_extruder_formula02.weight
+            qty_produced = sum(float(ing.weight or 0) for ing in qs)
             lot_no_val = getattr(header, 'lot_no', '') or ''
         else:
             header = tbl_dc_extruder_formula.objects.select_related('code', 'cm_no').get(pk=f_id)
+            
+            # 🛑 DC: sample_size from tbl_dc_extruder_formula
+            qty_produced = getattr(header, 'sample_size', None) or 0
+            
             max_v = tbl_dc_extruder_version.objects.filter(material__dc=header).aggregate(Max('version_no'))['version_no__max']
             ingredients_list = []
             if max_v is not None:
@@ -468,12 +484,10 @@ def _build_date_export_row_list(items):
         if hasattr(header, 'dosage') and header.dosage is not None:
             dosage = header.dosage
 
-        # Qty Produced from total_weight
-        qty_produced = getattr(header, 'total_weight', None) or 0
-
-        # Remarks from formula notes (defaults to 'no data' if empty)
+        # Remarks from formula notes (normalize linebreaks to \n)
         raw_notes = getattr(header, 'notes', '') or ''
-        remarks_val = raw_notes.strip() if raw_notes.strip() else "no data"
+        normalized_notes = raw_notes.replace('\r\n', '\n').replace('\r', '\n').strip()
+        remarks_val = normalized_notes if normalized_notes else "no data"
 
         # Resins
         resins_list = list(tbl_resins_selected.objects.filter(
@@ -508,19 +522,19 @@ def _build_date_export_row_list(items):
         
         for ing in ingredients_list:
             results.append({
-                'date': header.date.strftime('%m/%d/%Y') if header.date else "no data",  # 🛑 MM/DD/YYYY
+                'date': header.date.strftime('%m/%d/%Y') if header.date else "no data",
                 'customer': customer or "---",
                 'classification': f_type.lower(),
                 'prod_code': header.code.product_code if header.code else "no data",
-                'color': color_desc,                                                    # 🛑 Color
+                'color': color_desc,
                 'lot_no': lot_no_val,
                 'is_final': is_final_val,
                 'resin': resin_str,
                 'mat_code': ing['material'] or "---",
-                'mat_conc': ing['value'],                                                # 4 decimals
-                'total': total_conc,                                                     # 2 decimals (Total Conc)
-                'dosage': dosage,                                                        # 2 decimals
-                'qty_produced': qty_produced,                                            # 🛑 Qty Produced
+                'mat_conc': ing['value'],
+                'total': total_conc,
+                'dosage': dosage,
+                'qty_produced': qty_produced,  # 🛑 MB sum(weights) or DC sample_size
                 'end_product': end_product or "---",
                 'others': others_val,
                 'salesman_name': salesman or "---",
@@ -530,21 +544,12 @@ def _build_date_export_row_list(items):
                 'm': int(header.m) if header.m is not None else "no data",
                 'y': int(header.y) if header.y is not None else "no data",
                 'k': int(header.k) if header.k is not None else "no data",
-                'remarks': remarks_val                                                   # 🛑 From notes
+                'remarks': remarks_val
             })
     return results
 
 
 def _build_fresh_formula_excel(rows):
-    """
-    Generates a new Excel file for Date Range Export:
-    - Headers: Arial 14pt Bold with light-gray fill.
-    - Encrypted using password 'maranatha101'.
-    - Concentration (mat_conc) formatted to 4 decimals (0.0000).
-    - Dosage, Total Conc, and Qty Produced formatted to 2 decimals (0.00).
-    - Rows marked as is_final=True highlighted in soft light green (#D1E7DD).
-    - Columns auto-fitted based on cell content.
-    """
     wb = openpyxl.Workbook()
     ws = wb.active
     ws.title = "Formula"
@@ -561,6 +566,9 @@ def _build_fresh_formula_excel(rows):
     align_center = Alignment(horizontal='center', vertical='center')
     align_left = Alignment(horizontal='left', vertical='center')
     align_right = Alignment(horizontal='right', vertical='center')
+    
+    # 🛑 Enables wrap_text so \n displays on new lines within the same cell
+    align_wrap_left = Alignment(horizontal='left', vertical='center', wrap_text=True)
 
     column_alignments = {
         'date': align_left,
@@ -584,7 +592,7 @@ def _build_fresh_formula_excel(rows):
         'm': align_center,
         'y': align_center,
         'k': align_center,
-        'remarks': align_left,
+        'remarks': align_wrap_left,    # 🛑 Multiline text wrapping
     }
 
     # 1. Write Header Row (Row 1, 14pt Bold)
@@ -603,7 +611,7 @@ def _build_fresh_formula_excel(rows):
             cell = ws.cell(row=excel_row, column=c_idx + 1)
             val = row_data.get(field, "")
 
-            # 🛑 2 DECIMAL PLACES: Dosage, Total Conc, Qty Produced
+            # 2 Decimal places
             if field in ('dosage', 'total', 'qty_produced'):
                 try:
                     cell.value = round(float(val), 2)
@@ -611,7 +619,7 @@ def _build_fresh_formula_excel(rows):
                 except (ValueError, TypeError):
                     cell.value = str(val or "0.00")
 
-            # 🛑 4 DECIMAL PLACES: Concentration (mat_conc)
+            # 4 Decimal places
             elif field == 'mat_conc':
                 try:
                     cell.value = round(float(val), 4)
@@ -630,11 +638,11 @@ def _build_fresh_formula_excel(rows):
             cell.font = content_font
             cell.alignment = column_alignments.get(field, align_left)
 
-            # 🛑 Light green highlight for Final Formulas
+            # Highlight row if formula is final
             if is_final_row:
                 cell.fill = final_formula_fill
 
-    # 3. Dynamically adjust column widths based on contents
+    # 3. Adjust column widths factoring in multiline text
     _autofit_columns_content(ws)
 
     # 4. Save unprotected workbook to in-memory buffer
