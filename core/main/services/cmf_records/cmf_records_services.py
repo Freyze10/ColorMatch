@@ -259,7 +259,7 @@ def get_all_formula_records():
         f_info = formula_map.get(str(cm_obj.cm_no)) if cm_obj else None
         customer = f_info.customer if f_info and f_info.customer else "---"
         raw_dosage = f_info.dosage if f_info else None
-        dosage_display = f"{float(raw_dosage):g}%" if raw_dosage is not None else "---"
+        dosage_display = f"{float(raw_dosage):g}%" if raw_dosage is not None else "NA"
 
         combined_results.append({
             "id": f.dc_no,
