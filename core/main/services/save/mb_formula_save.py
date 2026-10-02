@@ -1,5 +1,5 @@
 from datetime import datetime, date
-from decimal import Decimal
+from decimal import Decimal, InvalidOperation
 import json
 from django.contrib.auth import get_user_model
 from django.db import IntegrityError, transaction
@@ -9,6 +9,18 @@ from ...models import (
     tbl_mb_extruder_formula, tbl_mb_extruder_formula02
 )
 User = get_user_model()
+
+def parse_dosage(raw_val):
+    """Converts numeric inputs to Decimal, saves 'NA'/'N/A'/non-numeric as None (NULL)."""
+    if not raw_val:
+        return None
+    cleaned = str(raw_val).replace('%', '').strip()
+    if cleaned.upper() in ('NA', 'N/A', 'NONE'):
+        return None
+    try:
+        return Decimal(cleaned)
+    except (ValueError, TypeError, InvalidOperation):
+        return None
 
 def save_mb_complete_formula(request):
     post_data = request.POST
@@ -151,11 +163,21 @@ def save_mb_complete_formula(request):
             if cmf_obj:
                 cmf_formula = tbl_cmf_formula.objects.filter(cm_no=cmf_obj).order_by('-cmf_formula_no').first()
                 if cmf_formula:
-                    posted_dosage = Decimal(clean_num(post_data.get('dosage')) or 0)
-                    if cmf_formula.dosage != posted_dosage:
-                        diff_logs.append(
-                            f"CMF Dosage ({format_val(cmf_formula.dosage)} -> {format_val(posted_dosage)})"
-                        )
+                    posted_dosage = parse_dosage(post_data.get('dosage'))
+                    
+                    # Safe comparison handling Decimal vs None
+                    is_different = False
+                    if cmf_formula.dosage is None and posted_dosage is not None:
+                        is_different = True
+                    elif cmf_formula.dosage is not None and posted_dosage is None:
+                        is_different = True
+                    elif cmf_formula.dosage is not None and posted_dosage is not None:
+                        is_different = (cmf_formula.dosage != posted_dosage)
+
+                    if is_different:
+                        old_disp = format_val(cmf_formula.dosage) if cmf_formula.dosage is not None else "NA"
+                        new_disp = format_val(posted_dosage) if posted_dosage is not None else "NA"
+                        diff_logs.append(f"CMF Dosage ({old_disp} -> {new_disp})")
                         cmf_formula.dosage = posted_dosage
                         cmf_formula.save(update_fields=['dosage'])
             # Gather newly submitted ingredient rows

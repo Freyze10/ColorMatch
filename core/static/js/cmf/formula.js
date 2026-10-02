@@ -269,15 +269,15 @@
         saveBtn.addEventListener('click', function () {
             if (!form.reportValidity()) return;
 
-            // --- DOSAGE NUMERIC VALIDATION ---
+            // --- DOSAGE NUMERIC / NA VALIDATION ---
             const dosageInput = form.querySelector('[name="dosage"]');
             if (dosageInput) {
-                const dosageVal = dosageInput.value.trim();
-                // Matches whole numbers (e.g., 2) or decimals (e.g., 1.75), rejects any letters, symbols (%), or negatives
-                const isNumeric = /^\d+(\.\d+)?$/.test(dosageVal);
-                
-                if (!isNumeric || parseFloat(dosageVal) <= 0) {
-                    Preline.toast('Dosage must be a valid number (e.g., 1 or 1.5). Please remove any text or "%" signs.', 'error');
+                const dosageVal = dosageInput.value.trim().toUpperCase();
+                const isNA = (dosageVal === 'NA' || dosageVal === 'N/A');
+                const isNumeric = /^\d+(\.\d+)?$/.test(dosageVal) && parseFloat(dosageVal) > 0;
+
+                if (!isNA && !isNumeric) {
+                    Preline.toast('Dosage must be a valid number (e.g., 1 or 1.5) or "NA". Please remove any "%" signs.', 'error');
                     dosageInput.focus();
                     return;
                 }

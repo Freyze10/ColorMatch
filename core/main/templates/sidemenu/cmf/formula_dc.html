@@ -132,9 +132,10 @@ Formula DC
                                 <input type="text" 
                                     name="dosage" 
                                     id="id_dc_dosage" 
-                                    value="{{ form_data.dosage|default:'' }}" 
+                                    value="{% if form_data.dosage is not None and form_data.dosage != '' and form_data.dosage != 'None' %}{{ form_data.dosage }}{% elif form_data.formula_id %}NA{% else %}{{ form_data.dosage|default:'' }}{% endif %}" 
                                     class="form-control form-control-sm uniform-input dosage-input{% if form_data.formula_id %} readonly-gray{% endif %}" 
                                     {% if form_data.formula_id %}readonly{% endif %} 
+                                    placeholder="Enter Dosage or NA"
                                     required>
                             </div>
                         </div>
