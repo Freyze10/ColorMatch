@@ -229,10 +229,29 @@ def cmf_entry(request):
                 resin_note_obj = tbl_field_note.objects.filter(cmf_formula_no=formula_info, field='resin').first() if formula_info else None
 
                 # --- CHECK IF COMPLETED & GET AR_NO ---
+                pending_obj = None
                 if not cm_no_override:
-                    pending_obj = tbl_cmf_pending_completed.objects.filter(cm_no=cmf).first()
+                    pending_obj = tbl_cmf_pending_completed.objects.filter(cm_no=cmf).select_related('code').first()
                     if pending_obj and pending_obj.is_completed:
                         ar_no = pending_obj.ar_no or ""
+
+                final_prod_code = ""
+                if pending_obj and pending_obj.code:
+                    final_prod_code = pending_obj.code.product_code
+
+                # Base product code resolution
+                resolved_prod_code = selected_code_display if selected_code_display else ("" if cm_no_override else final_prod_code)
+
+                # 🛑 NEW FALLBACK LOGIC:
+                # If product code is None/empty AND AR No is None/empty:
+                # Check tbl_submitted_selected for any custom value (not Sample, Chips, or Price)
+                if not resolved_prod_code and not ar_no and pending_obj:
+                    STANDARD_SUBMITTED = {'sample', 'chips', 'price'}
+                    for sub in tbl_submitted_selected.objects.filter(completed_id=pending_obj).select_related('option_id'):
+                        opt_name = (sub.option_id.name or '').strip() if sub.option_id else ''
+                        if opt_name and opt_name.lower() not in STANDARD_SUBMITTED:
+                            resolved_prod_code = opt_name
+                            break
 
                 resin_ids = list(
                     tbl_resins_selected.objects.filter(cm_no=cmf).values_list('resin_no_id', flat=True)
@@ -270,14 +289,6 @@ def cmf_entry(request):
                     else:
                         selected_specs.append('Others')
                         other_spec_val = s_clean
-
-                final_formula = tbl_cmf_pending_completed.objects.filter(
-                    cm_no=cmf
-                ).select_related('code').first() 
-
-                final_prod_code = ""
-                if final_formula and final_formula.code:
-                    final_prod_code = final_formula.code.product_code
                 
                 form_data = {
                     'is_new': '1' if cm_no_override else '0',
@@ -315,7 +326,7 @@ def cmf_entry(request):
                     'color_guide_return': 'Y' if cmf.is_guide_to_return else ('N' if cmf.is_guide_to_return is False else ''),
                     'is_low_cost': 'Y' if cmf.is_low_cost else ('N' if cmf.is_low_cost is False else ''),
                     'remarks': cmf.remarks,
-                    'product_code': selected_code_display if selected_code_display else ("" if cm_no_override else final_prod_code),
+                    'product_code': resolved_prod_code,
                     "ar_no": ar_no,
                     'dosage_note': dosage_note_obj.note if dosage_note_obj else "",
                     'resin_note': resin_note_obj.note if resin_note_obj else "",
