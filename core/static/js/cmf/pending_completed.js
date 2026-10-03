@@ -258,12 +258,46 @@ document.addEventListener('DOMContentLoaded', function () {
     const entryForm = saveBtn ? saveBtn.closest('form') : null;
     if (saveBtn && entryForm) {
         saveBtn.addEventListener('click', function () {
+             // Guard: Validate that at least one Submitted option is chosen
             if (!validateSubmittedOptions()) {
                 if (canonicalCheckboxes[0]) canonicalCheckboxes[0].reportValidity();
                 if (typeof Preline !== 'undefined' && Preline.toast) {
                     Preline.toast('Please select at least one Submitted option.', 'warning');
                 }
                 return;
+            }
+            
+            // Guard: Product Code Check for (Price, Sample, Chips)
+            const isSampleChecked = sampleCheckbox ? sampleCheckbox.checked : false;
+            const isChipsChecked = chipsCheckbox ? chipsCheckbox.checked : false;
+            const isPriceChecked = priceCheckbox ? priceCheckbox.checked : false;
+            const requiresProductCode = isSampleChecked || isChipsChecked || isPriceChecked;
+
+            const recordTypeInput = document.querySelector('input[name="record_type"]');
+            const isCmf = !recordTypeInput || recordTypeInput.value.trim().toLowerCase() === 'cmf';
+
+            if (isCmf && requiresProductCode) {
+                const productCodeInput = document.querySelector('input[name="product_code"]');
+                const codeVal = productCodeInput ? productCodeInput.value.trim() : '';
+
+                // Treat empty or placeholders ('---', 'none', 'n/a') as having no value
+                const isInvalidCode = !codeVal || ['---', 'none', 'n/a', 'null'].includes(codeVal.toLowerCase());
+                if (isInvalidCode) {
+                    if (typeof Preline !== 'undefined') {
+                        if (typeof Preline.alert === 'function') {
+                            Preline.alert(
+                                'Missing Product Code',
+                                'This CMF must have a final product code first.',
+                                'danger'
+                            );
+                        } else if (typeof Preline.toast === 'function') {
+                            Preline.toast('This CMF must have a final product code first.', 'error');
+                        }
+                    } else {
+                        alert('This CMF must have a final product code first.');
+                    }
+                    return; // 🛑 Block form submission
+                }
             }
 
             if (entryForm.reportValidity()) {

@@ -94,11 +94,8 @@ Pending/Completed Forms
                                     <input type="text" value="{{ form_data.date_created|default:'' }}" class="form-control form-control-sm uniform-input readonly-gray" readonly>
                                 </div>
                                 <div class="col-6">
-                                    <label class="fw-bold extra-small">Required:</label>
-                                    <div class="input-group input-group-sm flatpickr-container" data-wrap="true">
-                                        <input type="text" name="required_date" value="{{ form_data.required_date|default:'' }}" class="form-control uniform-input date-picker-single readonly-gray" placeholder="MM/DD/YYYY or ASAP" data-input readonly>
-                                        <span class="input-group-text uniform-input border-start-0" data-toggle><i class="bi bi-calendar3"></i></span>
-                                    </div>
+                                    <label class="fw-bold extra-small">Required Date:</label>
+                                    <input type="text" name="required_date" value="{{ form_data.required_date|default:'' }}" class="form-control form-control-sm uniform-input readonly-gray" readonly>
                                 </div>
                             </div>
 
