@@ -265,11 +265,11 @@
                                 </td>
                                 <td class="py-1">
                                     <!-- Added js-percent-input -->
-                                    <input type="number" step="any" name="percentage_{{ forloop.counter }}" class="table-input text-center js-percent-input" placeholder="0.0000" value="{{ ing.value|floatformat:4  }}">
+                                    <input type="number" step="any" name="percentage_{{ forloop.counter }}" class="table-input text-center js-percent-input" placeholder="0.00000000" value="{{ ing.value|floatformat:4  }}">
                                 </td>
                                 <td class="pe-4 py-1">
                                     <!-- Added js-weight-input -->
-                                    <input type="number" step="any" name="weight_{{ forloop.counter }}" class="table-input text-end weight-input js-weight-input" placeholder="0.0000" value="{{ ing.weight|floatformat:4  }}">
+                                    <input type="number" step="any" name="weight_{{ forloop.counter }}" class="table-input text-end weight-input js-weight-input" placeholder="0.00000000" value="{{ ing.weight|floatformat:4  }}">
                                 </td>
                             </tr>
                             {% endfor %}
@@ -283,14 +283,14 @@
                                     <div class="d-flex flex-column align-items-center">
                                         <span class="text-muted" style="font-size: 0.6rem; font-weight: 800;">TOTAL %</span>
                                         <!-- Uses class instead of ID -->
-                                        <input type="text" class="form-control form-control-sm border-0 bg-transparent text-center fw-bold p-0 js-total-percent-summary" readonly value="0.0000">
+                                        <input type="text" class="form-control form-control-sm border-0 bg-transparent text-center fw-bold p-0 js-total-percent-summary" readonly value="0.00000000">
                                     </div>
                                 </td>
                                 <td class="pe-4 py-2 text-end">
                                     <div class="d-flex flex-column align-items-end">
                                         <span class="text-muted" style="font-size: 0.6rem; font-weight: 800;">TOTAL WEIGHT</span>
                                         <!-- Uses class instead of ID -->
-                                        <input type="text" class="form-control form-control-sm border-0 bg-transparent text-end fw-bold p-0 js-total-weight-summary" readonly value="0.0000">
+                                        <input type="text" class="form-control form-control-sm border-0 bg-transparent text-end fw-bold p-0 js-total-weight-summary" readonly value="0.00000000">
                                     </div>
                                 </td>
                             </tr>

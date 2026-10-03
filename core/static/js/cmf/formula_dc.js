@@ -18,7 +18,7 @@
 
     if (!table || !form) return;
 
-    const DECIMALS = 4;
+    const DECIMALS = 8;
 
     // Version currently being entered. Read once on load, before any row gets locked.
     const openVersions = Array.from(table.querySelectorAll('.js-version-value'))
@@ -45,7 +45,7 @@
         if (isNumeric) {
             const num = parseFloat(raw);
             if (!isNaN(num) && num > 0) {
-                // Keep Total Weight formatted to 4 decimals
+                // Keep Total Weight formatted to 8 decimals
                 totalWeightInput.value = num.toFixed(DECIMALS);
                 totalWeightInput.dispatchEvent(new Event('input', { bubbles: true }));
                 return;

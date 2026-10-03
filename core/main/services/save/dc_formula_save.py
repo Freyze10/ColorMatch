@@ -40,7 +40,7 @@ def save_dc_complete_formula(request):
         if val is None or val == "" or val == "None":
             return "---"
         if isinstance(val, (Decimal, float)):
-            return format(float(val), ".4f")
+            return format(float(val), ".8f")
         if isinstance(val, (date, datetime)):
             return val.strftime('%m/%d/%Y')
         return str(val).strip()

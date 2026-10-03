@@ -18,7 +18,7 @@
     if (!table || !supposedWeightInput) return;
 
     const form = table.closest('form');
-    const DECIMALS = 4;
+    const DECIMALS = 8;
 
     // ------------------------------------------------------------------
     // CALCULATIONS

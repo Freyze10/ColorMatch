@@ -537,8 +537,8 @@ class tbl_mb_extruder_formula02(models.Model):
     id = models.AutoField(primary_key=True)
     mb = models.ForeignKey(tbl_mb_extruder_formula, on_delete=models.CASCADE, db_column="mb_no")
     material = models.CharField(max_length=150, blank=True, null=True)
-    value = models.DecimalField(max_digits=12, decimal_places=6, null=True, blank=True)
-    weight = models.DecimalField(max_digits=12, decimal_places=7, null=True, blank=True)
+    value = models.DecimalField(max_digits=16, decimal_places=10, null=True, blank=True)
+    weight = models.DecimalField(max_digits=16, decimal_places=10, null=True, blank=True)
 
     class Meta:
         db_table = "tbl_mb_extruder_formula02"
@@ -593,7 +593,7 @@ class tbl_dc_extruder_materials(models.Model):
 class tbl_dc_extruder_version(models.Model):
     id = models.AutoField(primary_key=True)
     version_no = models.IntegerField()
-    value = models.DecimalField(max_digits=12, decimal_places=6, null=True, blank=True)
+    value = models.DecimalField(max_digits=16, decimal_places=10, null=True, blank=True)
     material = models.ForeignKey(tbl_dc_extruder_materials, on_delete=models.CASCADE, db_column="material_id", related_name="versions")
 
     class Meta:

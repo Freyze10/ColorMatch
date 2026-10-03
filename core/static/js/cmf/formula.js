@@ -76,10 +76,10 @@
             const totalWeightDisplay = table.querySelector('.js-total-weight-summary');
 
             if (totalPercentDisplay) {
-                totalPercentDisplay.value = totalPercent.toFixed(4);
+                totalPercentDisplay.value = totalPercent.toFixed(8);
                 totalPercentDisplay.style.color = totalPercent > 100.0001 ? 'red' : '';
             }
-            if (totalWeightDisplay) totalWeightDisplay.value = totalWeight.toFixed(4);
+            if (totalWeightDisplay) totalWeightDisplay.value = totalWeight.toFixed(8);
         }
 
         if (isDC) {
@@ -92,7 +92,7 @@
 
             table.querySelectorAll('.js-version-total').forEach(totalInput => {
                 const v = totalInput.dataset.version;
-                totalInput.value = (totals[v] || 0).toFixed(4);
+                totalInput.value = (totals[v] || 0).toFixed(8);
             });
         }
     }
@@ -252,7 +252,7 @@
         totalWeightInput.addEventListener('blur', function () {
             const val = parseFloat(this.value);
             if (!isNaN(val)) {
-                this.value = val.toFixed(4);
+                this.value = val.toFixed(8);
             } else {
                 this.value = '';
             }
@@ -298,11 +298,11 @@
                 const totalPct = parseFloat(document.querySelector('.js-total-percent-summary')?.value) || 0;
                 const totalWgt = parseFloat(document.querySelector('.js-total-weight-summary')?.value) || 0;
                 
-                if (totalPct.toFixed(4) !== "100.0000") {
+                if (totalPct.toFixed(8) !== "100.00000000") {
                     Preline.toast(`MB Error: Total percentage must be 100%. Current: ${totalPct}%`, 'error');
                     return;
                 }
-                if (totalWgt.toFixed(4) !== masterWgt.toFixed(4)) {
+                if (totalWgt.toFixed(8) !== masterWgt.toFixed(8)) {
                     Preline.toast(`MB Error: Summary weight mismatch.`, 'error');
                     return;
                 }
@@ -325,8 +325,8 @@
                 const versionTotalInput = document.querySelector(`.js-version-total[data-version="${activeV}"]`);
                 const versionTotal = parseFloat(versionTotalInput?.value) || 0;
 
-                if (versionTotal.toFixed(2) !== masterWgt.toFixed(2)) {
-                    Preline.toast(`DC Error: Trial #${activeV} total (${versionTotal.toFixed(4)}) must match Total Weight (${masterWgt.toFixed(4)}).`, 'error');
+                if (versionTotal.toFixed(8) !== masterWgt.toFixed(8)) {
+                    Preline.toast(`DC Error: Trial #${activeV} total (${versionTotal.toFixed(8)}) must match Total Weight (${masterWgt.toFixed(8)}).`, 'error');
                     return;
                 }
             }
