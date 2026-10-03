@@ -167,7 +167,30 @@ document.addEventListener('DOMContentLoaded', function() {
             numInput.value = hiddenField.value;
         }
     }
-    
+
+    // other specification checkboxes, pagka click ng not specified, cleared out yung other checkboox
+    const notSpecifiedCb = document.getElementById('spec_not_specified');
+    const otherSpecCheckboxes = document.querySelectorAll('.spec-item');
+    const otherSpecInput = document.getElementById('specificationOtherInput');
+
+    if (notSpecifiedCb) {
+        // If "Not Specified" is checked -> uncheck other specs and clear "Others" input
+        notSpecifiedCb.addEventListener('change', function () {
+            if (this.checked) {
+                otherSpecCheckboxes.forEach(cb => cb.checked = false);
+                if (otherSpecInput) otherSpecInput.value = '';
+            }
+        });
+
+        // If any specific specification is checked -> uncheck "Not Specified"
+        otherSpecCheckboxes.forEach(cb => {
+            cb.addEventListener('change', function () {
+                if (this.checked) {
+                    notSpecifiedCb.checked = false;
+                }
+            });
+        });
+    }
 
     // --- 4. BUTTON LISTENERS ---
 

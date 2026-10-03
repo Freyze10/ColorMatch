@@ -344,16 +344,21 @@ CMF Entry
                             <label class="fw-bold extra-small d-block mb-1 required-label">Other Specification:</label>
                             <div class="d-flex flex-wrap align-items-center gap-3 row-gap-2">
                                 <div class="form-check mb-0">
-                                    <input class="form-check-input visible-check" type="checkbox" name="specification" value="Food Contact" id="spec_food_contact" {% if 'Food Contact' in form_data.specification %}checked{% endif %}>
+                                    <input class="form-check-input visible-check spec-item" type="checkbox" name="specification" value="Food Contact" id="spec_food_contact" {% if 'Food Contact' in form_data.specification %}checked{% endif %}>
                                     <label class="form-check-label extra-small" for="spec_food_contact">Food Contact</label>
                                 </div>
                                 <div class="form-check mb-0">
-                                    <input class="form-check-input visible-check" type="checkbox" name="specification" value="Sunlight Exposure" id="spec_sunlight_exposure" {% if 'Sunlight Exposure' in form_data.specification %}checked{% endif %}>
+                                    <input class="form-check-input visible-check spec-item" type="checkbox" name="specification" value="Sunlight Exposure" id="spec_sunlight_exposure" {% if 'Sunlight Exposure' in form_data.specification %}checked{% endif %}>
                                     <label class="form-check-label extra-small" for="spec_sunlight_exposure">Sunlight Exposure</label>
+                                </div>
+                                <!-- 🛑 ADDED: Not Specified -->
+                                <div class="form-check mb-0">
+                                    <input class="form-check-input visible-check" type="checkbox" name="specification" value="Not Specified" id="spec_not_specified" {% if 'Not Specified' in form_data.specification %}checked{% endif %}>
+                                    <label class="form-check-label extra-small" for="spec_not_specified">Not Specified</label>
                                 </div>
                                 <div class="d-flex align-items-center gap-1 js-other-container">
                                     <div class="form-check mb-0">
-                                        <input class="form-check-input visible-check js-other-trigger" type="checkbox" name="specification" value="Others" id="spec_others" {% if 'Others' in form_data.specification %}checked{% endif %}>
+                                        <input class="form-check-input visible-check js-other-trigger spec-item" type="checkbox" name="specification" value="Others" id="spec_others" {% if 'Others' in form_data.specification %}checked{% endif %}>
                                         <label class="form-check-label extra-small" for="spec_others">Others</label>
                                     </div>
                                     <input type="text" class="form-control form-control-sm uniform-input js-other-input" name="specificationOther" value="{{ form_data.specificationOther|default:'' }}" id="specificationOtherInput" style="width: auto; height: 26px;" placeholder="Specify">

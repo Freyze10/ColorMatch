@@ -110,7 +110,7 @@ def save_cmf_complete_entry(request):
         formula_obj = tbl_cmf_formula.objects.create(
             customer=data.get('customer'),
             finished_product=data.get('finished_product'),
-            dosage_val = parse_dosage(request.POST.get('dosage')),
+            dosage_val = parse_dosage(request.get('dosage')),
             cm_no=cmf_main
         )
         dosage_note = (data.get('dosage_note') or '').strip()
@@ -143,8 +143,10 @@ def save_cmf_complete_entry(request):
         for s_name in selected_specs:
             s_name = data.get('specificationOther') if s_name == "Others" else s_name
             if s_name:
+                s# Links to 'Not Specified' (or any standard/custom spec) by its spec_no
                 s_ref, _ = tbl_cmf_specification.objects.get_or_create(name=s_name.strip())
                 tbl_cmf_specification02.objects.create(cm_no=cmf_main, spec_no=s_ref)
+
         # --- RESOLVE PRODUCT CODE ---
         prod_code_val = (data.get('product_code') or '').strip()
         code_obj = None
@@ -338,6 +340,12 @@ def update_cmf_complete_entry(request, original_cmf_no):
         new_specs_str = ", ".join(new_specs_list)
         if curr_specs != new_specs_str:
             diff_logs.append(f"Specifications ({curr_specs or 'None'} -> {new_specs_str or 'None'})")
+
+        # Update Specifications in DB
+        tbl_cmf_specification02.objects.filter(cm_no=cmf_main).delete()
+        for name in new_specs_list:
+            s_ref, _ = tbl_cmf_specification.objects.get_or_create(name=name)
+            tbl_cmf_specification02.objects.create(cm_no=cmf_main, spec_no=s_ref)
 
         # --- F. RESOLVE & TRACK PRODUCT CODE ---
         prod_code_val = (data.get('product_code') or '').strip()

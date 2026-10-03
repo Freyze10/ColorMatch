@@ -253,10 +253,23 @@ def cmf_entry(request):
                         selected_processes.append('others')
                         other_process_val = p.strip()
 
-                spec_names = list(
+                spec_names_raw = list(
                     tbl_cmf_specification02.objects.filter(cm_no=cmf)
                     .values_list('spec_no__name', flat=True)
                 )
+                STANDARD_SPECS = {'food contact', 'sunlight exposure', 'not specified'}
+                selected_specs = []
+                other_spec_val = ""
+
+                for s in spec_names_raw:
+                    s_clean = s.strip()
+                    if s_clean.lower() in STANDARD_SPECS:
+                        if s_clean.lower() == 'food contact': selected_specs.append('Food Contact')
+                        elif s_clean.lower() == 'sunlight exposure': selected_specs.append('Sunlight Exposure')
+                        elif s_clean.lower() == 'not specified': selected_specs.append('Not Specified')
+                    else:
+                        selected_specs.append('Others')
+                        other_spec_val = s_clean
 
                 final_formula = tbl_cmf_pending_completed.objects.filter(
                     cm_no=cmf
@@ -311,7 +324,8 @@ def cmf_entry(request):
                     'resin': [str(rid) for rid in resin_ids],
                     'process': selected_processes,
                     'otherProcess': other_process_val,
-                    'specification': spec_names,
+                    'specification': selected_specs,
+                    'specificationOther': other_spec_val,
                 }
                 # show the "View Files" button, and to populate its modal.
                 attachments = list(
