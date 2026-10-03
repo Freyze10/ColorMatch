@@ -218,7 +218,13 @@
                         </div>
                         <div class="row g-2 align-items-center mb-2">
                             <div class="col-md-4"><label class="extra-small fw-bold text-muted">Encoded by:</label></div>
-                            <div class="col-md-8"><input type="text" name="encoded_by" value="{{ form_data.encoded_by|default:user.first_name|default:'' }}" class="form-control form-control-sm uniform-input readonly-gray" readonly></div>
+                            <div class="col-md-8">
+                                <input type="text" 
+                                    name="encoded_by" 
+                                    value="{% if form_data.form_id %}{{ form_data.encoded_by|default:'' }}{% else %}{{ user.first_name|default:'' }}{% endif %}" 
+                                    class="form-control form-control-sm uniform-input readonly-gray" 
+                                    readonly>
+                            </div>
                         </div>
                         <div class="d-flex gap-2 justify-content-end mt-3">
                             <button type="button" id="mfAddMaterialBtn" class="btn btn-sm btn-success px-3" 
