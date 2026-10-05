@@ -39,7 +39,7 @@ jQuery(document).ready(function($) {
                     const statusLower = (data || '').toLowerCase();
                     let cls = "bg-light text-dark border-secondary";
 
-                    if (statusLower === 'pending') cls = "bg-warning-subtle text-warning border-warning";
+                    if (statusLower === 'pending' || statusLower === 'waiting for result') cls = "bg-warning-subtle text-warning border-warning";
                     else if (statusLower === 'rematch') cls = "bg-primary-subtle text-primary border-primary";
                     else if (statusLower === 'abandoned') cls = "bg-danger-subtle text-danger border-danger";
                     else if (statusLower === 'ordered') cls = "bg-dark-subtle text-dark border-dark";
