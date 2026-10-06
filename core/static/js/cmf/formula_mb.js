@@ -142,7 +142,7 @@
 
         row.querySelectorAll('.js-percent-input, .js-weight-input').forEach(input => {
             input.readOnly = locked;
-            input.style.backgroundColor = locked ? '#f8f9fa' : '';
+            input.style.backgroundColor = locked ? '#a3a3a3' : '';
             input.style.cursor = locked ? 'not-allowed' : '';
             if (locked) input.tabIndex = -1;
             else input.removeAttribute('tabindex');

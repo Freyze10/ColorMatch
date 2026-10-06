@@ -126,7 +126,7 @@
             // Lock columns that are beyond the current allowed trial
             if (v > activeVersion) {
                 input.readOnly = true;
-                input.style.backgroundColor = "#f8f9fa";
+                input.style.backgroundColor = "#a3a3a3";
                 input.style.cursor = "not-allowed";
                 input.tabIndex = "-1";
             } else {

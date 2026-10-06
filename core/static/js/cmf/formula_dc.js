@@ -140,7 +140,7 @@
             // Columns beyond the active version stay locked no matter what
             const lock = locked || parseInt(input.dataset.version) > activeVersion;
             input.readOnly = lock;
-            input.style.backgroundColor = lock ? '#f8f9fa' : '';
+            input.style.backgroundColor = lock ? '#a3a3a3' : '';
             input.style.cursor = lock ? 'not-allowed' : '';
             if (lock) input.tabIndex = -1;
             else input.removeAttribute('tabindex');
