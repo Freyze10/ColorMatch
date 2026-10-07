@@ -219,9 +219,9 @@ def save_dc_complete_formula(request):
                         tbl_formula_resin.objects.filter(formula_resin_id__in=posted_resin_ids)
                         .values_list('resin', flat=True)
                     )
-                    diff_logs.append(
-                        f"Resin Used ({', '.join(old_names) or '---'} -> {', '.join(new_names) or '---'})"
-                    )
+                    # diff_logs.append(
+                    #     f"Resin Used ({', '.join(old_names) or '---'} -> {', '.join(new_names) or '---'})"
+                    # )
 
                     # Replace old selections with new selections
                     tbl_formula_resin_selected.objects.filter(dc_no=header).delete()
