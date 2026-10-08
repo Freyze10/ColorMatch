@@ -5,7 +5,7 @@ from django.db import migrations
 def add_inhouse_salesman(apps, schema_editor):
     Salesman = apps.get_model('main', 'tbl_cmf_salesman')  # Replace 'main' if your app name is different
     # get_or_create checks first: if it exists, it does nothing; if not, it creates it.
-    Salesman.objects.get_or_create(name='inhouse')
+    Salesman.objects.get_or_create(name='In House')
 
 class Migration(migrations.Migration):
 

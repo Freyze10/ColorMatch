@@ -110,7 +110,7 @@ def save_cmf_complete_entry(request):
         formula_obj = tbl_cmf_formula.objects.create(
             customer=data.get('customer'),
             finished_product=data.get('finished_product'),
-            dosage_val = parse_dosage(request.get('dosage')),
+            dosage = parse_dosage(data.get('dosage')),
             cm_no=cmf_main
         )
         dosage_note = (data.get('dosage_note') or '').strip()
@@ -143,7 +143,7 @@ def save_cmf_complete_entry(request):
         for s_name in selected_specs:
             s_name = data.get('specificationOther') if s_name == "Others" else s_name
             if s_name:
-                s# Links to 'Not Specified' (or any standard/custom spec) by its spec_no
+                # Links to 'Not Specified' (or any standard/custom spec) by its spec_no
                 s_ref, _ = tbl_cmf_specification.objects.get_or_create(name=s_name.strip())
                 tbl_cmf_specification02.objects.create(cm_no=cmf_main, spec_no=s_ref)
 
