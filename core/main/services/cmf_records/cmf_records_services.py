@@ -33,10 +33,15 @@ def get_resin_list():
     return data
 
 def get_color_code_list():
-    data = cache.get('code_list')
+    cache_key = 'final_code_list'
+    data = cache.get(cache_key)
     if not data:
-        data = list(tbl_generated_prod_code.objects.all().order_by('code_no'))
-        cache.set('code_list', data, 86400)
+        # Get distinct product codes that are linked in tbl_cmf_pending_completed
+        # (Optional: add .filter(tbl_cmf_pending_completed__is_completed=True) if "final" strictly means completed)
+        code_ids = tbl_cmf_pending_completed.objects.exclude(code__isnull=True).values_list('code_id', flat=True).distinct()
+        
+        data = list(tbl_generated_prod_code.objects.filter(code_no__in=code_ids).order_by('code_no'))
+        cache.set(cache_key, data, 86400)
     return data
 
 def get_customer_list():

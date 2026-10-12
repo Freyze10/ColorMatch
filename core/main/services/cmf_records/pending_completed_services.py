@@ -280,6 +280,7 @@ def save_pending_completed_entry(request, log_audit):
                 messages.success(request, f"Successfully updated tracking for {parent_display}")
                 cache.delete('cmf_records_list')
                 cache.delete('rs_records_list')
+                cache.delete('final_code_list')
             else:
                 messages.info(request, "No changes detected.")
     except Exception as e:
