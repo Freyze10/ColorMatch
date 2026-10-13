@@ -341,22 +341,13 @@ def update_cmf_complete_entry(request, original_cmf_no):
         if curr_specs != new_specs_str:
             diff_logs.append(f"Specifications ({curr_specs or 'None'} -> {new_specs_str or 'None'})")
 
-        # Update Specifications in DB
-        tbl_cmf_specification02.objects.filter(cm_no=cmf_main).delete()
-        for name in new_specs_list:
-            s_ref, _ = tbl_cmf_specification.objects.get_or_create(name=name)
-            tbl_cmf_specification02.objects.create(cm_no=cmf_main, spec_no=s_ref)
-
         # --- F. RESOLVE & TRACK PRODUCT CODE ---
         prod_code_val = (data.get('product_code') or '').strip()
         new_code_obj = None
 
         if prod_code_val and prod_code_val.lower() not in ('none', 'null', 'n/a'):
-            # 1. From TomSelect (passes code_no ID)
             if prod_code_val.isdigit():
                 new_code_obj = tbl_generated_prod_code.objects.filter(code_no=int(prod_code_val)).first()
-            
-            # 2. From Text input (passes product code string)
             if not new_code_obj:
                 new_code_obj = tbl_generated_prod_code.objects.filter(product_code=prod_code_val).first()
 
@@ -367,7 +358,7 @@ def update_cmf_complete_entry(request, original_cmf_no):
         if old_code_str != new_code_str:
             diff_logs.append(f"Product Code ({old_code_str} -> {new_code_str})")
 
-        # --- 3. DATABASE EXECUTION ---
+        # --- 3. DATABASE EXECUTION (cmf_main is created/assigned here) ---
         if renaming:
             if tbl_cmf.objects.filter(cm_no=new_cmf_no).exists(): raise Exception("Duplicate No.")
             cmf_main = tbl_cmf.objects.create(cm_no=new_cmf_no, user=old_cmf.user, **header_map)
@@ -389,6 +380,7 @@ def update_cmf_complete_entry(request, original_cmf_no):
             due_date_lab=format_date(data.get('due_date'))
         )
         tbl_cmf_formula.objects.filter(cm_no=cmf_main).update(**formula_map)
+        
         # --- UPDATE / SYNC FIELD NOTES ---
         if new_dosage_note:
             tbl_field_note.objects.update_or_create(
