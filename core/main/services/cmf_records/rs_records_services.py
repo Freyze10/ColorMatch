@@ -1,7 +1,7 @@
 from django.http import JsonResponse
 from django.shortcuts import render
-from django.db.models import Q, Value, OuterRef, Subquery
-from django.db.models.functions import Concat
+from django.db.models import Q, Value, OuterRef, Subquery, CharField
+from django.db.models.functions import Coalesce, Concat
 from main.models import tbl_rs, tbl_cmf_pending_completed
 
 # Column index order matching DataTables
@@ -38,12 +38,19 @@ def rs_records_data(request):
     search_col = request.GET.get('search_col', 'all')
     search_term = (request.GET.get('search_term') or '').strip()
 
-    # Subqueries from tbl_cmf_pending_completed for status and product code
-    pending_sub = tbl_cmf_pending_completed.objects.filter(rs_no=OuterRef('pk'))
+    # Pending/completed rows are linked either by RS or only by CM, so try the RS first, then the CM.
+    # Newest row wins.
+    all_rows = tbl_cmf_pending_completed.objects.order_by('-completed_id')
+    coded_rows = all_rows.filter(code__isnull=False)
+
+    code_by_rs = coded_rows.filter(rs_no=OuterRef('pk')).values('code__product_code')[:1]
+    code_by_cm = coded_rows.filter(cm_no=OuterRef('cm_no')).values('code__product_code')[:1]
+    status_by_rs = all_rows.filter(rs_no=OuterRef('pk')).values('is_completed')[:1]
+    status_by_cm = all_rows.filter(cm_no=OuterRef('cm_no')).values('is_completed')[:1]
 
     qs = tbl_rs.objects.select_related('cm_no', 'sm_no', 'approved_by').annotate(
-        product_code=Subquery(pending_sub.values('code__product_code')[:1]),
-        is_completed=Subquery(pending_sub.values('is_completed')[:1]),
+        product_code=Coalesce(Subquery(code_by_rs), Subquery(code_by_cm), output_field=CharField()),
+        is_completed=Coalesce(Subquery(status_by_rs), Subquery(status_by_cm)),
         approver_name=Concat('approved_by__first_name', Value(' '), 'approved_by__last_name')
     )
 
@@ -97,12 +104,14 @@ def get_cmf_final_code(request):
     product_code = ""
 
     if cm_no:
-        # Get the code directly from tbl_cmf_pending_completed
-        pending_record = tbl_cmf_pending_completed.objects.filter(
-            cm_no__cm_no=cm_no
-        ).select_related('code').first()
+        # Newest row for this CM that actually has a code
+        pending_record = (tbl_cmf_pending_completed.objects
+                          .filter(cm_no__cm_no=cm_no, code__isnull=False)
+                          .select_related('code')
+                          .order_by('-completed_id')
+                          .first())
 
-        if pending_record and pending_record.code:
-            product_code = pending_record.code.product_code
+        if pending_record:
+            product_code = pending_record.code.product_code or ""
 
     return JsonResponse({'success': True, 'product_code': product_code})
