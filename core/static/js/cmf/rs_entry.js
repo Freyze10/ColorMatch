@@ -1,8 +1,8 @@
 document.addEventListener('DOMContentLoaded', function () {
     const cmSelect = document.querySelector('select[name="cm_no"]');
     const productCodeInput = document.querySelector('input[name="product_code"]');
-    const saveBtn = document.querySelector('.btn-save-rs');
-    const newBtn = document.querySelector('.btn-new');
+    const saveBtn = document.querySelector('.btn-save-rs');  // <-- Updated class
+    const newBtn = document.querySelector('.btn-new-rs');
     const entryForm = saveBtn ? saveBtn.closest('form') : null;
 
     /**
@@ -66,7 +66,6 @@ document.addEventListener('DOMContentLoaded', function () {
             }
         }, 100);
     }
-
     // --- BUTTON LISTENERS ---
     if (saveBtn && entryForm) {
         saveBtn.addEventListener('click', function () {
@@ -74,6 +73,7 @@ document.addEventListener('DOMContentLoaded', function () {
                 const hiddenInput = entryForm.querySelector('[name="original_rs_no"]');
                 const isUpdate = hiddenInput && hiddenInput.value.trim() !== '';
 
+                // Standard native confirmation modal fallback or Preline check
                 if (window.Preline && typeof Preline.confirm === 'function') {
                     Preline.confirm(
                         isUpdate ? 'Update RS Entry?' : 'Save RS Entry?',
@@ -83,6 +83,10 @@ document.addEventListener('DOMContentLoaded', function () {
                         'success',
                         () => entryForm.submit()
                     );
+                } else {
+                    if (confirm(isUpdate ? 'Are you sure you want to update this RS entry?' : 'Are you sure you want to save this new RS entry?')) {
+                        entryForm.submit();
+                    }
                 }
             }
         });

@@ -1,4 +1,4 @@
-const Preline = {
+window.Preline = {
     // 1. TOAST SYSTEM
     toast: function(message, type = 'success') {
         let container = document.getElementById('preline-toast-container');
