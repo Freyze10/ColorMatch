@@ -113,7 +113,7 @@ class tbl_password_reset_request(models.Model):
 class tbl_internal_color_code(models.Model):
     in_code_no = models.AutoField(primary_key=True)
     color = models.CharField(max_length=100, blank=True, null=True)
-    code = models.CharField(max_length=100, unique=True, blank=True, null=True)
+    code = models.CharField(max_length=100, unique=False, blank=True, null=True)
 
     class Meta:
         db_table = "tbl_internal_color_code"

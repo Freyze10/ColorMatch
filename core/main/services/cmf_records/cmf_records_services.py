@@ -135,7 +135,7 @@ def toggle_final_formula(request, formula_type, formula_id):
     model = tbl_mb_extruder_formula if formula_type == 'mb' else tbl_dc_extruder_formula
     
     # Optimization: select_related parent objects so audit log doesn't trigger extra DB hits
-    header = model.objects.filter(pk=formula_id).select_related('code', 'cm_no', 'rs_no').first()
+    header = model.objects.filter(pk=formula_id).select_related('code', 'cm_no').first()
 
     if not header:
         return JsonResponse({'success': False, 'error': 'Formula record not found.'}, status=404)
@@ -149,11 +149,9 @@ def toggle_final_formula(request, formula_type, formula_id):
             new_status_code = None
         else:
             # 2. SET AS FINAL
-            # Unset any other formula marked final for the SAME parent record
+            # Unset any other formula marked final for the SAME CMF parent record
             if header.cm_no_id:
                 model.objects.filter(cm_no=header.cm_no).exclude(pk=header.pk).update(is_final=False)
-            elif header.rs_no_id:
-                model.objects.filter(rs_no=header.rs_no).exclude(pk=header.pk).update(is_final=False)
 
             header.is_final = True
             header.save(update_fields=['is_final'])
@@ -161,12 +159,8 @@ def toggle_final_formula(request, formula_type, formula_id):
             new_status_code = header.code
 
         # --- UPDATE PENDING/COMPLETED STATUS RECORD ---
-        # We perform the update directly on the queryset. 
-        # No need to fetch 'status_record' into a variable first.
         if header.cm_no_id:
             tbl_cmf_pending_completed.objects.filter(cm_no=header.cm_no).update(code=new_status_code)
-        elif header.rs_no_id:
-            tbl_cmf_pending_completed.objects.filter(rs_no=header.rs_no).update(code=new_status_code)
 
         # --- PREPARE AUDIT MESSAGE ---
         # Determine formula identifier (Lot for MB, Product Code for DC)
@@ -175,8 +169,8 @@ def toggle_final_formula(request, formula_type, formula_id):
         else:
             formula_id_display = f"Code: {header.code.product_code if header.code else 'N/A'}"
 
-        # Determine parent identifier (CMF No or RS No)
-        parent_display = header.cm_no.cm_no if header.cm_no else (header.rs_no.rs_no if header.rs_no else "Unknown")
+        # Determine parent identifier (CMF No)
+        parent_display = header.cm_no.cm_no if header.cm_no else "Unknown"
 
         action = "Marked" if is_final_now else "Unmarked"
         audit_msg = f"{action} {formula_type.upper()} formula ({formula_id_display}) as Final for {parent_display}."

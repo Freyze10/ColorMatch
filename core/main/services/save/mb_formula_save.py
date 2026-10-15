@@ -3,9 +3,10 @@ from decimal import Decimal, InvalidOperation
 import json
 from django.contrib.auth import get_user_model
 from django.db import IntegrityError, transaction
+from django.utils import cache
 from main.utils.log_audit_trail import log_audit
 from ...models import (
-    tbl_cmf, tbl_cmf_formula, tbl_formula_resin, tbl_formula_resin_selected, tbl_generated_prod_code,
+    tbl_cmf, tbl_cmf_formula, tbl_cmf_pending_completed, tbl_formula_resin, tbl_formula_resin_selected, tbl_generated_prod_code,
     tbl_mb_extruder_formula, tbl_mb_extruder_formula02
 )
 User = get_user_model()
@@ -128,7 +129,13 @@ def save_mb_complete_formula(request):
                         posted_resin_ids.append(new_r.formula_resin_id)
 
 
-            # 5. Header Params
+            # 5. Header Params]
+            is_final_val = post_data.get('is_final') == 'true'
+            
+            # --- 2. SET AS FINAL: Unset any other formula marked final for the SAME parent record if this is marked final ---
+            if is_final_val and cmf_obj:
+                tbl_mb_extruder_formula.objects.filter(cm_no=cmf_obj).update(is_final=False)
+
             header_params = {
                 'date': formatted_date,
                 'cm_no': cmf_obj,
@@ -151,7 +158,7 @@ def save_mb_complete_formula(request):
                 'm': clean_num(post_data.get('cmyk_m')),
                 'y': clean_num(post_data.get('cmyk_y')),
                 'k': clean_num(post_data.get('cmyk_k')),
-                'is_final': post_data.get('is_final') == 'true',
+                'is_final': is_final_val,
             }
 
             diff_logs = []
@@ -263,6 +270,15 @@ def save_mb_complete_formula(request):
                     tbl_mb_extruder_formula02.objects.create(mb=header, **ing)
                     
                 action_type = "Saved"
+
+            # --- UPDATE PENDING/COMPLETED STATUS RECORD BASED ON IS_FINAL ---
+            new_status_code = header.code if header.is_final else None
+            if header.cm_no_id:
+                tbl_cmf_pending_completed.objects.filter(cm_no=header.cm_no).update(code=new_status_code)
+
+            # Clear caches
+            cache.delete('cmf_records_list')
+            cache.delete('rs_records_list')
 
             # --- FINAL LOGGING ---
             lot_display = header.lot_no if header.lot_no else "N/A"
