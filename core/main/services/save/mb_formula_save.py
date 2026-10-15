@@ -276,10 +276,6 @@ def save_mb_complete_formula(request):
             if header.cm_no_id:
                 tbl_cmf_pending_completed.objects.filter(cm_no=header.cm_no).update(code=new_status_code)
 
-            # Clear caches
-            cache.delete('cmf_records_list')
-            cache.delete('rs_records_list')
-
             # --- FINAL LOGGING ---
             lot_display = header.lot_no if header.lot_no else "N/A"
             if action_type == "Updated":

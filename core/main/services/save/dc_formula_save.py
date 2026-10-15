@@ -294,11 +294,6 @@ def save_dc_complete_formula(request):
             if header.cm_no_id:
                 tbl_cmf_pending_completed.objects.filter(cm_no=header.cm_no).update(code=new_status_code)
 
-            # Clear caches
-            cache.delete('cmf_records_list')
-            cache.delete('rs_records_list')
-            
-
             # --- FINAL LOGGING ---
             code_display = prod_code_obj.product_code if prod_code_obj else "---"
 

@@ -1,7 +1,7 @@
 document.addEventListener('DOMContentLoaded', function () {
     const cmSelect = document.querySelector('select[name="cm_no"]');
     const productCodeInput = document.querySelector('input[name="product_code"]');
-    const saveBtn = document.querySelector('.btn-save');
+    const saveBtn = document.querySelector('.btn-save-rs');
     const newBtn = document.querySelector('.btn-new');
     const entryForm = saveBtn ? saveBtn.closest('form') : null;
 
