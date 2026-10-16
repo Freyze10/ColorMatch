@@ -28,6 +28,22 @@ def create_color_code(request):
         log_audit(request, "Created", f"Requested primary color code entry: {code} - {color} (Status: {status})")
     return True, "Primary color code submitted successfully."
 
+def update_color_code_status(request, code_id, new_status):
+    if not (request.user.is_superuser or getattr(request.user.role, 'role', '') == 'Admin'):
+        return False, "Permission denied."
+
+    with transaction.atomic():
+        obj = tbl_internal_color_code.objects.filter(pk=code_id, is_deleted=False).first()
+        if not obj:
+            return False, "Color code record not found."
+
+        old_status = obj.status
+        obj.status = new_status
+        obj.save(update_fields=['status'])
+
+        log_audit(request, "Updated", f"Color code {obj.code} status changed from {old_status} to {new_status}")
+    return True, f"Color code successfully {new_status}."
+
 def update_color_code(request, code_id):
     data = request.POST
     new_color = data.get('color', '').strip()
@@ -56,10 +72,6 @@ def update_color_code(request, code_id):
     return True, "Color code updated successfully."
 
 def soft_delete_color_code(request, code_id):
-    # 🛑 Restrict deletion strictly to Superusers / Admins
-    if not (request.user.is_superuser or getattr(request.user.role, 'role', '') == 'Admin'):
-        return False, "Permission denied: Only administrators can delete color codes."
-
     with transaction.atomic():
         obj = tbl_internal_color_code.objects.filter(pk=code_id, is_deleted=False).first()
         if not obj:
