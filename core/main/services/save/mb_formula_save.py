@@ -74,7 +74,7 @@ def save_mb_complete_formula(request):
                 normalized.append((m_name, val_f, wgt_f))
         return sorted(normalized)
 
-    LOT_EXEMPT = {'N/A', 'NONE'}
+    LOT_EXEMPT = {'NA', 'NONE'}
     lot_no = (post_data.get('lot_number') or '').strip()
 
     if lot_no and lot_no.upper() not in LOT_EXEMPT:

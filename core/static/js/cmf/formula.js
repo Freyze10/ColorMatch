@@ -195,7 +195,7 @@
     const lotNumberInput = document.getElementById('id_lot_number');
 
     // Lot numbers that are allowed to repeat
-    const LOT_EXEMPT = ['N/A', 'NONE'];
+    const LOT_EXEMPT = ['NA', 'NONE'];
     const isExemptLot = (v) => LOT_EXEMPT.includes(v.trim().toUpperCase());
 
     async function checkExistingLotNumber() {
