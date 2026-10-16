@@ -114,7 +114,9 @@ class tbl_internal_color_code(models.Model):
     in_code_no = models.AutoField(primary_key=True)
     color = models.CharField(max_length=100, blank=True, null=True)
     code = models.CharField(max_length=100, unique=False, blank=True, null=True)
-
+    status = models.CharField(max_length=20, default='pending', blank=True, null=True) # pending, approved, rejected
+    is_deleted = models.BooleanField(default=False)
+    
     class Meta:
         db_table = "tbl_internal_color_code"
 
