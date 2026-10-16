@@ -305,6 +305,21 @@
     // ------------------------------------------------------------------
     if (isNoneMode()) supposedWeightInput.value = NONE_WORD; // normalizes "None"/"none"
     lastValidMaster = supposedWeightInput.value;
+    // ------------------------------------------------------------------
+    // WEIGHED BY: required only when Total Weight is numeric
+    // ------------------------------------------------------------------
+    const weighedByInput = document.getElementById('id_dc_weighed_by');
+    const weighedByLabel = weighedByInput
+        ? weighedByInput.closest('.row')?.querySelector('label')
+        : null;
+
+    function updateWeighedByRequirement() {
+        if (!weighedByInput) return;
+        const none = isNoneMode();
+
+        weighedByInput.required = !none;
+        if (weighedByLabel) weighedByLabel.classList.toggle('required-label', !none);
+    }
 
     updateSummaryTotals();
     updateRowLocks();

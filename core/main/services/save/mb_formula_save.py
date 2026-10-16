@@ -74,6 +74,16 @@ def save_mb_complete_formula(request):
                 normalized.append((m_name, val_f, wgt_f))
         return sorted(normalized)
 
+    LOT_EXEMPT = {'N/A', 'NONE'}
+    lot_no = (post_data.get('lot_number') or '').strip()
+
+    if lot_no and lot_no.upper() not in LOT_EXEMPT:
+        dup = tbl_mb_extruder_formula.objects.filter(lot_no=lot_no)
+        if formula_id:
+            dup = dup.exclude(pk=formula_id)
+        if dup.exists():
+            raise Exception("The Lot Number provided already exists.")
+        
     try:
         with transaction.atomic():
             # 1. Resolve Product Code
@@ -151,7 +161,7 @@ def save_mb_complete_formula(request):
                 'date': formatted_date,
                 'cm_no': cmf_obj,
                 'code': prod_code_obj,
-                'lot_no': post_data.get('lot_number'),
+                'lot_no': lot_no,
                 'mixing_time': post_data.get('mixing_time'),
                 'notes': post_data.get('note'),
                 'matcher': matcher_obj,      # NEW: User Object

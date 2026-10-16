@@ -194,10 +194,20 @@
     // --- CHECK EXISTING LOT NUMBER ---
     const lotNumberInput = document.getElementById('id_lot_number');
 
+    // Lot numbers that are allowed to repeat
+    const LOT_EXEMPT = ['N/A', 'NONE'];
+    const isExemptLot = (v) => LOT_EXEMPT.includes(v.trim().toUpperCase());
+
     async function checkExistingLotNumber() {
         if (!lotNumberInput) return;
         const lotNo = lotNumberInput.value.trim();
-        if (!lotNo || lotNo.toUpperCase() === 'N/A') return;
+        if (!lotNo) return;
+
+        if (isExemptLot(lotNo)) {
+            // Important: re-enable Save in case an earlier duplicate disabled it
+            if (saveBtn) saveBtn.disabled = false;
+            return;
+        }
 
         // Pass formula_id so editing an existing record won't flag its own lot number
         const formulaId = document.querySelector('input[name="formula_id"]')?.value || '';
