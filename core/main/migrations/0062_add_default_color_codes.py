@@ -7,8 +7,7 @@ def add_default_color_codes(apps, schema_editor):
     
     # Insert Light Blue and B if they don't already exist to avoid duplicate errors on re-runs
     defaults = [
-        {"color": "Light Blue", "code": "Light Blue"},
-        {"color": "B", "code": "B"}
+        {"color": "LIGHT BLUE", "code": "B"},
     ]
     
     for item in defaults:
