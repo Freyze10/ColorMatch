@@ -613,7 +613,17 @@ def cmf_mb_formula(request):
                     tbl_formula_resin_selected.objects.filter(mb_no=header)
                     .values_list('formula_resin_id_id', flat=True)
                 )
-                
+
+                ingredients = list(
+                    tbl_mb_extruder_formula02.objects.filter(mb=header)
+                    .values('material', 'value', 'weight')
+                )
+
+                # NONE = no total weight AND every saved weight is NULL
+                weights_none = header.total_weight is None and all(
+                    ing['weight'] is None for ing in ingredients
+                )
+
                 form_data.update({
                     'formula_id': header.pk,
                     'selected_resins': saved_resin_ids,
@@ -626,7 +636,7 @@ def cmf_mb_formula(request):
                     'matched_by': header.matched_by or "",
                     'weighed_by': header.weighted_by or "",
                     'encoded_by': header.encoded_by or "",
-                    'total_weight': header.total_weight,
+                    'total_weight': 'NONE' if weights_none else header.total_weight,
                     'spectro_l': header.L,
                     'spectro_a': header.A,
                     'spectro_b': header.B,
@@ -641,10 +651,6 @@ def cmf_mb_formula(request):
                     'is_final': True if header.is_final else False,
                 })
 
-                ingredients = list(
-                    tbl_mb_extruder_formula02.objects.filter(mb=header)
-                    .values('material', 'value', 'weight')
-                )
                 ingredients = ingredients + [{'material': '', 'value': '', 'weight': ''}] * (10 - len(ingredients))
                 ingredients = ingredients[:10]
             else:

@@ -331,7 +331,12 @@
                     <!-- Total Weight -->
                     <div class="d-flex align-items-center gap-3 order-1 order-md-2 ms-auto ms-md-0">
                         <span class="fw-bold small text-uppercase">Total Weight (KG):</span>
-                        <input type="text" name="total_weight" class="form-control total-weight-input total-weight-display" value="{{ form_data.total_weight|default:'' }}" autocomplete="off">
+                        <input type="text" name="total_weight"
+                            class="form-control total-weight-input total-weight-display
+                            placeholder="Number or NONE"
+                            value="{{ form_data.total_weight|default:'' }}"
+                            autocomplete="off"
+                            {% if form_data.formula_id and form_data.total_weight == 'NONE' %}readonly{% endif %}>
                     </div>
                 </div>
 

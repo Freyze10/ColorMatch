@@ -206,7 +206,8 @@ def save_mb_complete_formula(request):
                     new_ings.append({
                         'material': mat,
                         'value': Decimal(clean_num(post_data.get(f'percentage_{i}')) or 0),
-                        'weight': Decimal(clean_num(post_data.get(f'weight_{i}')) or 0)
+                        'weight': None if is_none_weight
+                                else Decimal(clean_num(post_data.get(f'weight_{i}')) or 0),
                     })
 
             if formula_id:
@@ -220,6 +221,9 @@ def save_mb_complete_formula(request):
                     if field == 'code':
                         curr_str = format_val(current_val.product_code if current_val else "")
                         new_str = format_val(new_val.product_code if new_val else "")
+                    elif field == 'total_weight':
+                        curr_str = 'NONE' if current_val is None else format_val(current_val)
+                        new_str = 'NONE' if new_val is None else format_val(new_val)
                     elif field in ['cm_no', 'rs_no']:
                         continue # These are usually fixed parent references
                     else:
