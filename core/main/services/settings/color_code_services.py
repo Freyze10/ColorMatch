@@ -1,3 +1,4 @@
+from django.core.cache import cache
 from django.db import transaction
 from main.models import tbl_internal_color_code
 from main.utils.log_audit_trail import log_audit
@@ -26,6 +27,8 @@ def create_color_code(request):
         )
         
         log_audit(request, "Created", f"Requested primary color code entry: {code} - {color} (Status: {status})")
+
+    cache.delete('color_list')
     return True, "Primary color code submitted successfully."
 
 def update_color_code_status(request, code_id, new_status):
@@ -42,6 +45,8 @@ def update_color_code_status(request, code_id, new_status):
         obj.save(update_fields=['status'])
 
         log_audit(request, "Updated", f"Color code {obj.code} status changed from {old_status} to {new_status}")
+    # Refresh cache
+    cache.delete('color_list')
     return True, f"Color code successfully {new_status}."
 
 def update_color_code(request, code_id):
@@ -69,6 +74,8 @@ def update_color_code(request, code_id):
 
         log_audit(request, "Updated", f"Modified pending color code entry from ({old_code} - {old_color}) to ({new_code} - {new_color})")
 
+    # Refresh cache
+    cache.delete('color_list')
     return True, "Color code updated successfully."
 
 def soft_delete_color_code(request, code_id):
@@ -81,4 +88,6 @@ def soft_delete_color_code(request, code_id):
         obj.save(update_fields=['is_deleted'])
 
         log_audit(request, "Deleted", f"Soft-deleted primary color code entry: {obj.code} - {obj.color}")
+    # Refresh cache
+    cache.delete('color_list')
     return True, "Color code deleted successfully."

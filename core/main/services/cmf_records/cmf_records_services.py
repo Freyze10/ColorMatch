@@ -15,21 +15,26 @@ def get_salesman_list():
     if not data:
         # If not there, get from DB and save for 1 day
         data = list(tbl_cmf_salesman.objects.all().order_by('name'))
-        cache.set('salesman_list', data, 86400)
+        cache.set('salesman_list', data, 3600)
     return data
 
 def get_color_list():
-    data = cache.get('color_list')
+    cache_key = 'color_list'
+    data = cache.get(cache_key)
     if not data:
-        data = list(tbl_internal_color_code.objects.all().order_by('color'))
-        cache.set('color_list', data, 86400)
+        # Fetch only approved and active color codes, ordered by color name
+        data = list(tbl_internal_color_code.objects.filter(
+            status='approved', 
+            is_deleted=False
+        ).order_by('color'))
+        cache.set(cache_key, data, 3600)
     return data
 
 def get_resin_list():
     data = cache.get('resin_list')
     if not data:
         data = list(tbl_resin.objects.filter(is_deleted=False).order_by('abbreviation'))
-        cache.set('resin_list', data, 86400)
+        cache.set('resin_list', data, 3600)
     return data
 
 def get_color_code_list():
@@ -41,7 +46,7 @@ def get_color_code_list():
         code_ids = tbl_cmf_pending_completed.objects.exclude(code__isnull=True).values_list('code_id', flat=True).distinct()
         
         data = list(tbl_generated_prod_code.objects.filter(code_no__in=code_ids).order_by('code_no'))
-        cache.set(cache_key, data, 86400)
+        cache.set(cache_key, data, 3600)
     return data
 
 def get_customer_list():
@@ -57,7 +62,7 @@ def get_customer_list():
             .order_by('customer')
         )
         # Cache for 24 hours (86400 seconds)
-        cache.set('customer_list', data, 86400)
+        cache.set('customer_list', data, 3600)
     return data
 
 # def get_cmf_records():
