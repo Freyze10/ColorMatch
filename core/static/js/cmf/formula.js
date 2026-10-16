@@ -242,9 +242,10 @@
         lotNumberInput.addEventListener('blur', checkExistingLotNumber);
     }
 
-    // --- FORMAT TOTAL WEIGHT TO 4 DECIMALS ---
+    // --- FORMAT TOTAL WEIGHT TO 8 DECIMALS ---
+    // MB handles its own total weight field (numbers or "NONE") in formula_mb.js
     const totalWeightInput = document.querySelector('.total-weight-input');
-    if (totalWeightInput) {
+    if (totalWeightInput && !document.querySelector('.js-mb-formula')) {
         // 1. Restrict typing to numbers and a single decimal point
         totalWeightInput.addEventListener('keypress', restrictToNumbers);
 
@@ -292,6 +293,8 @@
 
             const isMB = form.classList.contains('js-mb-formula');
             const isDC = form.classList.contains('js-dc-formula');
+            const masterRaw = (document.querySelector('.total-weight-display')?.value || '').trim();
+            const isNoneWeight = masterRaw.toUpperCase() === 'NONE';
             const masterWgt = parseFloat(document.querySelector('.total-weight-display')?.value) || 0;
 
             if (isMB) {
@@ -302,7 +305,8 @@
                     Preline.toast(`MB Error: Total percentage must be 100%. Current: ${totalPct}%`, 'error');
                     return;
                 }
-                if (totalWgt.toFixed(8) !== masterWgt.toFixed(8)) {
+                // Weight check only applies when a numeric total weight was entered
+                if (!isNoneWeight && totalWgt.toFixed(8) !== masterWgt.toFixed(8)) {
                     Preline.toast(`MB Error: Summary weight mismatch.`, 'error');
                     return;
                 }

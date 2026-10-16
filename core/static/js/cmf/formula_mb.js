@@ -1,13 +1,20 @@
 /**
  * formula_mb.js
  * Logic specific to Masterbatch (MB) Formula.
- * - Calculation: [Supposed Total Weight] * ([Row %] / 100) = [Row Weight]
- * - Row locking: a row is only editable once every row above it is complete
- *   (material + percent + weight).
- * - Enter key moves to the next field, like Tab.
- * - Every Final % and Weight entry is reformatted to 4 decimal places the
- *   moment you leave the cell — by Tab, Enter, or clicking elsewhere.
- *   Type "5.1" and it becomes "5.1000" as soon as you move on.
+ *
+ * Total Weight accepts a number OR the word "NONE".
+ *
+ * NUMBER mode (unchanged):
+ *  - Row Weight = Total Weight * (Row % / 100)
+ *  - A row unlocks once every row above has material + percent + weight.
+ *
+ * NONE mode:
+ *  - Weight column is never computed and is locked.
+ *  - A row unlocks once every row above has material + percent.
+ *  - Only the total % (must be 100) is validated on save.
+ *
+ * Enter moves to the next field like Tab. Final % / Weight are reformatted
+ * to fixed decimals when you leave the cell.
  */
 (function () {
     const table = document.querySelector('.js-formula-table');
@@ -19,22 +26,54 @@
 
     const form = table.closest('form');
     const DECIMALS = 8;
+    const NONE_WORD = 'NONE';
+
+    // ------------------------------------------------------------------
+    // TOTAL WEIGHT FIELD: numbers or "NONE"
+    // ------------------------------------------------------------------
+
+    const isNoneMode = () =>
+        supposedWeightInput.value.trim().toUpperCase() === NONE_WORD;
+
+    // Allowed while typing: digits with one optional dot, or a prefix of "NONE"
+    const isAllowedMasterValue = (v) =>
+        /^\d*\.?\d*$/.test(v) ||
+        (v.length > 0 && NONE_WORD.startsWith(v.toUpperCase()));
+
+    let lastValidMaster = '';
+
+    /** Cleans the field when the user leaves it / presses Enter */
+    function normalizeMasterWeight() {
+        const v = supposedWeightInput.value.trim();
+
+        if (v.toUpperCase() === NONE_WORD) {
+            supposedWeightInput.value = NONE_WORD;
+        } else {
+            const num = parseFloat(v);
+            supposedWeightInput.value = isNaN(num) ? '' : num.toFixed(DECIMALS);
+        }
+        lastValidMaster = supposedWeightInput.value;
+        refreshAll();
+    }
 
     // ------------------------------------------------------------------
     // CALCULATIONS
     // ------------------------------------------------------------------
 
-    /**
-     * Calculates a single row's weight based on the supposed total weight and the row's percent
-     */
     function calculateRowWeight(row) {
         const percentInput = row.querySelector('.js-percent-input');
         const weightInput = row.querySelector('.js-weight-input');
+
+        // NONE mode: weights are never computed
+        if (isNoneMode()) {
+            weightInput.value = '';
+            return;
+        }
+
         const masterWeight = parseFloat(supposedWeightInput.value) || 0;
 
-        // No percent typed in this row -> no weight (don't fill empty rows with 0.0000)
         if (percentInput.value.trim() === '') {
-            weightInput.value = "";
+            weightInput.value = '';
             return;
         }
 
@@ -44,9 +83,6 @@
         }
     }
 
-    /**
-     * Sums up all percentages and weights to update the footer summary
-     */
     function updateSummaryTotals() {
         let totalPct = 0;
         let totalWgt = 0;
@@ -54,30 +90,29 @@
         table.querySelectorAll('.js-percent-input').forEach(input => {
             totalPct += parseFloat(input.value) || 0;
         });
-
         table.querySelectorAll('.js-weight-input').forEach(input => {
             totalWgt += parseFloat(input.value) || 0;
         });
 
         if (summaryTotalPercent) {
             summaryTotalPercent.value = totalPct.toFixed(DECIMALS);
-            // Visual Validation: Red if not 100%
-            summaryTotalPercent.style.color = (totalPct.toFixed(DECIMALS) !== (100).toFixed(DECIMALS)) ? "#dc3545" : "#198754";
+            summaryTotalPercent.style.color =
+                (totalPct.toFixed(DECIMALS) !== (100).toFixed(DECIMALS)) ? '#dc3545' : '#198754';
         }
 
         if (summaryTotalWeight) {
             summaryTotalWeight.value = totalWgt.toFixed(DECIMALS);
-            // Visual Validation: Red if doesn't match supposed weight
-            const masterWgt = parseFloat(supposedWeightInput.value) || 0;
-            summaryTotalWeight.style.color = (totalWgt.toFixed(DECIMALS) !== masterWgt.toFixed(DECIMALS)) ? "#dc3545" : "#198754";
+            if (isNoneMode()) {
+                // No weight validation in NONE mode
+                summaryTotalWeight.style.color = '';
+            } else {
+                const masterWgt = parseFloat(supposedWeightInput.value) || 0;
+                summaryTotalWeight.style.color =
+                    (totalWgt.toFixed(DECIMALS) !== masterWgt.toFixed(DECIMALS)) ? '#dc3545' : '#198754';
+            }
         }
     }
 
-    /**
-     * Rewrites a field's own displayed value to a fixed number of decimals,
-     * e.g. "5.1" -> "5.1000". Returns true if it actually changed something,
-     * so callers know whether dependent totals need recomputing.
-     */
     function formatEntry(input) {
         const raw = input.value.trim();
         if (raw === '') return false;
@@ -92,13 +127,6 @@
         return true;
     }
 
-    /**
-     * Formats whichever of Final % / Weight the given element is, and
-     * refreshes the row weight / summary totals that depend on it. Called
-     * from both the blur/focusout handler and the Enter-key handler, so
-     * the 4-decimal formatting is guaranteed regardless of how the user
-     * leaves the cell.
-     */
     function commitEntry(el) {
         if (!el || !el.classList) return;
         const isPercent = el.classList.contains('js-percent-input');
@@ -125,11 +153,27 @@
         ];
     }
 
-    const isRowComplete = (row) => getRowValues(row).every(v => v !== '');
+    /** Number mode: material + % + weight. NONE mode: material + % only. */
+    function isRowComplete(row) {
+        const [material, percent, weight] = getRowValues(row);
+        if (material === '' || percent === '') return false;
+        return isNoneMode() || weight !== '';
+    }
+
+    function lockInput(input, locked) {
+        if (!input) return;
+        input.readOnly = locked; // readOnly (not disabled) so the field still posts
+        input.style.backgroundColor = locked ? '#a3a3a3' : '';
+        input.style.cursor = locked ? 'not-allowed' : '';
+        if (locked) input.tabIndex = -1;
+        else input.removeAttribute('tabindex');
+    }
 
     function setRowLocked(row, locked) {
-        if (row.dataset.locked === String(locked)) return; // nothing changed
-        row.dataset.locked = String(locked);
+        const none = isNoneMode();
+        const state = `${locked}|${none}`;
+        if (row.dataset.lockState === state) return; // nothing changed
+        row.dataset.lockState = state;
 
         const select = row.querySelector('.js-material-select');
         if (select) {
@@ -140,19 +184,11 @@
             }
         }
 
-        row.querySelectorAll('.js-percent-input, .js-weight-input').forEach(input => {
-            input.readOnly = locked;
-            input.style.backgroundColor = locked ? '#a3a3a3' : '';
-            input.style.cursor = locked ? 'not-allowed' : '';
-            if (locked) input.tabIndex = -1;
-            else input.removeAttribute('tabindex');
-        });
+        lockInput(row.querySelector('.js-percent-input'), locked);
+        // Weight is always locked in NONE mode, otherwise follows the row lock
+        lockInput(row.querySelector('.js-weight-input'), locked || none);
     }
 
-    /**
-     * Row N is editable only if every row above it is complete
-     * (material + percent + weight). Row 1 is always editable.
-     */
     function updateRowLocks() {
         let previousRowsComplete = true;
 
@@ -162,19 +198,22 @@
         });
     }
 
+    /** Recalculate everything after the total weight changes */
+    function refreshAll() {
+        getRows().forEach(row => calculateRowWeight(row));
+        updateSummaryTotals();
+        updateRowLocks();
+    }
+
     // ------------------------------------------------------------------
     // ENTER KEY = TAB
     // ------------------------------------------------------------------
 
-    /**
-     * Ordered list of fields the cursor can land on.
-     * Tom Select fields are represented by their original <select>.
-     */
     function getFocusableFields() {
         return Array.from(form.querySelectorAll('input, select, textarea')).filter(el => {
             if (el.type === 'hidden' || el.disabled) return false;
-            if (el.closest('.ts-wrapper')) return false;   // Tom Select's internal search input
-            if (el.tomselect) return true;                 // Tom Select field
+            if (el.closest('.ts-wrapper')) return false;
+            if (el.tomselect) return true;
             return !el.readOnly && el.tabIndex >= 0;
         });
     }
@@ -192,22 +231,19 @@
         }
     }
 
-    // Capture phase so this runs before Tom Select handles the key
     form.addEventListener('keydown', function (e) {
         if (e.key !== 'Enter' || e.shiftKey || e.isComposing) return;
 
         const target = e.target;
         if (target.tagName === 'TEXTAREA' || target.tagName === 'BUTTON') return;
 
-        // Material dropdowns in the table
         const wrapper = target.closest('.ts-wrapper');
         if (wrapper) {
             const select = wrapper.previousElementSibling;
-            if (!select || !select.classList.contains('js-material-select')) return; // leave other dropdowns alone
+            if (!select || !select.classList.contains('js-material-select')) return;
 
             const ts = select.tomselect;
             if (ts.isOpen) {
-                // Let Tom Select pick the highlighted option first, then move on
                 setTimeout(() => { if (ts.getValue()) focusNextField(select); }, 0);
             } else {
                 e.preventDefault();
@@ -216,11 +252,12 @@
             return;
         }
 
-        // Plain inputs — format Final % / Weight to 4 decimals immediately,
-        // don't wait on the browser's own blur/focusout to get around to it.
         if (target.tagName !== 'INPUT') return;
         e.preventDefault();
-        commitEntry(target);
+
+        if (target === supposedWeightInput) normalizeMasterWeight();
+        else commitEntry(target);
+
         focusNextField(target);
     }, true);
 
@@ -228,43 +265,47 @@
     // EVENTS
     // ------------------------------------------------------------------
 
-    // EVENT 1: User changes the Supposed Total Weight
+    // EVENT 1: Total Weight typed (numbers or NONE only)
     supposedWeightInput.addEventListener('input', function () {
-        // When the master weight changes, re-calculate EVERY row's weight
-        table.querySelectorAll('tbody tr').forEach(row => calculateRowWeight(row));
-        updateSummaryTotals();
-        updateRowLocks();
+        const cleaned = supposedWeightInput.value.replace(/\s+/g, '');
+
+        if (isAllowedMasterValue(cleaned)) {
+            supposedWeightInput.value = cleaned;
+            lastValidMaster = cleaned;
+        } else {
+            supposedWeightInput.value = lastValidMaster; // reject the keystroke / paste
+        }
+        refreshAll();
     });
 
-    // EVENT 2: User changes a Percentage in a row
+    supposedWeightInput.addEventListener('blur', normalizeMasterWeight);
+
+    // EVENT 2 & 3: Percentage / weight edits in a row
     table.addEventListener('input', function (e) {
         if (e.target.classList.contains('js-percent-input')) {
             calculateRowWeight(e.target.closest('tr'));
             updateSummaryTotals();
         }
-
-        // EVENT 3: Manual weight edit
         if (e.target.classList.contains('js-weight-input')) {
             updateSummaryTotals();
         }
-
         updateRowLocks();
     });
 
-    // EVENT 4: Material picked/cleared (Tom Select fires change on the original select)
+    // EVENT 4: Material picked/cleared
     table.addEventListener('change', updateRowLocks);
 
-    // EVENT 5: Format to 4 decimals the moment the user leaves the cell by
-    // Tab or by clicking elsewhere. ('focusout' bubbles, unlike 'blur', so
-    // this is delegated on the table like the other listeners.) Enter is
-    // covered explicitly above, since preventDefault() there stops it from
-    // ever reaching a native Tab-like blur in some browsers.
+    // EVENT 5: Format on leaving a cell
     table.addEventListener('focusout', function (e) {
         commitEntry(e.target);
     });
 
-    // Run once on page load (in case of existing data)
+    // ------------------------------------------------------------------
+    // INITIAL LOAD (also handles saved records where total weight is none)
+    // ------------------------------------------------------------------
+    if (isNoneMode()) supposedWeightInput.value = NONE_WORD; // normalizes "None"/"none"
+    lastValidMaster = supposedWeightInput.value;
+
     updateSummaryTotals();
     updateRowLocks();
-
 })();

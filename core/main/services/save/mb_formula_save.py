@@ -128,6 +128,17 @@ def save_mb_complete_formula(request):
                         new_r = tbl_formula_resin.objects.create(resin=val_str)
                         posted_resin_ids.append(new_r.formula_resin_id)
 
+            # --- TOTAL WEIGHT: number, or "NONE" -> stored as NULL ---
+            raw_total_weight = (post_data.get('total_weight') or '').strip()
+            is_none_weight = raw_total_weight.upper() == 'NONE'
+
+            if is_none_weight:
+                total_weight_val = None
+            else:
+                try:
+                    total_weight_val = Decimal(raw_total_weight or 0)
+                except InvalidOperation:
+                    raise ValueError("Total Weight must be a number or NONE.")
 
             # 5. Header Params]
             is_final_val = post_data.get('is_final') == 'true'
@@ -147,7 +158,7 @@ def save_mb_complete_formula(request):
                 'matched_by': matched_by_text, 
                 'weighted_by': post_data.get('weighed_by'),
                 'encoded_by': post_data.get('encoded_by'),
-                'total_weight': Decimal(clean_num(post_data.get('total_weight')) or 0),
+                'total_weight': total_weight_val,
                 'L': clean_num(post_data.get('spectro_l')),
                 'A': clean_num(post_data.get('spectro_a')),
                 'B': clean_num(post_data.get('spectro_b')),
