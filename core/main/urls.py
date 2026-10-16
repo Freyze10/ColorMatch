@@ -43,6 +43,7 @@ urlpatterns = [
     path('settings/logout-all/', settings_services.logout_all_devices, name='logout_all_devices'),
     path('forgot-password/', settings_services.forgot_password, name='forgot_password'),
     path('settings/password-requests/', views.admin_password_requests, name='admin_password_requests'),
+    path('settings/color-codes/', views.manage_color_codes, name='manage_color_codes'),
     path('permission-access/', views.permission_access, name='permission_access'),
 
 

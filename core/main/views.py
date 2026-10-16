@@ -15,6 +15,7 @@ from datetime import date, datetime, timedelta, time
 from django.urls import reverse
 from django.utils import timezone
 
+from main.services.settings import color_code_services
 from main.services.cmf_records import pending_completed_services
 from main.services.cmf_records import rs_records_services
 from main.services.settings import settings_services
@@ -1220,6 +1221,39 @@ def admin_password_requests(request):
         'recent_requests': settings_services.get_recent_decided_requests(),
     }
     return render(request, "settings/account/admin_password_requests.html", context)
+
+@role_required
+def manage_color_codes(request):
+    if request.method == "POST":
+        action = request.POST.get('action')
+        
+        if action == 'create':
+            success, message = color_code_services.create_color_code(request)
+        elif action == 'update': # <--- Added update action
+            code_id = request.POST.get('code_id')
+            success, message = color_code_services.update_color_code(request, code_id)
+        elif action in ['approve', 'reject']:
+            code_id = request.POST.get('code_id')
+            new_status = 'approved' if action == 'approve' else 'rejected'
+            success, message = color_code_services.update_color_code_status(request, code_id, new_status)
+        elif action == 'delete':
+            code_id = request.POST.get('code_id')
+            success, message = color_code_services.soft_delete_color_code(request, code_id)
+        else:
+            success, message = False, "Invalid action."
+
+        if success:
+            messages.success(request, message)
+        else:
+            messages.error(request, message)
+        return redirect('manage_color_codes')
+
+    codes = color_code_services.get_color_codes_for_user(request.user)
+    context = {
+        "codes": codes,
+        "is_admin": request.user.is_superuser or getattr(request.user.role, 'role', '') == 'Admin'
+    }
+    return render(request, "settings/color/color_codes.html", context)
 
 @access_required(access_name='Permission Access', allowed_roles=['ADMIN'])
 def permission_access(request):
