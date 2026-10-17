@@ -225,9 +225,15 @@ def cmf_entry(request):
                 dates = tbl_cmf_dates.objects.filter(cm_no=cmf).first()
                 formula_info = tbl_cmf_formula.objects.filter(cm_no=cmf).first()
                 color_req = tbl_cmf_color_req.objects.filter(cm_no=cmf).first()
-        # Fetch notes for this formula
+                # Fetch notes for this formula
                 dosage_note_obj = tbl_field_note.objects.filter(cmf_formula_no=formula_info, field='dosage').first() if formula_info else None
                 resin_note_obj = tbl_field_note.objects.filter(cmf_formula_no=formula_info, field='resin').first() if formula_info else None
+
+                # 🛑 Check if any extruder formulas are attached to this CMF
+                has_formula = (
+                    tbl_mb_extruder_formula.objects.filter(cm_no=cmf).exists() or
+                    tbl_dc_extruder_formula.objects.filter(cm_no=cmf).exists()
+                )
 
                 # --- CHECK IF COMPLETED & GET AR_NO ---
                 pending_obj = None
@@ -296,6 +302,7 @@ def cmf_entry(request):
                     'cmf_no': cm_no_override if cm_no_override else cmf.cm_no,
                     # 2. Keep "For RS" toggled ON
                     'is_for_rs': url_is_for_rs,
+                    'has_formula': has_formula,
                     'customer': formula_info.customer if formula_info else "",
 
                     # DateField — needs strftime

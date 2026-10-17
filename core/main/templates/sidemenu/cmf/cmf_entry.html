@@ -25,12 +25,14 @@ CMF Entry
                         <div class="d-flex justify-content-between align-items-center mb-3">
                             <h6 class="cmf-section-title mb-0">General Information</h6>
                             <div class="form-check form-switch mb-0 d-flex align-items-center gap-2">
+                                <!-- Disabled ONLY if it's an existing record AND it already has a formula attached -->
                                 <input class="form-check-input" type="checkbox" role="switch" id="toggleForRs" name="is_for_rs" value="1" 
                                     {% if form_data.is_for_rs %}checked{% endif %} 
-                                    {% if form_data.is_new == '0' and not form_data.is_for_rs %}disabled{% endif %}>
+                                    {% if form_data.is_new == '0' and form_data.has_formula %}disabled{% endif %}>
                                 <label class="form-check-label fw-bold extra-small text-teal" for="toggleForRs">For RS</label>
 
-                                {% if form_data.is_new == '0' and form_data.is_for_rs %}
+                                <!-- If it's disabled via HTML attribute, include a hidden input to preserve its value on post if checked -->
+                                {% if form_data.is_new == '0' and form_data.has_formula and form_data.is_for_rs %}
                                     <input type="hidden" name="is_for_rs" value="1">
                                 {% endif %}    
                             </div>
