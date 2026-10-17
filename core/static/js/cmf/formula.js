@@ -761,3 +761,123 @@
     // Run when page is ready
     window.addEventListener('load', init);
 })();
+
+document.addEventListener('DOMContentLoaded', function () {
+    const isMB = document.body.contains(document.querySelector('.js-mb-formula'));
+    const isDC = document.body.contains(document.querySelector('.js-dc-formula'));
+    const formulaType = isMB ? 'MB' : (isDC ? 'DC' : null);
+
+    if (!formulaType) return;
+
+    // Target the product code input field for MB ('id_product') or DC ('id_dc_product_code')
+    const productCodeField = document.getElementById(isMB ? 'id_product' : 'id_dc_product_code');
+    if (!productCodeField) return;
+
+    let cachedFormulaData = null;
+
+    // Trigger autofill injection based on formula type
+    function autofillCompositionTable(payload) {
+        if (payload.formula_type === 'MB' && payload.ingredients) {
+            payload.ingredients.forEach((ing, index) => {
+                const rowIndex = index + 1;
+                if (rowIndex > 10) return;
+
+                // Set Material Dropdown / TomSelect
+                const matSelect = document.querySelector(`[name="material_${rowIndex}"]`);
+                if (matSelect) {
+                    if (matSelect.tomselect) {
+                        matSelect.tomselect.setValue(ing.material, true);
+                    } else {
+                        matSelect.value = ing.material;
+                    }
+                }
+
+                // Set Percentage and Weight values
+                const pctInput = document.querySelector(`[name="percentage_${rowIndex}"]`);
+                if (pctInput) pctInput.value = ing.value;
+
+                const wgtInput = document.querySelector(`[name="weight_${rowIndex}"]`);
+                if (wgtInput) wgtInput.value = ing.weight;
+            });
+
+            // Recalculate totals
+            const table = document.querySelector('.js-formula-table');
+            if (table) {
+                // Dispatch input event to force formula.js to update totals
+                const firstPct = table.querySelector('.js-percent-input');
+                if (firstPct) {
+                    firstPct.dispatchEvent(new Event('input', { bubbles: true }));
+                }
+            }
+        } else if (payload.formula_type === 'DC' && payload.material_rows) {
+            payload.material_rows.forEach((row, rIndex) => {
+                const rowIndex = rIndex + 1;
+                if (rowIndex > 10) return;
+
+                // Set Material Dropdown
+                const matSelect = document.querySelector(`[name="material_${rowIndex}"]`);
+                if (matSelect) {
+                    if (matSelect.tomselect) {
+                        matSelect.tomselect.setValue(row.material, true);
+                    } else {
+                        matSelect.value = row.material;
+                    }
+                }
+
+                // Set Version Values (V1 to V10)
+                row.versions.forEach((val, vIndex) => {
+                    const versionNo = vIndex + 1;
+                    const valInput = document.querySelector(`[name="value_${rowIndex}_${versionNo}"]`);
+                    if (valInput) {
+                        valInput.value = val;
+                    }
+                });
+            });
+
+            // Recalculate DC column totals
+            document.querySelectorAll('.js-version-value').forEach(input => {
+                input.dispatchEvent(new Event('input', { bubbles: true }));
+            });
+        }
+
+        if (typeof Preline !== 'undefined' && typeof Preline.toast === 'function') {
+            Preline.toast("Formula composition successfully loaded from history.", "success");
+        }
+    }
+
+    // Async lookup check
+    async function lookupProductCode(codeVal) {
+        if (!codeVal || codeVal.length < 2) return;
+
+        try {
+            const response = await fetch(`/cmf/mb-dc-formula/lookup-code/?product_code=${encodeURIComponent(codeVal)}&formula_type=${formulaType}`);
+            if (!response.ok) return;
+            const res = await response.json();
+
+            if (res.found && res.data) {
+                cachedFormulaData = res.data;
+
+                Preline.confirm(
+                    'Existing Formula Found',
+                    `A previous ${formulaType} formula record exists for product code "${codeVal}". Do you want to load its material composition into the table?`,
+                    'info',
+                    () => {
+                        autofillCompositionTable(cachedFormulaData);
+                    },
+                    () => {
+                        cachedFormulaData = null;
+                    }
+                );
+            }
+        } catch (err) {
+            console.error('Error looking up formula by product code:', err);
+        }
+    }
+
+    // Wrap with debounce utility (assuming 'debounce' is globally available, or define a local standard one)
+    const debouncedLookup = debounce((e) => {
+        lookupProductCode(e.target.value.trim());
+    }, 750);
+
+    productCodeField.addEventListener('input', debouncedLookup);
+});

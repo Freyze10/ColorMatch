@@ -3,7 +3,7 @@ import re
 from django.http import JsonResponse
 from django.db.models import Q, Max
 from main.models import (
-    tbl_cmf, tbl_cmf_formula, tbl_coding_materials, tbl_dc_extruder_formula, tbl_dc_extruder_version, tbl_mb_extruder_formula, tbl_mb_extruder_formula02, tbl_resins_selected, 
+    tbl_cmf, tbl_cmf_formula, tbl_coding_materials, tbl_dc_extruder_formula, tbl_dc_extruder_materials, tbl_dc_extruder_version, tbl_mb_extruder_formula, tbl_mb_extruder_formula02, tbl_resins_selected, 
     tbl_cmf_process02, tbl_master_formula, tbl_generated_prod_code, tbl_field_note
 )
 
@@ -258,3 +258,71 @@ def check_product_code_formula(request):
         })
 
     return JsonResponse({'exists': False})
+
+
+def get_matching_formula_by_product_code(product_code_str, formula_type):
+    """
+    Finds the most recent formula entry matching the product code and type ('MB' or 'DC').
+    Returns structured data for the table composition.
+    """
+    if not product_code_str:
+        return None
+
+    prod_code_obj = tbl_generated_prod_code.objects.filter(product_code__iexact=product_code_str.strip()).first()
+    if not prod_code_obj:
+        return None
+
+    if formula_type.upper() == 'MB':
+        # Find the latest MB formula using this product code
+        formula = tbl_mb_extruder_formula.objects.filter(code=prod_code_obj).order_by('-mb_no').first()
+        if not formula:
+            return None
+
+        # Fetch ingredients
+        details = tbl_mb_extruder_formula02.objects.filter(mb=formula)
+        ingredients = []
+        for d in details:
+            ingredients.append({
+                'material': d.material,
+                'value': float(d.value) if d.value is not None else 0,
+                'weight': float(d.weight) if d.weight is not None else 0
+            })
+        return {'formula_type': 'MB', 'ingredients': ingredients}
+
+    elif formula_type.upper() == 'DC':
+        # Find the latest DC formula using this product code
+        formula = tbl_dc_extruder_formula.objects.filter(code=prod_code_obj).order_by('-dc_no').first()
+        if not formula:
+            return None
+
+        # Fetch materials and their latest version values
+        materials = tbl_dc_extruder_materials.objects.filter(dc=formula)
+        material_rows = []
+        for m in materials:
+            versions_qs = m.versions.all().order_by('version_no')
+            # Extract values up to 10 versions
+            versions = [float(v.value) if v.value is not None else 0 for v in versions_qs]
+            # Pad to 10 if needed
+            while len(versions) < 10:
+                versions.append(0)
+                
+            material_rows.append({
+                'material': m.material,
+                'versions': versions[:10]
+            })
+        return {'formula_type': 'DC', 'material_rows': material_rows}
+
+    return None
+
+def ajax_lookup_formula_by_code(request):
+    product_code = request.GET.get('product_code', '').strip()
+    formula_type = request.GET.get('formula_type', 'MB').strip()
+
+    if not product_code:
+        return JsonResponse({'found': False, 'error': 'Product code is required.'}, status=400)
+
+    data = get_matching_formula_by_product_code(product_code, formula_type)
+    if data:
+        return JsonResponse({'found': True, 'data': data})
+    
+    return JsonResponse({'found': False})
