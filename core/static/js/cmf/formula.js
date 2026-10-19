@@ -588,6 +588,7 @@
             customer: isDC ? 'id_dc_customer' : 'id_customer',
             resin: isDC ? 'id_dc_resin' : 'id_resin_used', // remove this when using the other resin field
             color: isDC ? 'id_dc_color' : 'id_color',
+            color_desc: isDC ? 'id_dc_color_desc' : 'id_color_desc',
             product: isDC ? 'id_dc_product_code' : 'id_product',
             dosage: isDC ? 'id_dc_dosage' : 'id_dosage',
             application: isDC ? 'id_dc_application' : 'id_application',
@@ -647,6 +648,7 @@
             setVal(fields.customer, data.customer);
             
             setVal(fields.color, data.color);
+            setVal(fields.color_desc, data.color_desc);
             setVal(fields.application, data.application);
             setVal(fields.finished_product, data.finished_product);
             setVal(fields.product, data.product_code); // Priority to generated code

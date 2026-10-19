@@ -142,6 +142,17 @@
                             </div>
                         </div>
                     </div>
+
+                    <!-- Color Desc Field -->
+                    <div class="row g-2 align-items-center mb-2">
+                        <div class="col-5"><label class="extra-small fw-bold">Color Desc:</label></div>
+                        <div class="col-7">
+                            <input type="text" name="color_desc" id="id_color_desc" 
+                                   value="{{ form_data.color_desc|default:'' }}" 
+                                   class="form-control form-control-sm uniform-input readonly-gray" readonly>
+                        </div>
+                    </div>
+
                     <!-- ... (Color) ... -->
                     <div class="row g-2 align-items-center mb-2">
                         <div class="col-5"><label class="extra-small fw-bold">Color:</label></div>
