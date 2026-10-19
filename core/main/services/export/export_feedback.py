@@ -37,7 +37,7 @@ def generate_feedback_excel(date_from=None, date_to=None):
     # 1. Define Headers (Submitted Options placed immediately after AR #)
     headers = [
         "Matching No.", "Customer", "Date Created", "Date Lab Received", "Target Date",
-        "Primary Color", "Color Description", "End Product", "Matching Type", "Salesman",
+        "Internal Color", "Color Description", "End Product", "Matching Type", "Salesman",
         "Color Req.", "Resin", "Process", "Type of Colorant", "Date Given Sample",
         "Set/PC", "Quantity Given", "Code Submitted", "Dosage", "Lot #", "AR #",
         "Submitted Options", "Status", "Date Standard & Result", "Comment", "Storage Details"

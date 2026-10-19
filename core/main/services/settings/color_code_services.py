@@ -26,10 +26,10 @@ def create_color_code(request):
             status=status
         )
         
-        log_audit(request, "Created", f"Requested primary color code entry: {code} - {color} (Status: {status})")
+        log_audit(request, "Created", f"Requested internal color code entry: {code} - {color} (Status: {status})")
 
     cache.delete('color_list')
-    return True, "Primary color code submitted successfully."
+    return True, "Internal color code submitted successfully."
 
 def update_color_code_status(request, code_id, new_status):
     if not (request.user.is_superuser or getattr(request.user.role, 'role', '') == 'Admin'):
@@ -87,7 +87,7 @@ def soft_delete_color_code(request, code_id):
         obj.is_deleted = True
         obj.save(update_fields=['is_deleted'])
 
-        log_audit(request, "Deleted", f"Soft-deleted primary color code entry: {obj.code} - {obj.color}")
+        log_audit(request, "Deleted", f"Soft-deleted internal color code entry: {obj.code} - {obj.color}")
     # Refresh cache
     cache.delete('color_list')
     return True, "Color code deleted successfully."

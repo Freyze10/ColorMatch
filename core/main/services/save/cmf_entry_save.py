@@ -203,7 +203,7 @@ def update_cmf_complete_entry(request, original_cmf_no):
     def get_pretty_name(field):
         mapping = {
             'matching_type': 'Matching Type', 'product_status': 'Product Status', 
-            'est_qty_order': 'Est. Qty Order',  'in_code_no_id': 'Primary Color',
+            'est_qty_order': 'Est. Qty Order',  'in_code_no_id': 'Internal Color',
             'color_desc': 'Color Description', 'qty_resin_testing': 'Qty Resin',
             'is_resin_provided': 'Resin Provided', 'mi_c_resin': 'MI Resin',
             'is_sample_available': 'Sample Available', 'colorant_type': 'Colorant Type',

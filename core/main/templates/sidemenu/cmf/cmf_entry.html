@@ -149,7 +149,7 @@ CMF Entry
                         <div class="row g-2">
                             {% if user.role.department != "Sales" %}
                             <div class="col-4">
-                                <label class="fw-bold extra-small required-label">Primary Color:</label>
+                                <label class="fw-bold extra-small required-label">Internal Color:</label>
                                 <select class="form-select form-select-sm ts-select" name="primary_color" placeholder="Select color" required>
                                     <option value=""></option>
                                     {% for c in primary_color %}
@@ -164,7 +164,7 @@ CMF Entry
                             {% endif %}
 
                             <div class="{% if user.role.department != 'Sales' %}col-8{% else %}col-12{% endif %}">
-                                <label class="fw-bold extra-small required-label">Color Description:</label>
+                                <label class="fw-bold extra-small required-label">Customer Color Description:</label>
                                 <input type="text" name="color_description" value="{{ form_data.color_description|default:'' }}" class="form-control form-control-sm uniform-input" placeholder="Enter color description..." autocomplete="off" required>
                             </div>
                         </div>

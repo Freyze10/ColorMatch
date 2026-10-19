@@ -56,7 +56,7 @@ def save_dc_complete_formula(request):
             'C': 'Spectro C', 'H': 'Spectro H', 'notes': 'Note',
             'code': 'Product Code', 'material_code': 'Material Code',
             'matcher': 'Matcher Account', 'is_final': 'Final Formula',
-            'cm_no': 'CMF No.', 'primary_color': 'Primary Color',
+            'cm_no': 'CMF No.', 'primary_color': 'Internal Color',
         }
         return mapping.get(field, field.replace('_', ' ').title())
 
@@ -104,7 +104,7 @@ def save_dc_complete_formula(request):
                 new_color_name = color_obj.color if color_obj else "---"
 
                 if old_color_obj != color_obj:
-                    diff_logs.append(f"Primary Color ({old_color_name} -> {new_color_name})")
+                    diff_logs.append(f"Internal Color ({old_color_name} -> {new_color_name})")
                     cmf_obj.in_code_no = color_obj
                     cmf_obj.save(update_fields=['in_code_no'])
                     
