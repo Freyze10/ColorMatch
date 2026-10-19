@@ -230,10 +230,11 @@ def get_all_formula_records():
     for f in mb_qs:
         cm_obj = f.cm_no
         cmf_no = cm_obj.cm_no if cm_obj else "N/A"
-        color = cm_obj.color_desc if (cm_obj and cm_obj.color_desc) else "---"
-        
+        # color = cm_obj.color_desc if (cm_obj and cm_obj.color_desc) else "---" COLOR DESC
+        color = cm_obj.in_code_no.color if (cm_obj and cm_obj.in_code_no and cm_obj.in_code_no.color) else "---"
+
         f_info = formula_map.get(str(cm_obj.cm_no)) if cm_obj else None
-        customer = f_info.customer if f_info and f_info.customer else "---"
+        customer = f_info.customer.upper() if f_info and f_info.customer else "---"
         raw_dosage = f_info.dosage if f_info else None
         dosage_display = f"{float(raw_dosage):g}%" if raw_dosage is not None else "---"
 
@@ -258,10 +259,11 @@ def get_all_formula_records():
     for f in dc_qs:
         cm_obj = f.cm_no
         cmf_no = cm_obj.cm_no if cm_obj else "N/A"
-        color = cm_obj.color_desc if (cm_obj and cm_obj.color_desc) else "---"
+        # color = cm_obj.color_desc if (cm_obj and cm_obj.color_desc) else "---" COLOR DESC
+        color = cm_obj.in_code_no.color if (cm_obj and cm_obj.in_code_no and cm_obj.in_code_no.color) else "---"
 
         f_info = formula_map.get(str(cm_obj.cm_no)) if cm_obj else None
-        customer = f_info.customer if f_info and f_info.customer else "---"
+        customer = f_info.customer.upper() if f_info and f_info.customer else "---"
         raw_dosage = f_info.dosage if f_info else None
         dosage_display = f"{float(raw_dosage):g}%" if raw_dosage is not None else "NA"
 
