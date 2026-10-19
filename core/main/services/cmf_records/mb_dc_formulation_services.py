@@ -134,6 +134,7 @@ def get_formulation_details(request):
         'resin': resin_str,
         'color_desc': cmf.color_desc.upper() or (cmf.in_code_no.color or ""),
         'color': cmf.in_code_no.color or "",
+        'primary_color_id': cmf.in_code_no.in_code_no if cmf.in_code_no else "",
         'product_code': generated_code if generated_code else (cmf.in_code_no.code if cmf.in_code_no else ""),
         'dosage': dosage_val,
         'lot_no': "", #generated_lot = next suggestion lot number, temporarily removed when entering past record

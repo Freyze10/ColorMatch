@@ -647,7 +647,7 @@
 
             setVal(fields.customer, data.customer);
             
-            setVal(fields.color, data.color);
+            // setVal(fields.color, data.color);
             setVal(fields.color_desc, data.color_desc);
             setVal(fields.application, data.application);
             setVal(fields.finished_product, data.finished_product);
@@ -655,6 +655,16 @@
             setVal(fields.dosage, data.dosage);
             setVal(fields.lot_no, data.lot_no);
             setVal(fields.resin, data.resin_used || data.resin);
+
+            // Update TomSelect for Color Dropdown if primary_color ID is provided
+            const colorSelect = document.getElementById('id_color');
+            if (colorSelect) {
+                if (colorSelect.tomselect) {
+                    colorSelect.tomselect.setValue(data.primary_color_id || '', true);
+                } else {
+                    colorSelect.value = data.primary_color_id || '';
+                }
+            }
 
 
             // Update the resin dropdown placeholder with the CMF's original resin

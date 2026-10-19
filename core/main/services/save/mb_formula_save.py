@@ -6,7 +6,7 @@ from django.db import IntegrityError, transaction
 from django.utils import cache
 from main.utils.log_audit_trail import log_audit
 from ...models import (
-    tbl_cmf, tbl_cmf_formula, tbl_cmf_pending_completed, tbl_formula_resin, tbl_formula_resin_selected, tbl_generated_prod_code,
+    tbl_cmf, tbl_cmf_formula, tbl_cmf_pending_completed, tbl_formula_resin, tbl_formula_resin_selected, tbl_generated_prod_code, tbl_internal_color_code,
     tbl_mb_extruder_formula, tbl_mb_extruder_formula02
 )
 User = get_user_model()
@@ -52,6 +52,7 @@ def save_mb_complete_formula(request):
             'B': 'Spectro B', 'C': 'Spectro C', 'H': 'Spectro H',
             'notes': 'Note', 'code': 'Product Code', 'date': 'Date',
             'matcher': 'Matcher Account', 'is_final': 'Final Formula',
+            'primary_color': 'Primary Color',
         }
         return mapping.get(field, field.replace('_', ' ').title())
 
@@ -61,11 +62,11 @@ def save_mb_complete_formula(request):
         for item in ing_list:
             m_name = (item.get('material') or '').strip().lower()
             try:
-                val_f = round(float(item.get('value') or 0), 4)
+                val_f = round(float(item.get('value') or 0), 8)
             except (ValueError, TypeError):
                 val_f = 0.0
             try:
-                wgt_f = round(float(item.get('weight') or 0), 4)
+                wgt_f = round(float(item.get('weight') or 0), 8)
             except (ValueError, TypeError):
                 wgt_f = 0.0
 
@@ -110,6 +111,22 @@ def save_mb_complete_formula(request):
                 cmf_obj = tbl_cmf.objects.filter(cm_no=raw_cm_no).first()
 
             parent_label = f"CMF: {cmf_obj.cm_no}" if cmf_obj else f"CMF: {raw_cm_no or 'N/A'}"
+
+            color_id = post_data.get('color')
+            color_obj = tbl_internal_color_code.objects.filter(pk=color_id).first() if color_id else None
+
+            diff_logs = []
+
+             # --- SYNC PRIMARY COLOR BACK TO THE CMF HEADER RECORD ---
+            if cmf_obj:
+                old_color_obj = cmf_obj.in_code_no
+                old_color_name = old_color_obj.color if old_color_obj else "---"
+                new_color_name = color_obj.color if color_obj else "---"
+
+                if old_color_obj != color_obj:
+                    diff_logs.append(f"Primary Color ({old_color_name} -> {new_color_name})")
+                    cmf_obj.in_code_no = color_obj
+                    cmf_obj.save(update_fields=['in_code_no'])
 
             # 3. Standardize Date
             raw_date = post_data.get('date')
@@ -182,7 +199,6 @@ def save_mb_complete_formula(request):
                 'is_final': is_final_val,
             }
 
-            diff_logs = []
             ingredients_changed = False
 
             # --- 5.5 SYNC DOSAGE BACK TO THE CMF-LEVEL FORMULA RECORD ---
@@ -304,12 +320,17 @@ def save_mb_complete_formula(request):
             # --- FINAL LOGGING ---
             lot_display = header.lot_no if header.lot_no else "N/A"
             if action_type == "Updated":
+                msg = f"MB Formula (Lot: {lot_display}) for {parent_label}."
                 if not diff_logs and not ingredients_changed:
-                    msg = f"MB Formula (Lot: {lot_display}) with no technical changes."
+                    msg += " No technical changes."
                 else:
-                    msg = f"MB Formula (Lot: {lot_display}). Changes: " + ", ".join(diff_logs)
+                    if diff_logs:
+                        msg += " Changes: " + ", ".join(diff_logs)
                     if ingredients_changed:
-                        msg += " (Material Breakdown was modified)."
+                        if diff_logs:
+                            msg += " (Material Breakdown was modified)."
+                        else:
+                            msg += " Changes: Material Breakdown was modified."
             else:
                 msg = f"New MB Formula (Lot: {lot_display}) for {parent_label}."
                 if diff_logs:

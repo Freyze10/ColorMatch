@@ -153,13 +153,18 @@
                         </div>
                     </div>
 
-                    <!-- ... (Color) ... -->
+                    <!-- NEW: Color Dropdown (TomSelect) -->
                     <div class="row g-2 align-items-center mb-2">
-                        <div class="col-5"><label class="extra-small fw-bold">Color:</label></div>
+                        <div class="col-5"><label class="extra-small fw-bold required-label">Color:</label></div>
                         <div class="col-7">
-                            <input type="text" name="color" id="id_color" 
-                                   value="{{ form_data.color|default:'' }}" 
-                                   class="form-control form-control-sm uniform-input readonly-gray" readonly required>
+                            <select name="color" id="id_color" class="form-select form-select-sm ts-select" placeholder="Select color..." required>
+                                <option value=""></option>
+                                {% for c in primary_color %}
+                                    <option value="{{ c.in_code_no }}" {% if form_data.color|stringformat:"s" == c.in_code_no|stringformat:"s" or form_data.color == c.color %}selected{% endif %}>
+                                        {{ c.color }}
+                                    </option>
+                                {% endfor %}
+                            </select>
                         </div>
                     </div>
                     <!-- ... (Application) ... -->
