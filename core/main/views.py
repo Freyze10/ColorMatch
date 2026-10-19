@@ -904,6 +904,7 @@ def cmf_dc_formula(request):
         "form_data": form_data,
         "materials": cmf_records_services.get_raw_material_codes(),
         "users": list(user_list),
+        "primary_color": cmf_records_services.get_color_list(),
         "colorant_mismatch": colorant_mismatch,
         "material_rows": material_rows,
         "cmf_list": combined_list,

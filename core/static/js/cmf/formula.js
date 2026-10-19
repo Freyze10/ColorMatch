@@ -657,7 +657,7 @@
             setVal(fields.resin, data.resin_used || data.resin);
 
             // Update TomSelect for Color Dropdown if primary_color ID is provided
-            const colorSelect = document.getElementById('id_color');
+            const colorSelect = document.getElementById(fields.color);
             if (colorSelect) {
                 if (colorSelect.tomselect) {
                     colorSelect.tomselect.setValue(data.primary_color_id || '', true);

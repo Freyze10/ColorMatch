@@ -8,7 +8,7 @@ from main.utils.log_audit_trail import log_audit
 from ...models import (
     tbl_cmf, tbl_cmf_pending_completed, tbl_cmf_pending_completed, tbl_formula_resin, tbl_formula_resin_selected, tbl_generated_prod_code,
     tbl_dc_extruder_formula, tbl_dc_extruder_materials, tbl_dc_extruder_version,
-    tbl_coding_materials, tbl_cmf_formula
+    tbl_coding_materials, tbl_cmf_formula, tbl_internal_color_code
 )
 
 MAX_MATERIAL_ROWS = 10
@@ -56,7 +56,7 @@ def save_dc_complete_formula(request):
             'C': 'Spectro C', 'H': 'Spectro H', 'notes': 'Note',
             'code': 'Product Code', 'material_code': 'Material Code',
             'matcher': 'Matcher Account', 'is_final': 'Final Formula',
-            'cm_no': 'CMF No.',
+            'cm_no': 'CMF No.', 'primary_color': 'Primary Color',
         }
         return mapping.get(field, field.replace('_', ' ').title())
 
@@ -65,7 +65,6 @@ def save_dc_complete_formula(request):
             # 1. Resolve Product Code
             prod_code_str = post_data.get('product_code', '').strip()
             prod_code_obj, _ = tbl_generated_prod_code.objects.get_or_create(product_code=prod_code_str) if prod_code_str else (None, False)
-            print(prod_code_str, prod_code_obj)
             # Resolve Personnel (The new Matcher Account)
             matcher_id = post_data.get('matcher_id')
             matcher_obj = User.objects.filter(pk=matcher_id).first() if matcher_id else None
@@ -90,7 +89,25 @@ def save_dc_complete_formula(request):
                 cmf_obj = tbl_cmf.objects.filter(cm_no=raw_cm_no).first()
 
             cm_display = cmf_obj.cm_no if cmf_obj else (raw_cm_no or "N/A")
+            parent_label = f"CMF: {cmf_obj.cm_no}" if cmf_obj else f"CMF: {raw_cm_no or 'N/A'}"
+            
+            # 3. Resolve Color Selection mapping
+            color_id = post_data.get('color')
+            color_obj = tbl_internal_color_code.objects.filter(pk=color_id).first() if color_id else None
 
+            diff_logs = []
+
+            # --- SYNC PRIMARY COLOR BACK TO THE CMF HEADER RECORD ---
+            if cmf_obj:
+                old_color_obj = cmf_obj.in_code_no
+                old_color_name = old_color_obj.color if old_color_obj else "---"
+                new_color_name = color_obj.color if color_obj else "---"
+
+                if old_color_obj != color_obj:
+                    diff_logs.append(f"Primary Color ({old_color_name} -> {new_color_name})")
+                    cmf_obj.in_code_no = color_obj
+                    cmf_obj.save(update_fields=['in_code_no'])
+                    
             # 3. Standardize Date
             raw_date = post_data.get('date_matched')
             formatted_date = datetime.strptime(raw_date, '%m/%d/%Y').date() if raw_date else None
@@ -151,8 +168,6 @@ def save_dc_complete_formula(request):
                 'is_final': is_final_val,
             }
 
-            diff_logs = []
-
             # --- 5.5 SYNC DOSAGE BACK TO THE CMF-LEVEL FORMULA RECORD ---
             if cmf_obj:
                 cmf_formula = tbl_cmf_formula.objects.filter(cm_no=cmf_obj).order_by('-cmf_formula_no').first()
@@ -190,9 +205,9 @@ def save_dc_complete_formula(request):
                 for v in existing_versions:
                     m_name = (v.material.material or '').strip().lower()
                     val_float = float(v.value or 0)
-                    if m_name and round(val_float, 4) != 0:
+                    if m_name and round(val_float, 8) != 0:
                         key = (m_name, v.version_no)
-                        old_materials_map[key] = round(old_materials_map.get(key, 0.0) + val_float, 4)
+                        old_materials_map[key] = round(old_materials_map.get(key, 0.0) + val_float, 8)
 
                 # Track Header Changes
                 for field, new_val in header_params.items():
@@ -282,9 +297,9 @@ def save_dc_complete_formula(request):
                     )
 
                     # Only track non-zero values in the comparison map
-                    if round(val_float, 4) != 0:
+                    if round(val_float, 8) != 0:
                         key = (mat_name.lower(), version_no)
-                        new_materials_map[key] = round(new_materials_map.get(key, 0.0) + val_float, 4)
+                        new_materials_map[key] = round(new_materials_map.get(key, 0.0) + val_float, 8)
 
             # Strict Numerical Comparison: ignores zeros and decimal precision formatting
             ingredients_changed = (old_materials_map != new_materials_map)
@@ -298,18 +313,21 @@ def save_dc_complete_formula(request):
             code_display = prod_code_obj.product_code if prod_code_obj else "---"
 
             if action_type == "Updated":
-                msg = f"DC Formula (CMF: {cm_display} | Code: {code_display} ). "
+                msg = f"DC Formula (CMF: {cm_display} | Code: {code_display}) for {parent_label}."
                 if not diff_logs and not ingredients_changed:
-                    msg += "No technical changes."
+                    msg += " No technical changes."
                 else:
                     if diff_logs:
-                        msg += f"Changes: {', '.join(diff_logs)}. "
+                        msg += " Changes: " + ", ".join(diff_logs)
                     if ingredients_changed:
-                        msg += "Material composition updated."
+                        if diff_logs:
+                            msg += " (Material Breakdown was modified)."
+                        else:
+                            msg += " Changes: Material Breakdown was modified."
             else:
-                msg = f"New DC Formula (CMF: {cm_display} | Code: {code_display} )."
+                msg = f"New DC Formula (CMF: {cm_display} | Code: {code_display}) for {parent_label}."
                 if diff_logs:
-                    msg += f" Changes: {', '.join(diff_logs)}."
+                    msg += " Changes: " + ", ".join(diff_logs)
 
             log_audit(request, action_type, msg)
             return header
