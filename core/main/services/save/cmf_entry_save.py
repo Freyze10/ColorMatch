@@ -170,6 +170,27 @@ def save_cmf_complete_entry(request):
             code=code_obj
         )
 
+        # --- REMATCH FEEDBACK AUTOMATION LOGIC ---
+        match_parts = re.match(r'^(.+)([a-zA-Z])$', cm_no)
+        if match_parts:
+            base, suffix = match_parts.groups()
+            suffix = suffix.lower()
+
+            # Check if suffix is 'b' through 'z' (meaning it's a rematch entry)
+            if 'b' <= suffix <= 'z':
+                prev_suffix = chr(ord(suffix) - 1)
+                prev_cm_no = f"{base}{prev_suffix}"
+
+                # Look up feedback details for the previous CMF version
+                prev_feedback = tbl_feedback_details.objects.filter(cm_no__cm_no__iexact=prev_cm_no).first()
+                if prev_feedback:
+                    # Check if status is strictly 'waiting for result'
+                    if (prev_feedback.status or '').strip().lower() == 'waiting for result':
+                        prev_feedback.status = 'Rematch'
+                        # Inherit the exact same submitted_by salesman relation
+                        prev_feedback.submitted_by = prev_feedback.submitted_by
+                        prev_feedback.save(update_fields=['status', 'submitted_by'])
+
         num_files = _handle_file_uploads(request, cmf_main)
         
         cache.delete('cmf_records_list')
