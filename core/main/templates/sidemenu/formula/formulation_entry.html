@@ -209,7 +209,7 @@
                             <div class="col-md-8">
                                 <input type="text" 
                                     name="encoded_by" 
-                                    value="{% if form_data.form_id %}{{ form_data.encoded_by|default:'' }}{% else %}{{ user.first_name|default:'' }}{% endif %}" 
+                                    value="{{ form_data.encoded_by|default:user_fullname  }}" 
                                     class="form-control form-control-sm uniform-input readonly-gray" 
                                     readonly>
                             </div>
