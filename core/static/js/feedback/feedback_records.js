@@ -43,6 +43,7 @@ jQuery(document).ready(function($) {
                     else if (statusLower === 'rematch') cls = "bg-primary-subtle text-primary border-primary";
                     else if (statusLower === 'abandoned') cls = "bg-danger-subtle text-danger border-danger";
                     else if (statusLower === 'ordered') cls = "bg-dark-subtle text-dark border-dark";
+                    else if (statusLower === 'rejected') cls = "bg-secondary-subtle text-secondary border-secondary";
                     else if (statusLower.includes('approved')) cls = "bg-success-subtle text-success border-success";
                     else if (statusLower.includes('request')) cls = "bg-info-subtle text-info border-info";
 

@@ -21,6 +21,7 @@ FEEDBACK_STATUS_OPTIONS = [
     'Pending',
     'Rematch',
     'Abandoned',
+    'Rejected',
     'Ordered',
     'Approved with result',
     'Approved without result',
@@ -29,7 +30,7 @@ FEEDBACK_STATUS_OPTIONS = [
 ]
 
 # Always available, regardless of what was submitted.
-BASE_STATUSES = ['Rematch', 'Abandoned', 'Ordered']
+BASE_STATUSES = ['Rematch', 'Abandoned', 'Ordered', 'Rejected']
 
 # When Sample is among the submitted items — full 3-choice set.
 SAMPLE_STATUSES = [
@@ -42,7 +43,7 @@ SAMPLE_STATUSES = [
 CHIP_PRICE_STATUSES = [
     'Approved without result',
     'Request for additional samples',
-    'Approve and request for samples',
+    'Approved and request for samples',
 ]
 
 def get_feedback_status_choices(selected_option_names):
