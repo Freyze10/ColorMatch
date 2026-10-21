@@ -347,15 +347,15 @@ def get_employee_stats():
 
     # temporarily add the past records
     # --- fold legacy tbl_master_formula_encode counts into matched totals ---
-    legacy_counts = _get_legacy_matched_counts()
-    for emp in employee_stats:
-        key = emp["name"].strip().lower()
-        legacy_total = legacy_counts.get(key)
-        if legacy_total:
-            emp["matched"] += legacy_total
-            total = emp["matched"] + emp["rematches"]
-            emp["success_pct"] = round((emp["matched"] / total) * 100) if total else 0
-            emp["badge_class"] = _badge_for(emp["success_pct"])
+    # legacy_counts = _get_legacy_matched_counts()
+    # for emp in employee_stats:
+    #     key = emp["name"].strip().lower()
+    #     legacy_total = legacy_counts.get(key)
+    #     if legacy_total:
+    #         emp["matched"] += legacy_total
+    #         total = emp["matched"] + emp["rematches"]
+    #         emp["success_pct"] = round((emp["matched"] / total) * 100) if total else 0
+    #         emp["badge_class"] = _badge_for(emp["success_pct"])
     # end
 
     # Highest number of matches first
