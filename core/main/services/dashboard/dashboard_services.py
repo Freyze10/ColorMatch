@@ -1,12 +1,31 @@
+"""
+Dashboard data (services layer)
+===============================
+Every number and chart on the dashboard page is calculated here.
+The view only calls get_dashboard_context() at the bottom and passes the
+result to the template.
+
+Dashboard section            -> function that feeds it
+---------------------------------------------------------------------
+Completed Samples This Week  -> get_completed_samples_stats()
+Monthly Matches chart        -> get_monthly_chart_data()
+Employee Performance table   -> get_employee_stats()
+Sample vs Order chart        -> get_sample_vs_order_data()
+KPI cards (All CMF, Pending  -> get_cmf_kpis() and get_total_matches()
+  CMF, Completed CMF,
+  Total Matches)
+"""
 import re
 from collections import defaultdict
 from datetime import timedelta
 
+from django.db.models import Q
 from django.db.models.aggregates import Count
 from django.utils import timezone
 
 from main.models import (
     tbl_audit_trail,
+    tbl_cmf,
     tbl_master_formula_encode,
     tbl_mb_extruder_formula,
     tbl_dc_extruder_formula,
@@ -16,6 +35,8 @@ from main.models import (
     tbl_feedback_details,
 )
 
+# Text written into the audit trail when a CMF goes from Pending to Completed.
+# The "completed this week" card counts audit rows that contain this text.
 COMPLETED_MARKER = "Status (Pending -> Completed)"
 
 
@@ -28,7 +49,9 @@ def _week_boundaries(today):
     Our week runs Sunday -> Saturday (not the ISO Monday start).
     Returns (start_this_week, start_last_week, end_last_week) as dates.
     """
-    days_since_sunday = (today.weekday() + 1) % 7  # Mon=0 ... Sun=6 -> Sun=0
+    # Python's weekday(): Mon=0 ... Sun=6.  Adding 1 and taking % 7 turns
+    # that into Sun=0 ... Sat=6, i.e. "days since the last Sunday".
+    days_since_sunday = (today.weekday() + 1) % 7
     start_this_week = today - timedelta(days=days_since_sunday)
     start_last_week = start_this_week - timedelta(days=7)
     end_last_week = start_this_week - timedelta(days=1)
@@ -52,7 +75,8 @@ def _cm_base_suffix(cm_no):
     Splits a cm_no like 'A9170a' into ('A9170', 'a').
     The trailing letter marks which attempt this is (a = first attempt,
     b = first rematch, c = second rematch, ...). Returns (None, None) if
-    the value doesn't end in a single letter.
+    the value doesn't end in a single letter (for example an RS number
+    like '3546').
     """
     if not cm_no:
         return None, None
@@ -78,12 +102,14 @@ def get_completed_samples_stats():
     today = timezone.localdate()
     start_this_week, start_last_week, end_last_week = _week_boundaries(today)
 
+    # Audit rows this week that say "Pending -> Completed"
     completed_this_week = tbl_audit_trail.objects.filter(
         details__icontains=COMPLETED_MARKER,
         timestamp__date__gte=start_this_week,
         timestamp__date__lte=today,
     ).count()
 
+    # Same count for the whole previous week, used for the comparison badge
     completed_last_week = tbl_audit_trail.objects.filter(
         details__icontains=COMPLETED_MARKER,
         timestamp__date__gte=start_last_week,
@@ -100,6 +126,8 @@ def get_completed_samples_stats():
 
     trend = "up" if completed_this_week >= completed_last_week else "down"
 
+    # abs(): the template shows the arrow for direction, so the number itself
+    # is always positive.
     return completed_this_week, abs(percent_change), trend
 
 
@@ -118,8 +146,10 @@ def get_monthly_chart_data():
       [{"month": "Jun", "matches": 70, "rematches": 22}, ...]
     sorted chronologically, ready to hand straight to the chart's data.setAll().
     """
+    # key = (sort_key, label), e.g. ("2026-10", "Oct"); value = the two counters
     monthly = defaultdict(lambda: {"matches": 0, "rematches": 0})
 
+    # Skip rows with no date, because they can't be placed in a month.
     formula_rows = [
         row for row in _formula_rows(["date", "cm_no_id"]) if row["date"] is not None
     ]
@@ -128,12 +158,13 @@ def get_monthly_chart_data():
         record_date = row["date"]
         cm_no = row["cm_no_id"]
 
+        # sort_key keeps months in time order; label is what the chart shows
         sort_key = record_date.strftime("%Y-%m")
         label = record_date.strftime("%b")
 
         bucket = monthly[(sort_key, label)]
 
-        # No letter suffix (e.g. "3546") means it's an RS record — always
+        # No letter suffix (e.g. "3546") means it's an RS record: always
         # a normal match, never a rematch. Only 'b', 'c', ... suffixes on
         # CMF-style cm_no's (e.g. "A9170b") count as rematches.
         _, suffix = _cm_base_suffix(cm_no)
@@ -149,12 +180,53 @@ def get_monthly_chart_data():
 
 
 # =====================================================================
-# "PENDING" KPI CARD
+# KPI CARDS (right column: All CMF / Pending CMF / Completed CMF / Total Matches)
 # =====================================================================
 
-def get_pending_count():
-    """Simple count of CMF records still marked as not completed."""
-    return tbl_cmf_pending_completed.objects.filter(is_completed=False).count()
+def get_cmf_kpis():
+    """
+    Numbers for the first three KPI cards.
+
+    - total_cmf       -> every CMF record in tbl_cmf that has a cm_no
+    - pending_count   -> rows in tbl_cmf_pending_completed with is_completed=False
+    - completed_count -> rows in tbl_cmf_pending_completed with is_completed=True
+
+    Pending and Completed come from ONE database query: Count(..., filter=...)
+    counts only the rows that match the condition, so both numbers are
+    calculated in a single pass over the table.
+    """
+    # Ignore CMF rows with an empty cm_no (same rule used by the RS entry page)
+    total_cmf = (
+        tbl_cmf.objects
+        .exclude(cm_no__isnull=True)
+        .exclude(cm_no='')
+        .count()
+    )
+
+    status_counts = tbl_cmf_pending_completed.objects.aggregate(
+        pending=Count('pk', filter=Q(is_completed=False)),
+        completed=Count('pk', filter=Q(is_completed=True)),
+    )
+
+    return {
+        "total_cmf": total_cmf,
+        "pending_count": status_counts["pending"],
+        "completed_count": status_counts["completed"],
+    }
+
+
+def get_total_matches():
+    """
+    Total number of formulas, for the "Total Matches" card.
+
+    A "match" is one formula row. This counts every row in both extruder
+    formula tables (DC + MB), which is the same set of rows the Monthly
+    Matches chart is built from (matches + rematches together).
+    """
+    return (
+        tbl_dc_extruder_formula.objects.count()
+        + tbl_mb_extruder_formula.objects.count()
+    )
 
 
 # =====================================================================
@@ -171,6 +243,7 @@ def _get_legacy_matched_counts():
     count can be folded into that employee's `matched` total.
     """
     legacy_counts = defaultdict(int)
+    # One row per distinct match_by text, with how many records use it
     rows = (
         tbl_master_formula_encode.objects
         .values('match_by')
@@ -200,19 +273,28 @@ def _get_legacy_matched_counts():
 
     return legacy_counts
 
+
+def _badge_for(success_pct):
+    """Bootstrap badge colour for a success %: green >= 80, blue >= 60, else yellow."""
+    if success_pct >= 80:
+        return "bg-success-subtle text-success border border-success"
+    if success_pct >= 60:
+        return "bg-primary-subtle text-primary border border-primary"
+    return "bg-warning-subtle text-warning border border-warning"
+
+
 def get_employee_stats():
     """
     Builds the Matched / Rematches / Success % row for every user in the
-    Laboratory or Information Technology roles.
+    Laboratory department.
 
     - matched   -> raw count of every formula row (DC + MB) where this user
                    is the `matcher`, regardless of is_final.
-    - rematches -> for every cm_no chain (A9170a, A9170b, A9170c, ...), only
-                   the row with is_final=True "owns" that attempt. If the
-                   next letter's final row exists, that means the PREVIOUS
-                   letter's final match got rematched, so the rematch is
-                   credited to the previous letter's final matcher
-                   (not the new attempt's matcher).
+    - rematches -> for every cm_no chain (A9170a, A9170b, A9170c, ...), the
+                   existence of the next letter means the PREVIOUS letter's
+                   match got rematched, so the rematch is credited to the
+                   previous letter's matcher (not the new attempt's matcher).
+    - success % -> matched / (matched + rematches)
     """
     # NOTE: adjust this regex if tbl_role.name doesn't literally contain
     # these words.
@@ -229,6 +311,8 @@ def get_employee_stats():
             matched_counts[row["matcher_id"]] += 1
 
     # --- build base -> {suffix: matcher_id}, no is_final filter ---
+    # Example: "A9170" -> {"a": 12, "b": 7} means user 12 did the first
+    # attempt and user 7 did the first rematch.
     matcher_by_suffix = defaultdict(dict)
     for row in all_rows:
         base, suffix = _cm_base_suffix(row["cm_no_id"])
@@ -240,8 +324,8 @@ def get_employee_stats():
     for base, suffix_map in matcher_by_suffix.items():
         for suffix in suffix_map:
             if suffix == 'a':
-                continue
-            prev_letter = chr(ord(suffix) - 1)
+                continue  # 'a' is the first attempt, nothing came before it
+            prev_letter = chr(ord(suffix) - 1)  # 'b' -> 'a', 'c' -> 'b', ...
             prev_matcher = suffix_map.get(prev_letter)
             if prev_matcher:
                 rematch_counts[prev_matcher] += 1
@@ -253,19 +337,12 @@ def get_employee_stats():
         total = matched + rematches
         success_pct = round((matched / total) * 100) if total else 0
 
-        if success_pct >= 80:
-            badge_class = "bg-success-subtle text-success border border-success"
-        elif success_pct >= 60:
-            badge_class = "bg-primary-subtle text-primary border border-primary"
-        else:
-            badge_class = "bg-warning-subtle text-warning border border-warning"
-
         employee_stats.append({
             "name": f"{user.first_name} {user.last_name}",
             "matched": matched,
             "rematches": rematches,
             "success_pct": success_pct,
-            "badge_class": badge_class,
+            "badge_class": _badge_for(success_pct),
         })
 
     # temporarily add the past records
@@ -278,20 +355,16 @@ def get_employee_stats():
             emp["matched"] += legacy_total
             total = emp["matched"] + emp["rematches"]
             emp["success_pct"] = round((emp["matched"] / total) * 100) if total else 0
-
-            if emp["success_pct"] >= 80:
-                emp["badge_class"] = "bg-success-subtle text-success border border-success"
-            elif emp["success_pct"] >= 60:
-                emp["badge_class"] = "bg-primary-subtle text-primary border border-primary"
-            else:
-                emp["badge_class"] = "bg-warning-subtle text-warning border border-warning"
+            emp["badge_class"] = _badge_for(emp["success_pct"])
     # end
+
+    # Highest number of matches first
     employee_stats.sort(key=lambda e: e["matched"], reverse=True)
     return employee_stats
 
 
 # =====================================================================
-# SAMPLE VS ORDER CHART (pie chart) — not wired to the DB yet, skip for now
+# SAMPLE VS ORDER CHART (donut chart)
 # =====================================================================
 
 def get_sample_vs_order_data():
@@ -315,11 +388,16 @@ def get_sample_vs_order_data():
 
 
 # =====================================================================
-# ENTRY POINT — assembles everything the dashboard template needs
+# ENTRY POINT: assembles everything the dashboard template needs
 # =====================================================================
 
 def get_dashboard_context():
+    """
+    Called by the dashboard view. Each key below is a variable the template
+    uses, e.g. {{ total_cmf }}.
+    """
     completed_this_week, percent_change, trend = get_completed_samples_stats()
+    kpis = get_cmf_kpis()
 
     return {
         # completed samples this week card
@@ -330,8 +408,11 @@ def get_dashboard_context():
         # monthly matches chart
         "monthly_chart_data": get_monthly_chart_data(),
 
-        # pending KPI card
-        "pending_count": get_pending_count(),
+        # KPI cards (right column)
+        "total_cmf": kpis["total_cmf"],              # All CMF
+        "pending_count": kpis["pending_count"],      # Pending CMF
+        "completed_count": kpis["completed_count"],  # Completed CMF
+        "total_matches": get_total_matches(),        # Total Matches
 
         # employee performance table
         "employee_stats": get_employee_stats(),
