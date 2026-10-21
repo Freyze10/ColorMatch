@@ -811,6 +811,15 @@ document.addEventListener('DOMContentLoaded', function () {
                 else matcherField.value = payload.matcher_id;
             }
         }
+        // --- Populate Total Weight (if pulled from Master Formula) ---
+        if (payload.total_concentration !== undefined && payload.total_concentration !== '') {
+            const totalWeightDisplay = document.querySelector('.total-weight-display');
+            if (totalWeightDisplay) {
+                totalWeightDisplay.value = payload.total_concentration;
+                // Dispatch input event so dependent MB/DC table recalculations pick up the new total weight automatically
+                totalWeightDisplay.dispatchEvent(new Event('input', { bubbles: true }));
+            }
+        }
 
         // --- 2. POPULATE HTML Hex & CMYK ---
         if (payload.html_code_hex) {
@@ -830,6 +839,8 @@ document.addEventListener('DOMContentLoaded', function () {
         if (mField && payload.magenta !== '') mField.value = payload.magenta;
         if (yField && payload.yellow !== '') yField.value = payload.yellow;
         if (kField && payload.black !== '') kField.value = payload.black;
+
+        
 
         // --- 3. HANDLE TABLE COMPOSITION ROWS (MB vs DC) ---
         if (payload.formula_type === 'MB' && payload.ingredients) {

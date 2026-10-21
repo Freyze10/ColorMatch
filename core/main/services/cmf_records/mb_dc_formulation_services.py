@@ -302,7 +302,8 @@ def get_matching_formula_by_product_code(product_code_str, formula_type, cm_no_s
 
     base_payload = {
         'index_no': '', 'dosage': '', 'mix_time': '', 'notes': '', 'matcher_id': '',
-        'html_code_hex': '', 'cyan': '', 'magenta': '', 'yellow': '', 'black': ''
+        'html_code_hex': '', 'cyan': '', 'magenta': '', 'yellow': '', 'black': '',
+        'total_concentration': '' 
     }
 
     # 1. Check Extruder History First
@@ -380,6 +381,7 @@ def get_matching_formula_by_product_code(product_code_str, formula_type, cm_no_s
                 'magenta': float(master.magenta) if master.magenta is not None else '',
                 'yellow': float(master.yellow) if master.yellow is not None else '',
                 'black': float(master.black) if master.black is not None else '',
+                'total_concentration': float(master.total_concentration) if master.total_concentration is not None else '',
             })
 
             if f_type == 'MB':
