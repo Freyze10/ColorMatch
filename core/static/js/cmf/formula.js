@@ -789,6 +789,49 @@ document.addEventListener('DOMContentLoaded', function () {
 
     // Trigger autofill injection based on formula type
     function autofillCompositionTable(payload) {
+        // --- 1. POPULATE EXTRA FIELDS (Dosage, Mixing Time, Notes, Matcher) ---
+        if (payload.dosage !== undefined && payload.dosage !== '') {
+            const dosageField = document.getElementById('id_dosage') || document.getElementById('id_dc_dosage');
+            if (dosageField) dosageField.value = payload.dosage;
+        }
+        if (payload.mix_time !== undefined && payload.mix_time !== '') {
+            const mixField = document.querySelector('.js-mixing-time-input');
+            const mixHidden = document.querySelector('.js-mixing-time-hidden');
+            if (mixField) mixField.value = payload.mix_time;
+            if (mixHidden) mixHidden.value = `${payload.mix_time} MIN`;
+        }
+        if (payload.notes !== undefined && payload.notes !== '') {
+            const noteField = document.getElementById('id_note') || document.getElementById('id_dc_note');
+            if (noteField) noteField.value = payload.notes;
+        }
+        if (payload.matcher_id) {
+            const matcherField = document.getElementById('id_dc_matched_by') || document.getElementById('id_mb_matched_by');
+            if (matcherField) {
+                if (matcherField.tomselect) matcherField.tomselect.setValue(payload.matcher_id, true);
+                else matcherField.value = payload.matcher_id;
+            }
+        }
+
+        // --- 2. POPULATE HTML Hex & CMYK ---
+        if (payload.html_code_hex) {
+            const hexField = document.querySelector('.hex-input');
+            if (hexField) {
+                hexField.value = payload.html_code_hex;
+                hexField.dispatchEvent(new Event('input', { bubbles: true })); // triggers color swatch update
+            }
+        }
+        
+        const cField = document.getElementById('id_mf_cyan') || document.getElementById('id_cmyk_c');
+        const mField = document.getElementById('id_mf_magenta') || document.getElementById('id_cmyk_m');
+        const yField = document.getElementById('id_mf_yellow') || document.getElementById('id_cmyk_y');
+        const kField = document.getElementById('id_mf_black') || document.getElementById('id_cmyk_k');
+
+        if (cField && payload.cyan !== '') cField.value = payload.cyan;
+        if (mField && payload.magenta !== '') mField.value = payload.magenta;
+        if (yField && payload.yellow !== '') yField.value = payload.yellow;
+        if (kField && payload.black !== '') kField.value = payload.black;
+
+        // --- 3. HANDLE TABLE COMPOSITION ROWS (MB vs DC) ---
         if (payload.formula_type === 'MB' && payload.ingredients) {
             payload.ingredients.forEach((ing, index) => {
                 const rowIndex = index + 1;
@@ -861,25 +904,47 @@ document.addEventListener('DOMContentLoaded', function () {
     async function lookupProductCode(codeVal) {
         if (!codeVal || codeVal.length < 2) return;
 
+        const cmfInput = document.getElementById(isMB ? 'id_mb_cmf_number' : 'id_dc_cmf_number');
+        let cmNoVal = '';
+        if (cmfInput) {
+            cmNoVal = cmfInput.value || (cmfInput.tomselect ? cmfInput.tomselect.getValue() : '');
+        }
+
         try {
-            const response = await fetch(`/cmf/mb-dc-formula/lookup-code/?product_code=${encodeURIComponent(codeVal)}&formula_type=${formulaType}`);
+            const response = await fetch(`/cmf/mb-dc-formula/lookup-code/?product_code=${encodeURIComponent(codeVal)}&formula_type=${formulaType}&cm_no=${encodeURIComponent(cmNoVal)}`);
             if (!response.ok) return;
             const res = await response.json();
 
             if (res.found && res.data) {
                 cachedFormulaData = res.data;
 
-                Preline.confirm(
-                    'Existing Formula Found',
-                    `A previous ${formulaType} formula record exists for product code "${codeVal}". Do you want to load its material composition into the table?`,
-                    'info',
-                    () => {
-                        autofillCompositionTable(cachedFormulaData);
-                    },
-                    () => {
-                        cachedFormulaData = null;
-                    }
-                );
+                if (res.data.source === 'master') {
+                    // Confirmation message for Master Formula fallback
+                    Preline.confirm(
+                        'Existing OLD Formula Found',
+                        `A previous formula record exists for product code "${codeVal}" and CMF "${cmNoVal}". Do you want to load its material composition and other formula details?`,
+                        'info',
+                        () => {
+                            autofillCompositionTable(cachedFormulaData);
+                        },
+                        () => {
+                            cachedFormulaData = null;
+                        }
+                    );
+                } else {
+                    // Confirmation message for standard Extruder history
+                    Preline.confirm(
+                        'Existing Formula Found',
+                        `A matching formula record exists for product code "${codeVal}". Do you want to load its data and material composition into the form?`,
+                        'info',
+                        () => {
+                            autofillCompositionTable(cachedFormulaData);
+                        },
+                        () => {
+                            cachedFormulaData = null;
+                        }
+                    );
+                }
             }
         } catch (err) {
             console.error('Error looking up formula by product code:', err);

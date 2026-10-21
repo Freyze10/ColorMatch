@@ -3,9 +3,11 @@ import re
 from django.http import JsonResponse
 from django.db.models import Q, Max
 from main.models import (
-    tbl_cmf, tbl_cmf_formula, tbl_coding_materials, tbl_dc_extruder_formula, tbl_dc_extruder_materials, tbl_dc_extruder_version, tbl_mb_extruder_formula, tbl_mb_extruder_formula02, tbl_resins_selected, 
+    tbl_cmf, tbl_cmf_formula, tbl_coding_materials, tbl_dc_extruder_formula, tbl_dc_extruder_materials, tbl_dc_extruder_version, tbl_master_formula_encode, tbl_master_formula_info, tbl_mb_extruder_formula, tbl_mb_extruder_formula02, tbl_resins_selected, 
     tbl_cmf_process02, tbl_master_formula, tbl_generated_prod_code, tbl_field_note
 )
+from django.contrib.auth import get_user_model
+User = get_user_model()
 
 def get_formulation_details(request):
     cm_no = request.GET.get('cm_no')
@@ -262,68 +264,147 @@ def check_product_code_formula(request):
     return JsonResponse({'exists': False})
 
 
-def get_matching_formula_by_product_code(product_code_str, formula_type):
-    """
-    Finds the most recent formula entry matching the product code and type ('MB' or 'DC').
-    Returns structured data for the table composition.
-    """
+def _resolve_matcher_id(match_by_text):
+    """Maps free-text legacy or current match_by strings to active lab user IDs."""
+    if not match_by_text:
+        return None
+    
+    clean_text = match_by_text.strip().lower()
+    
+    # Check direct username or full name matches first
+    for u in User.objects.filter(is_active=True):
+        full_name = f"{u.first_name} {u.last_name}".strip().lower()
+        if clean_text in full_name or full_name in clean_text or clean_text == u.username.lower():
+            return u.id
+
+    # Handle known keyword mappings
+    if 'ann' in clean_text or 'ana' in clean_text:
+        u = User.objects.filter(first_name__iexact='Ana').first()
+    elif 'ernie' in clean_text:
+        u = User.objects.filter(first_name__iexact='Ernie').first()
+    elif 'geelyn' in clean_text:
+        u = User.objects.filter(first_name__iexact='Geelyn').first()
+    elif 'jinky' in clean_text:
+        u = User.objects.filter(first_name__iexact='Jinky').first()
+    elif 'linzy' in clean_text:
+        u = User.objects.filter(first_name__icontains='Linzy').first()
+    else:
+        return None
+        
+    return u.id if u else None
+
+def get_matching_formula_by_product_code(product_code_str, formula_type, cm_no_str=None):
     if not product_code_str:
         return None
 
-    prod_code_obj = tbl_generated_prod_code.objects.filter(product_code__iexact=product_code_str.strip()).first()
-    if not prod_code_obj:
-        return None
+    clean_code = product_code_str.strip()
+    f_type = formula_type.upper()
 
-    if formula_type.upper() == 'MB':
-        # Find the latest MB formula using this product code
-        formula = tbl_mb_extruder_formula.objects.filter(code=prod_code_obj).order_by('-mb_no').first()
-        if not formula:
-            return None
+    base_payload = {
+        'index_no': '', 'dosage': '', 'mix_time': '', 'notes': '', 'matcher_id': '',
+        'html_code_hex': '', 'cyan': '', 'magenta': '', 'yellow': '', 'black': ''
+    }
 
-        # Fetch ingredients
-        details = tbl_mb_extruder_formula02.objects.filter(mb=formula)
-        ingredients = []
-        for d in details:
-            ingredients.append({
-                'material': d.material,
-                'value': float(d.value) if d.value is not None else 0,
-                'weight': float(d.weight) if d.weight is not None else 0
-            })
-        return {'formula_type': 'MB', 'ingredients': ingredients}
-
-    elif formula_type.upper() == 'DC':
-        # Find the latest DC formula using this product code
-        formula = tbl_dc_extruder_formula.objects.filter(code=prod_code_obj).order_by('-dc_no').first()
-        if not formula:
-            return None
-
-        # Fetch materials and their latest version values
-        materials = tbl_dc_extruder_materials.objects.filter(dc=formula)
-        material_rows = []
-        for m in materials:
-            versions_qs = m.versions.all().order_by('version_no')
-            # Extract values up to 10 versions
-            versions = [float(v.value) if v.value is not None else 0 for v in versions_qs]
-            # Pad to 10 if needed
-            while len(versions) < 10:
-                versions.append(0)
+    # 1. Check Extruder History First
+    prod_code_obj = tbl_generated_prod_code.objects.filter(product_code__iexact=clean_code).first()
+    if prod_code_obj:
+        if f_type == 'MB':
+            formula = tbl_mb_extruder_formula.objects.filter(code=prod_code_obj).order_by('-mb_no').first()
+            if formula:
+                details = tbl_mb_extruder_formula02.objects.filter(mb=formula)
+                ingredients = [{'material': d.material, 'value': float(d.value or 0), 'weight': float(d.weight or 0)} for d in details]
                 
-            material_rows.append({
-                'material': m.material,
-                'versions': versions[:10]
+                payload = base_payload.copy()
+                payload.update({
+                    'formula_type': 'MB', 
+                    'source': 'extruder',
+                    'ingredients': ingredients,
+                    'html_code_hex': formula.html or '',
+                    'cyan': float(formula.c) if formula.c is not None else '',
+                    'magenta': float(formula.m) if formula.m is not None else '',
+                    'yellow': float(formula.y) if formula.y is not None else '',
+                    'black': float(formula.k) if formula.k is not None else '',
+                })
+                return payload
+
+        elif f_type == 'DC':
+            formula = tbl_dc_extruder_formula.objects.filter(code=prod_code_obj).order_by('-dc_no').first()
+            if formula:
+                materials = tbl_dc_extruder_materials.objects.filter(dc=formula)
+                material_rows = []
+                for m in materials:
+                    versions = [float(v.value or 0) for v in m.versions.all().order_by('version_no')]
+                    while len(versions) < 10: versions.append(0)
+                    material_rows.append({'material': m.material, 'versions': versions[:10]})
+                
+                payload = base_payload.copy()
+                payload.update({
+                    'formula_type': 'DC', 
+                    'source': 'extruder',
+                    'material_rows': material_rows,
+                    'html_code_hex': formula.html or '',
+                    'cyan': float(formula.c) if formula.c is not None else '',
+                    'magenta': float(formula.m) if formula.m is not None else '',
+                    'yellow': float(formula.y) if formula.y is not None else '',
+                    'black': float(formula.k) if formula.k is not None else '',
+                })
+                return payload
+
+    # 2. Fallback to tbl_master_formula if product code has no extruder record
+    if cm_no_str and cm_no_str.upper() != 'N/A':
+        clean_cm = cm_no_str.strip().upper()
+        
+        # Look for master formula matching product code and exact/partial CMF string
+        master = None
+        for mf in tbl_master_formula.objects.filter(product_code__iexact=clean_code, is_deleted=False).order_by('-form_id'):
+            if mf.cm_no and mf.cm_no.strip().upper() == clean_cm:
+                master = mf
+                break
+
+        if master:
+            encode = tbl_master_formula_encode.objects.filter(form=master).first()
+            matcher_id = _resolve_matcher_id(encode.match_by if encode else '')
+            mix_time_val = ''.join(filter(str.isdigit, master.mix_time)) if master.mix_time else '5'
+            materials_info = tbl_master_formula_info.objects.filter(form=master, is_deleted=False).order_by('sequence_no')
+
+            payload = base_payload.copy()
+            payload.update({
+                'index_no': master.index_no or '',
+                'source': 'master',                
+                'dosage': float(master.ld) if master.ld else '',
+                'mix_time': mix_time_val,
+                'notes': master.notes or '',
+                'matcher_id': matcher_id,
+                'html_code_hex': master.html_code_hex or '',
+                'cyan': float(master.cyan) if master.cyan is not None else '',
+                'magenta': float(master.magenta) if master.magenta is not None else '',
+                'yellow': float(master.yellow) if master.yellow is not None else '',
+                'black': float(master.black) if master.black is not None else '',
             })
-        return {'formula_type': 'DC', 'material_rows': material_rows}
+
+            if f_type == 'MB':
+                ingredients = [{'material': m.material_code, 'value': float(m.concentration or 0), 'weight': 0} for m in materials_info]
+                payload.update({'formula_type': 'MB', 'ingredients': ingredients})
+                return payload
+            elif f_type == 'DC':
+                material_rows = []
+                for m in materials_info:
+                    versions = [float(m.concentration or 0)] + [0] * 9
+                    material_rows.append({'material': m.material_code, 'versions': versions})
+                payload.update({'formula_type': 'DC', 'material_rows': material_rows})
+                return payload
 
     return None
 
 def ajax_lookup_formula_by_code(request):
     product_code = request.GET.get('product_code', '').strip()
     formula_type = request.GET.get('formula_type', 'MB').strip()
+    cm_no = request.GET.get('cm_no', '').strip()
 
     if not product_code:
         return JsonResponse({'found': False, 'error': 'Product code is required.'}, status=400)
 
-    data = get_matching_formula_by_product_code(product_code, formula_type)
+    data = get_matching_formula_by_product_code(product_code, formula_type, cm_no)
     if data:
         return JsonResponse({'found': True, 'data': data})
     
