@@ -789,7 +789,7 @@ document.addEventListener('DOMContentLoaded', function () {
 
     // Trigger autofill injection based on formula type
     function autofillCompositionTable(payload) {
-        // --- 1. POPULATE EXTRA FIELDS (Dosage, Mixing Time, Notes, Matcher) ---
+        // --- 1. POPULATE EXTRA FIELDS (Dosage, Mixing Time, Notes, Matcher, Date) ---
         if (payload.dosage !== undefined && payload.dosage !== '') {
             const dosageField = document.getElementById('id_dosage') || document.getElementById('id_dc_dosage');
             if (dosageField) dosageField.value = payload.dosage;
@@ -802,7 +802,10 @@ document.addEventListener('DOMContentLoaded', function () {
         }
         if (payload.notes !== undefined && payload.notes !== '') {
             const noteField = document.getElementById('id_note') || document.getElementById('id_dc_note');
-            if (noteField) noteField.value = payload.notes;
+            if (noteField) {
+                noteField.value = payload.notes;
+                noteField.dispatchEvent(new Event('input', { bubbles: true }));
+            }
         }
         if (payload.matcher_id) {
             const matcherField = document.getElementById('id_dc_matched_by') || document.getElementById('id_mb_matched_by');
@@ -811,12 +814,20 @@ document.addEventListener('DOMContentLoaded', function () {
                 else matcherField.value = payload.matcher_id;
             }
         }
-        // --- Populate Total Weight (if pulled from Master Formula) ---
+        // Populate Colormatch Date (id_date for MB, id_dc_date_matched for DC)
+        if (payload.colormatch_date) {
+            const dateField = document.getElementById('id_date') || document.getElementById('id_dc_date_matched');
+            if (dateField) {
+                dateField.value = payload.colormatch_date;
+                if (dateField._flatpickr) dateField._flatpickr.setDate(payload.colormatch_date, true);
+            }
+        }
+
+        // --- Populate Total Weight / Total Concentration ---
         if (payload.total_concentration !== undefined && payload.total_concentration !== '') {
             const totalWeightDisplay = document.querySelector('.total-weight-display');
             if (totalWeightDisplay) {
                 totalWeightDisplay.value = payload.total_concentration;
-                // Dispatch input event so dependent MB/DC table recalculations pick up the new total weight automatically
                 totalWeightDisplay.dispatchEvent(new Event('input', { bubbles: true }));
             }
         }
@@ -826,7 +837,7 @@ document.addEventListener('DOMContentLoaded', function () {
             const hexField = document.querySelector('.hex-input');
             if (hexField) {
                 hexField.value = payload.html_code_hex;
-                hexField.dispatchEvent(new Event('input', { bubbles: true })); // triggers color swatch update
+                hexField.dispatchEvent(new Event('input', { bubbles: true }));
             }
         }
         
@@ -840,25 +851,18 @@ document.addEventListener('DOMContentLoaded', function () {
         if (yField && payload.yellow !== '') yField.value = payload.yellow;
         if (kField && payload.black !== '') kField.value = payload.black;
 
-        
-
         // --- 3. HANDLE TABLE COMPOSITION ROWS (MB vs DC) ---
         if (payload.formula_type === 'MB' && payload.ingredients) {
             payload.ingredients.forEach((ing, index) => {
                 const rowIndex = index + 1;
                 if (rowIndex > 10) return;
 
-                // Set Material Dropdown / TomSelect
                 const matSelect = document.querySelector(`[name="material_${rowIndex}"]`);
                 if (matSelect) {
-                    if (matSelect.tomselect) {
-                        matSelect.tomselect.setValue(ing.material, true);
-                    } else {
-                        matSelect.value = ing.material;
-                    }
+                    if (matSelect.tomselect) matSelect.tomselect.setValue(ing.material, true);
+                    else matSelect.value = ing.material;
                 }
 
-                // Set Percentage and Weight values
                 const pctInput = document.querySelector(`[name="percentage_${rowIndex}"]`);
                 if (pctInput) pctInput.value = ing.value;
 
@@ -866,38 +870,27 @@ document.addEventListener('DOMContentLoaded', function () {
                 if (wgtInput) wgtInput.value = ing.weight;
             });
 
-            // Recalculate totals
             const table = document.querySelector('.js-formula-table');
             if (table) {
-                // Dispatch input event to force formula.js to update totals
                 const firstPct = table.querySelector('.js-percent-input');
-                if (firstPct) {
-                    firstPct.dispatchEvent(new Event('input', { bubbles: true }));
-                }
+                if (firstPct) firstPct.dispatchEvent(new Event('input', { bubbles: true }));
             }
         } else if (payload.formula_type === 'DC' && payload.material_rows) {
             payload.material_rows.forEach((row, rIndex) => {
                 const rowIndex = rIndex + 1;
                 if (rowIndex > 10) return;
 
-                // Set Material Dropdown
                 const matSelect = document.querySelector(`[name="material_${rowIndex}"]`);
                 if (matSelect) {
-                    if (matSelect.tomselect) {
-                        matSelect.tomselect.setValue(row.material, true);
-                    } else {
-                        matSelect.value = row.material;
-                    }
+                    if (matSelect.tomselect) matSelect.tomselect.setValue(row.material, true);
+                    else matSelect.value = row.material;
                 }
 
-                // Set Version Values (V1 to V10)
-                row.versions.forEach((val, vIndex) => {
-                    const versionNo = vIndex + 1;
-                    const valInput = document.querySelector(`[name="value_${rowIndex}_${versionNo}"]`);
-                    if (valInput) {
-                        valInput.value = val;
-                    }
-                });
+                // FOR DC MASTER FORMULA: ONLY write values into Version 1 (V1), leave others blank/untouched
+                const valInput = document.querySelector(`[name="value_${rowIndex}_1"]`);
+                if (valInput) {
+                    valInput.value = row.versions[0] || 0;
+                }
             });
 
             // Recalculate DC column totals
@@ -907,7 +900,7 @@ document.addEventListener('DOMContentLoaded', function () {
         }
 
         if (typeof Preline !== 'undefined' && typeof Preline.toast === 'function') {
-            Preline.toast("Formula composition successfully loaded from history.", "success");
+            Preline.toast("Formula composition & details successfully loaded.", "success");
         }
     }
 
@@ -932,8 +925,8 @@ document.addEventListener('DOMContentLoaded', function () {
                 if (res.data.source === 'master') {
                     // Confirmation message for Master Formula fallback
                     Preline.confirm(
-                        'Existing OLD Formula Found',
-                        `A previous formula record exists for product code "${codeVal}" and CMF "${cmNoVal}". Do you want to load its material composition and other formula details?`,
+                        'Existing OLD (Master) Formula',
+                        `A previous master formula record exists for product code "${codeVal}" and CMF "${cmNoVal}". Do you want to load its material composition and other formula details?`,
                         'info',
                         () => {
                             autofillCompositionTable(cachedFormulaData);

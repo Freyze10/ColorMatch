@@ -303,7 +303,7 @@ def get_matching_formula_by_product_code(product_code_str, formula_type, cm_no_s
     base_payload = {
         'index_no': '', 'dosage': '', 'mix_time': '', 'notes': '', 'matcher_id': '',
         'html_code_hex': '', 'cyan': '', 'magenta': '', 'yellow': '', 'black': '',
-        'total_concentration': '' 
+        'total_concentration': '', 'colormatch_date': '' 
     }
 
     # 1. Check Extruder History First
@@ -382,18 +382,20 @@ def get_matching_formula_by_product_code(product_code_str, formula_type, cm_no_s
                 'yellow': float(master.yellow) if master.yellow is not None else '',
                 'black': float(master.black) if master.black is not None else '',
                 'total_concentration': float(master.total_concentration) if master.total_concentration is not None else '',
+                'colormatch_date': master.colormatch_date.strftime('%m/%d/%Y') if master.colormatch_date else '',
             })
 
             if f_type == 'MB':
                 ingredients = [{'material': m.material_code, 'value': float(m.concentration or 0), 'weight': 0} for m in materials_info]
-                payload.update({'formula_type': 'MB', 'ingredients': ingredients})
+                payload.update({'formula_type': 'MB', 'source': 'master', 'ingredients': ingredients})
                 return payload
             elif f_type == 'DC':
                 material_rows = []
                 for m in materials_info:
+                    # For DC master formula, we pass the concentration directly into V1, rest 0
                     versions = [float(m.concentration or 0)] + [0] * 9
                     material_rows.append({'material': m.material_code, 'versions': versions})
-                payload.update({'formula_type': 'DC', 'material_rows': material_rows})
+                payload.update({'formula_type': 'DC', 'source': 'master', 'material_rows': material_rows})
                 return payload
 
     return None
