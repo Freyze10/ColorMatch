@@ -591,7 +591,7 @@ def cmf_mb_formula(request):
                     'color': cmf.in_code_no.color if cmf.in_code_no else "",
                     'color_desc': cmf.color_desc.upper() or (cmf.in_code_no.color or ""),
                     'product': cmf.in_code_no.code if cmf.in_code_no else "",
-                    'application': application_str,
+                    'application': application_str.upper() or "",
                     'record_type': 'cmf',
                 }
             else:
@@ -782,7 +782,8 @@ def cmf_dc_formula(request):
                     'dosage': initial_dosage,
                     'finished_product': formula_info.finished_product if formula_info else "",
                     'color': cmf.in_code_no.color if cmf.in_code_no else "",
-                    'application': app_str,
+                    'color_desc': cmf.color_desc.upper() or (cmf.in_code_no.color or ""),
+                    'application': app_str.upper() if app_str else "",
                     'record_type': 'cmf',
                 }
             else:
