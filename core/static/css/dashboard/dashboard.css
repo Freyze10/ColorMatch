@@ -87,16 +87,16 @@ body.dark-mode .kpi-card:hover {
 .kpi-card .kpi-value {
     transition: transform .25s ease;
 }
-.kpi-card:hover .kpi-icon {
+.kpi-card:hover .card-body .kpi-icon {
     animation: kpi-pulse 1.3s ease-in-out infinite;
 }
-.kpi-card:hover .kpi-value {
+.kpi-card:hover .card-body div .kpi-value {
     transform: scale(1.06);
     transform-origin: left center;
 }
 @keyframes kpi-pulse {
     0%, 100% { transform: scale(1); }
-    50%      { transform: scale(1.18); }
+    50%      { transform: scale(1.09); }
 }
 
 /* Respect users who turn animations off in their OS */
