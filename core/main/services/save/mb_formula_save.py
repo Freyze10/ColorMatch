@@ -52,7 +52,7 @@ def save_mb_complete_formula(request):
             'B': 'Spectro B', 'C': 'Spectro C', 'H': 'Spectro H',
             'notes': 'Note', 'code': 'Product Code', 'date': 'Date',
             'matcher': 'Matcher Account', 'is_final': 'Final Formula',
-            'primary_color': 'Internal Color',
+            'primary_color': 'Internal Color', 'index_no': 'Index Ref. No.',
         }
         return mapping.get(field, field.replace('_', ' ').title())
 
@@ -175,6 +175,7 @@ def save_mb_complete_formula(request):
                 tbl_mb_extruder_formula.objects.filter(cm_no=cmf_obj).update(is_final=False)
 
             header_params = {
+                'index_no': post_data.get('index_no'),
                 'date': formatted_date,
                 'cm_no': cmf_obj,
                 'code': prod_code_obj,

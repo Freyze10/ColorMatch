@@ -635,6 +635,7 @@ def cmf_mb_formula(request):
 
                 form_data.update({
                     'formula_id': header.pk,
+                    'index_no': header.index_no or "",
                     'selected_resins': saved_resin_ids,
                     'dosage': existing_dosage,
                     'date': header.date.strftime('%m/%d/%Y') if header.date else "",
@@ -806,6 +807,7 @@ def cmf_dc_formula(request):
             if header:
                 form_data.update({
                     'formula_id': header.pk,
+                    'index_no': header.index_no or "",
                     'selected_resins': saved_resin_ids,
                     'dosage': existing_dosage,
                     'date_matched': header.date.strftime('%m/%d/%Y') if header.date else "",

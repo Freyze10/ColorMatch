@@ -57,6 +57,7 @@ def save_dc_complete_formula(request):
             'code': 'Product Code', 'material_code': 'Material Code',
             'matcher': 'Matcher Account', 'is_final': 'Final Formula',
             'cm_no': 'CMF No.', 'primary_color': 'Internal Color',
+            'index_no': 'Index Ref. No.',
         }
         return mapping.get(field, field.replace('_', ' ').title())
 
@@ -143,6 +144,7 @@ def save_dc_complete_formula(request):
                 tbl_dc_extruder_formula.objects.filter(cm_no=cmf_obj).update(is_final=False)
 
             header_params = {
+                'index_no': post_data.get('index_no'),
                 'date': formatted_date,
                 'cm_no': cmf_obj,
                 'code': prod_code_obj,

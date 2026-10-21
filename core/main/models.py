@@ -504,6 +504,7 @@ class tbl_feedback_details(models.Model):
 
 class tbl_mb_extruder_formula(models.Model):
     mb_no = models.AutoField(primary_key=True)
+    index_no = models.CharField(max_length=22, blank=True, null=True)
     date = models.DateField(blank=True, null=True)
     code = models.ForeignKey(tbl_generated_prod_code, on_delete=models.SET_NULL, null=True, blank=True, db_column="code_no")
     lot_no = models.CharField(max_length=100, blank=True, null=True)
@@ -548,6 +549,7 @@ class tbl_mb_extruder_formula02(models.Model):
 
 class tbl_dc_extruder_formula(models.Model):
     dc_no = models.AutoField(primary_key=True)
+    index_no = models.CharField(max_length=22, blank=True, null=True)
     code = models.ForeignKey(tbl_generated_prod_code, on_delete=models.SET_NULL, null=True, blank=True, db_column="code_no")
     date = models.DateField(blank=True, null=True)
     sample_size = models.CharField(max_length=100, blank=True, null=True)
