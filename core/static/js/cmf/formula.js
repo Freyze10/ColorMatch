@@ -789,7 +789,11 @@ document.addEventListener('DOMContentLoaded', function () {
 
     // Trigger autofill injection based on formula type
     function autofillCompositionTable(payload) {
-        // --- 1. POPULATE EXTRA FIELDS (Dosage, Mixing Time, Notes, Matcher, Date) ---
+        // --- POPULATE EXTRA FIELDS (Index Ref No, Dosage, Mixing Time, Notes, Matcher, Date) ---
+        if (payload.index_no !== undefined && payload.index_no !== '') {
+            const indexField = document.getElementById('id_mb_index_no') || document.getElementById('id_dc_index_no');
+            if (indexField) indexField.value = payload.index_no;
+        }
         if (payload.dosage !== undefined && payload.dosage !== '') {
             const dosageField = document.getElementById('id_dosage') || document.getElementById('id_dc_dosage');
             if (dosageField) dosageField.value = payload.dosage;
