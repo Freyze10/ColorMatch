@@ -119,7 +119,6 @@ select.uniform-input {
     border-color: var(--sidebar-header-bg) !important;
 }
 
-.kpi-icon-sm { width: 36px; height: 36px; font-size: 1.1rem; border-radius: 10px; align-items: center; justify-content: center; display: flex; }
 
 /* Global Button Overrides */
 .btn-teal { background-color: var(--btn-teal); border: none; border-radius: 0.4rem; }

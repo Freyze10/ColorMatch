@@ -2,7 +2,7 @@
 {% load static %}
 
 {% block extra_css %}
-<link rel="stylesheet" href="{% static 'css/dashboard.css' %}">
+<link rel="stylesheet" href="{% static 'css/dashboard/dashboard.css' %}">
 {% endblock %}
 
 {% block navigation %} 
@@ -113,6 +113,7 @@ Dashboard
                         </div>
                         <div class="kpi-icon kpi-icon-sm dash-bg-primary-subtle"><i class="bi bi-collection"></i></div>
                     </div>
+                    <a href="{% url 'cmf_records' %}" class="stretched-link" aria-label="Open CMF records"></a>
                 </div>
 
                 <!-- Pending + Completed side by side -->
@@ -126,6 +127,7 @@ Dashboard
                                     <div class="kpi-icon kpi-icon-sm bg-warning-subtle text-warning"><i class="bi bi-hourglass-split"></i></div>
                                 </div>
                             </div>
+                            <a href="{% url 'cmf_records' %}" class="stretched-link" aria-label="Open CMF records"></a>
                         </div>
                     </div>
                     <div class="col-6">
@@ -137,6 +139,7 @@ Dashboard
                                     <div class="kpi-icon kpi-icon-sm bg-success-subtle text-success"><i class="bi bi-check2-circle"></i></div>
                                 </div>
                             </div>
+                            <a href="{% url 'cmf_records' %}" class="stretched-link" aria-label="Open CMF records"></a>
                         </div>
                     </div>
                 </div>
@@ -150,6 +153,7 @@ Dashboard
                         </div>
                         <div class="kpi-icon kpi-icon-sm dash-bg-teal-subtle"><i class="bi bi-eyedropper"></i></div>
                     </div>
+                    <a href="{% url 'formula_records' %}" class="stretched-link" aria-label="Open formula records"></a>
                 </div>
 
             </div>
