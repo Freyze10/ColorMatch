@@ -382,8 +382,8 @@ def get_sample_vs_order_data():
     orders_count = tbl_feedback_details.objects.filter(status__iexact="Ordered").count()
 
     return [
-        {"category": "Samples/Chips", "value": samples_chips_count},
         {"category": "Orders", "value": orders_count},
+        {"category": "Samples/Chips", "value": samples_chips_count},
     ]
 
 

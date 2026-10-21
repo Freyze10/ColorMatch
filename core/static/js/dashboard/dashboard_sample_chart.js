@@ -59,12 +59,7 @@ am5.ready(function() {
             color: categoryColors[d.category] || am5.color(0x8c8a89)
         };
     });
-    // Slices are drawn clockwise in the order of this list, starting at 12 o'clock.
-    // Orders first, then Samples/Chips. Swap the two names to reverse them.
-    let sliceOrder = ["Orders", "Samples/Chips"];
-    data.sort(function(a, b) {
-        return sliceOrder.indexOf(a.category) - sliceOrder.indexOf(b.category);
-    });
+    
 
     // Create Series
     let series = chart.series.push(am5percent.PieSeries.new(root, {
