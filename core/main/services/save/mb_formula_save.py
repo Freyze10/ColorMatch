@@ -87,9 +87,24 @@ def save_mb_complete_formula(request):
         
     try:
         with transaction.atomic():
-            # 1. Resolve Product Code
+            # 1. Resolve Color Selection First
+            color_id = post_data.get('color')
+            color_obj = tbl_internal_color_code.objects.filter(pk=color_id).first() if color_id else None
+
+            # 2. Resolve Product Code and bind the internal color code relation
             prod_code_str = post_data.get('product', '').strip()
-            prod_code_obj, _ = tbl_generated_prod_code.objects.get_or_create(product_code=prod_code_str) if prod_code_str else (None, False)
+            prod_code_obj = None
+            
+            if prod_code_str:
+                # Use update_or_create or get_or_create while explicitly passing/updating in_code
+                prod_code_obj, created = tbl_generated_prod_code.objects.get_or_create(
+                    product_code=prod_code_str,
+                    defaults={'in_code': color_obj}
+                )
+                # If the product code already existed in tbl_generated_prod_code but lacked an in_code link, update it:
+                if not created and color_obj and not prod_code_obj.in_code:
+                    prod_code_obj.in_code = color_obj
+                    prod_code_obj.save(update_fields=['in_code'])
 
             # Resolve Personnel (The new Matcher Account)
             matcher_id = post_data.get('matcher_id')

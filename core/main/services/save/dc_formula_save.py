@@ -63,9 +63,23 @@ def save_dc_complete_formula(request):
 
     try:
         with transaction.atomic():
-            # 1. Resolve Product Code
+            # 1. Resolve Color Selection first so it can be bound to product code
+            color_id = post_data.get('color')
+            color_obj = tbl_internal_color_code.objects.filter(pk=color_id).first() if color_id else None
+
+            # 2. Resolve Product Code and bind internal color code relation
             prod_code_str = post_data.get('product_code', '').strip()
-            prod_code_obj, _ = tbl_generated_prod_code.objects.get_or_create(product_code=prod_code_str) if prod_code_str else (None, False)
+            prod_code_obj = None
+
+            if prod_code_str:
+                prod_code_obj, created = tbl_generated_prod_code.objects.get_or_create(
+                    product_code=prod_code_str,
+                    defaults={'in_code': color_obj}
+                )
+                if not created and color_obj and not prod_code_obj.in_code:
+                    prod_code_obj.in_code = color_obj
+                    prod_code_obj.save(update_fields=['in_code'])
+
             # Resolve Personnel (The new Matcher Account)
             matcher_id = post_data.get('matcher_id')
             matcher_obj = User.objects.filter(pk=matcher_id).first() if matcher_id else None
@@ -91,10 +105,6 @@ def save_dc_complete_formula(request):
 
             cm_display = cmf_obj.cm_no if cmf_obj else (raw_cm_no or "N/A")
             parent_label = f"CMF: {cmf_obj.cm_no}" if cmf_obj else f"CMF: {raw_cm_no or 'N/A'}"
-            
-            # 3. Resolve Color Selection mapping
-            color_id = post_data.get('color')
-            color_obj = tbl_internal_color_code.objects.filter(pk=color_id).first() if color_id else None
 
             diff_logs = []
 
