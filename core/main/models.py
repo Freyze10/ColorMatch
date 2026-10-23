@@ -116,6 +116,9 @@ class tbl_internal_color_code(models.Model):
     code = models.CharField(max_length=100, unique=False, blank=True, null=True)
     status = models.CharField(max_length=20, default='pending', blank=True, null=True) # pending, approved, rejected
     is_deleted = models.BooleanField(default=False)
+    primary_color = models.ForeignKey(
+        'tbl_primary_color', on_delete=models.SET_NULL, null=True, blank=True,
+        db_column='primary_color_id', related_name='shades')
     
     class Meta:
         db_table = "tbl_internal_color_code"
@@ -123,6 +126,18 @@ class tbl_internal_color_code(models.Model):
     def __str__(self):
         return f"{self.code} - {self.color}"
 
+class tbl_primary_color(models.Model):
+    id = models.AutoField(primary_key=True)
+    # points at an EXISTING internal color; that color becomes a primary color
+    in_code = models.OneToOneField(
+        tbl_internal_color_code, on_delete=models.PROTECT,
+        db_column='in_code_no', related_name='primary_entry')
+
+    class Meta:
+        db_table = "tbl_primary_color"
+
+    def __str__(self):
+        return f"{self.in_code.color} ({self.in_code.code})"
 
 class tbl_generated_prod_code(models.Model):
     code_no = models.AutoField(primary_key=True)

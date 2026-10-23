@@ -1242,7 +1242,7 @@ def manage_color_codes(request):
         
         if action == 'create':
             success, message = color_code_services.create_color_code(request)
-        elif action == 'update': # <--- Added update action
+        elif action == 'update':
             code_id = request.POST.get('code_id')
             success, message = color_code_services.update_color_code(request, code_id)
         elif action in ['approve', 'reject']:
@@ -1264,6 +1264,7 @@ def manage_color_codes(request):
     codes = color_code_services.get_color_codes_for_user(request.user)
     context = {
         "codes": codes,
+        "primary_colors": color_code_services.get_primary_colors(),   # NEW: for the dropdowns
         "is_admin": request.user.is_superuser or getattr(request.user.role, 'role', '') == 'Admin'
     }
     return render(request, "settings/color/color_codes.html", context)
