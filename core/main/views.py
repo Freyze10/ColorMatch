@@ -527,7 +527,7 @@ def rs_record_detail(request, rs_id):
     }
 
     return render(request, "modal/cmf-record/rs_record_detail.html", context)
-
+# TODO: when viewing excisting record. we will display the internal color instead CMF Color
 @access_required('MB Formula')
 def cmf_mb_formula(request):
     form_data = {}
