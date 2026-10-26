@@ -184,7 +184,7 @@ def get_feedback_form_data(feedback_no):
         'submitted_str': ", ".join(selected_names),
 
         "salesman": cmf_records_services.get_salesman_list(),
-        'submitted_by_id': fb.submitted_by,
+        'submitted_by_id': fb.submitted_by_id,
 
         # Feedback specific editable fields
         'record_type': 'cmf',
