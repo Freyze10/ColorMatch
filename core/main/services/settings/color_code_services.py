@@ -128,6 +128,7 @@ def create_color_code(request):
             return False, "Invalid request type."
 
     cache.delete('color_list')
+    cache.delete('color_list_primary')
     return True, message
 
 
@@ -161,6 +162,7 @@ def update_color_code_status(request, code_id, new_status):
         log_audit(request, "Updated", f"Color code {obj.code} status changed from {old_status} to {new_status}")
     # Refresh cache
     cache.delete('color_list')
+    cache.delete('color_list_primary')
     return True, f"Color code successfully {new_status}."
 
 
@@ -207,6 +209,7 @@ def update_color_code(request, code_id):
 
     # Refresh cache
     cache.delete('color_list')
+    cache.delete('color_list_primary')
     return True, "Color code updated successfully."
 
 
@@ -229,4 +232,5 @@ def soft_delete_color_code(request, code_id):
         log_audit(request, "Deleted", f"Soft-deleted internal color code entry: {obj.code} - {obj.color}")
     # Refresh cache
     cache.delete('color_list')
+    cache.delete('color_list_primary')
     return True, "Color code deleted successfully."

@@ -7,7 +7,7 @@ from django.http import JsonResponse
 from main.utils.log_audit_trail import log_audit
 from ...models import (
     tbl_cmf, tbl_cmf_formula, tbl_cmf_dates, 
-    tbl_cmf_pending_completed, tbl_cmf_salesman, tbl_customer, tbl_dc_extruder_formula, tbl_dc_extruder_materials, tbl_dc_extruder_version, tbl_feedback_details, tbl_generated_prod_code, tbl_internal_color_code, tbl_mb_extruder_formula, tbl_mb_extruder_formula02, tbl_resin, tbl_rm_incoming, tbl_rs, tbl_submitted_selected
+    tbl_cmf_pending_completed, tbl_cmf_salesman, tbl_customer, tbl_dc_extruder_formula, tbl_dc_extruder_materials, tbl_dc_extruder_version, tbl_feedback_details, tbl_generated_prod_code, tbl_internal_color_code, tbl_mb_extruder_formula, tbl_mb_extruder_formula02, tbl_primary_color, tbl_resin, tbl_rm_incoming, tbl_rs, tbl_submitted_selected
 )
 
 def get_salesman_list():
@@ -18,15 +18,20 @@ def get_salesman_list():
         cache.set('salesman_list', data, 3600)
     return data
 
-def get_color_list():
-    cache_key = 'color_list'
+def get_color_list(formula=False):
+    """
+    formula=False (default): only colors that exist in tbl_primary_color.
+    formula=True: every approved, non-deleted internal color (formula forms).
+    """
+    cache_key = 'color_list' if formula else 'color_list_primary'
     data = cache.get(cache_key)
     if not data:
-        # Fetch only approved and active color codes, ordered by color name
-        data = list(tbl_internal_color_code.objects.filter(
-            status='approved', 
-            is_deleted=False
-        ).order_by('color'))
+        colors = tbl_internal_color_code.objects.filter(status='approved', is_deleted=False)
+        if not formula:
+            # only colors that have their own row in tbl_primary_color
+            # (NOT primary_color_id: sub colors like Light Blue carry that too)
+            colors = colors.filter(in_code_no__in=tbl_primary_color.objects.values('in_code_id'))
+        data = list(colors.order_by('color'))
         cache.set(cache_key, data, 3600)
     return data
 

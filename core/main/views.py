@@ -715,6 +715,7 @@ def cmf_mb_formula(request):
         "materials": cmf_records_services.get_raw_material_codes(),
         "users": list(user_list),
         "primary_color": cmf_records_services.get_color_list(),
+        
         "colorant_mismatch": colorant_mismatch,
         "ingredients": ingredients,
         "cmf_list": combined_list,
