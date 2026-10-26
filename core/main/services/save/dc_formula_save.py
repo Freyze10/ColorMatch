@@ -56,7 +56,7 @@ def save_dc_complete_formula(request):
             'C': 'Spectro C', 'H': 'Spectro H', 'notes': 'Note',
             'code': 'Product Code', 'material_code': 'Material Code',
             'matcher': 'Matcher Account', 'is_final': 'Final Formula',
-            'cm_no': 'CMF No.', 'primary_color': 'Internal Color',
+            'cm_no': 'CMF No.', 'internal_color': 'Internal Color',
             'index_no': 'Index Ref. No.',
         }
         return mapping.get(field, field.replace('_', ' ').title())
@@ -108,16 +108,8 @@ def save_dc_complete_formula(request):
 
             diff_logs = []
 
-            # --- SYNC PRIMARY COLOR BACK TO THE CMF HEADER RECORD ---
-            if cmf_obj:
-                old_color_obj = cmf_obj.in_code_no
-                old_color_name = old_color_obj.color if old_color_obj else "---"
-                new_color_name = color_obj.color if color_obj else "---"
-
-                if old_color_obj != color_obj:
-                    diff_logs.append(f"Internal Color ({old_color_name} -> {new_color_name})")
-                    cmf_obj.in_code_no = color_obj
-                    cmf_obj.save(update_fields=['in_code_no'])
+            # NOTE: the selected color is saved on the FORMULA itself (internal_color, see header_params).
+            # The CMF keeps its own (primary) color; it is no longer overwritten from the formula form.
                     
             # 3. Standardize Date
             raw_date = post_data.get('date_matched')
@@ -158,6 +150,7 @@ def save_dc_complete_formula(request):
                 'date': formatted_date,
                 'cm_no': cmf_obj,
                 'code': prod_code_obj,
+                'internal_color': color_obj,   # NEW: the color picked in this formula
                 'material_code': mat_code_obj,
                 'sample_size': post_data.get('sample_size'),
                 'mixing_time': post_data.get('mixing_time'),
@@ -227,6 +220,9 @@ def save_dc_complete_formula(request):
                     if field == 'code':
                         curr_str = format_val(current_val.product_code if current_val else "")
                         new_str = format_val(new_val.product_code if new_val else "")
+                    elif field == 'internal_color':
+                        curr_str = format_val(current_val.color if current_val else "")
+                        new_str = format_val(new_val.color if new_val else "")
                     elif field == 'material_code':
                         curr_str = format_val(current_val.name if current_val else "")
                         new_str = format_val(new_val.name if new_val else "")

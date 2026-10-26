@@ -522,6 +522,9 @@ class tbl_mb_extruder_formula(models.Model):
     index_no = models.CharField(max_length=22, blank=True, null=True)
     date = models.DateField(blank=True, null=True)
     code = models.ForeignKey(tbl_generated_prod_code, on_delete=models.SET_NULL, null=True, blank=True, db_column="code_no")
+    internal_color = models.ForeignKey(
+        tbl_internal_color_code, on_delete=models.SET_NULL, null=True, blank=True,
+        db_column="in_code_no", related_name="mb_formulas")
     lot_no = models.CharField(max_length=100, blank=True, null=True)
     mixing_time = models.CharField(max_length=50, blank=True, null=True)
     notes = models.TextField(blank=True, null=True) 
@@ -566,6 +569,9 @@ class tbl_dc_extruder_formula(models.Model):
     dc_no = models.AutoField(primary_key=True)
     index_no = models.CharField(max_length=22, blank=True, null=True)
     code = models.ForeignKey(tbl_generated_prod_code, on_delete=models.SET_NULL, null=True, blank=True, db_column="code_no")
+    internal_color = models.ForeignKey(
+        tbl_internal_color_code, on_delete=models.SET_NULL, null=True, blank=True,
+        db_column="in_code_no", related_name="dc_formulas")
     date = models.DateField(blank=True, null=True)
     sample_size = models.CharField(max_length=100, blank=True, null=True)
     mixing_time = models.CharField(max_length=50, blank=True, null=True)
