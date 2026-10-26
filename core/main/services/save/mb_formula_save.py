@@ -174,9 +174,14 @@ def save_mb_complete_formula(request):
             # 5. Header Params]
             is_final_val = post_data.get('is_final') == 'true'
             
-            # --- 2. SET AS FINAL: Unset any other formula marked final for the SAME parent record if this is marked final ---
+            # --- 2. SET AS FINAL: Unset any OTHER formula marked final for the SAME parent record ---
+            # The formula being saved is excluded: otherwise it is reset to False here, and the audit
+            # trail reports "Final Formula (False -> True)" on every save of a formula that is already final.
             if is_final_val and cmf_obj:
-                tbl_mb_extruder_formula.objects.filter(cm_no=cmf_obj).update(is_final=False)
+                others = tbl_mb_extruder_formula.objects.filter(cm_no=cmf_obj)
+                if formula_id:
+                    others = others.exclude(pk=formula_id)
+                others.update(is_final=False)
 
             header_params = {
                 'index_no': post_data.get('index_no'),

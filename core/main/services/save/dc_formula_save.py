@@ -141,9 +141,14 @@ def save_dc_complete_formula(request):
             # 5. Header Data
             is_final_val = post_data.get('is_final') == 'true'
 
-            # Unset any other formula marked final for the SAME CMF parent record if this is marked final
+            # Unset any OTHER formula marked final for the SAME CMF parent record.
+            # The formula being saved is excluded: otherwise it is reset to False here, and the audit
+            # trail reports "Final Formula (False -> True)" on every save of a formula that is already final.
             if is_final_val and cmf_obj:
-                tbl_dc_extruder_formula.objects.filter(cm_no=cmf_obj).update(is_final=False)
+                others = tbl_dc_extruder_formula.objects.filter(cm_no=cmf_obj)
+                if formula_id:
+                    others = others.exclude(pk=formula_id)
+                others.update(is_final=False)
 
             header_params = {
                 'index_no': post_data.get('index_no'),
