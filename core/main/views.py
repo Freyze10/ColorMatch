@@ -714,8 +714,7 @@ def cmf_mb_formula(request):
         "form_data": form_data,
         "materials": cmf_records_services.get_raw_material_codes(),
         "users": list(user_list),
-        "primary_color": cmf_records_services.get_color_list(),
-        
+        "primary_color": cmf_records_services.get_color_list(formula=True),
         "colorant_mismatch": colorant_mismatch,
         "ingredients": ingredients,
         "cmf_list": combined_list,
@@ -908,7 +907,7 @@ def cmf_dc_formula(request):
         "form_data": form_data,
         "materials": cmf_records_services.get_raw_material_codes(),
         "users": list(user_list),
-        "primary_color": cmf_records_services.get_color_list(),
+        "primary_color": cmf_records_services.get_color_list(formula=True),
         "colorant_mismatch": colorant_mismatch,
         "material_rows": material_rows,
         "cmf_list": combined_list,
@@ -1243,7 +1242,7 @@ def manage_color_codes(request):
         
         if action == 'create':
             success, message = color_code_services.create_color_code(request)
-        elif action == 'update':
+        elif action == 'update': # <--- Added update action
             code_id = request.POST.get('code_id')
             success, message = color_code_services.update_color_code(request, code_id)
         elif action in ['approve', 'reject']:
@@ -1265,7 +1264,6 @@ def manage_color_codes(request):
     codes = color_code_services.get_color_codes_for_user(request.user)
     context = {
         "codes": codes,
-        "primary_colors": color_code_services.get_primary_colors(),   # NEW: for the dropdowns
         "is_admin": request.user.is_superuser or getattr(request.user.role, 'role', '') == 'Admin'
     }
     return render(request, "settings/color/color_codes.html", context)
