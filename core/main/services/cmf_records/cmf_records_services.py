@@ -237,7 +237,11 @@ def get_all_formula_records():
         cmf_no = cm_obj.cm_no if cm_obj else "N/A"
         # color = cm_obj.color_desc if (cm_obj and cm_obj.color_desc) else "---" COLOR DESC
         color = cm_obj.in_code_no.color if (cm_obj and cm_obj.in_code_no and cm_obj.in_code_no.color) else "---"
-
+        # Show the internal color saved on THIS formula, not the CMF's color.
+        # fallback to cmf primary color if internal color is not set on the formula. If neither exists, fallback to "---".
+        saved_color_id = f.internal_color.color if f.internal_color else (cm_obj.in_code_no.color if cm_obj.in_code_no else "---")
+        if saved_color_id:
+           color = saved_color_id
         f_info = formula_map.get(str(cm_obj.cm_no)) if cm_obj else None
         customer = f_info.customer.upper() if f_info and f_info.customer else "---"
         raw_dosage = f_info.dosage if f_info else None
