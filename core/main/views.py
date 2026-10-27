@@ -527,7 +527,7 @@ def rs_record_detail(request, rs_id):
     }
 
     return render(request, "modal/cmf-record/rs_record_detail.html", context)
-# TODO: when viewing excisting record. we will display the internal color instead CMF Color
+
 @access_required('MB Formula')
 def cmf_mb_formula(request):
     form_data = {}
@@ -660,6 +660,12 @@ def cmf_mb_formula(request):
                     'matcher_id': header.matcher.id if header.matcher else "",
                     'is_final': True if header.is_final else False,
                 })
+                # Show the internal color saved on THIS formula, not the CMF's color.
+                # Older formulas that have none yet fall back to the product code's color,
+                # and finally to the CMF color set above.
+                saved_color_id = header.internal_color_id or (header.code.in_code_id if header.code else None)
+                if saved_color_id:
+                    form_data['color'] = saved_color_id
 
                 ingredients = ingredients + [{'material': '', 'value': '', 'weight': ''}] * (10 - len(ingredients))
                 ingredients = ingredients[:10]
@@ -832,6 +838,13 @@ def cmf_dc_formula(request):
                     'cmyk_k': header.k,
                     'matcher_id': header.matcher.id if header.matcher else "",
                 })
+
+                # Show the internal color saved on THIS formula, not the CMF's color.
+                # Older formulas that have none yet fall back to the product code's color,
+                # and finally to the CMF color set above.
+                saved_color_id = header.internal_color_id or (header.code.in_code_id if header.code else None)
+                if saved_color_id:
+                    form_data['color'] = saved_color_id
 
                 # Build the material_rows grid: one row per material with 10 version slots
                 dc_materials = list(
