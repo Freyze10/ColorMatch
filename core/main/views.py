@@ -660,6 +660,12 @@ def cmf_mb_formula(request):
                     'matcher_id': header.matcher.id if header.matcher else "",
                     'is_final': True if header.is_final else False,
                 })
+                # Show the internal color saved on THIS formula, not the CMF's color.
+                # Older formulas that have none yet fall back to the product code's color,
+                # and finally to the CMF color set above.
+                saved_color_id = header.internal_color_id or (header.code.in_code_id if header.code else None)
+                if saved_color_id:
+                    form_data['color'] = saved_color_id
 
                 ingredients = ingredients + [{'material': '', 'value': '', 'weight': ''}] * (10 - len(ingredients))
                 ingredients = ingredients[:10]
@@ -714,7 +720,7 @@ def cmf_mb_formula(request):
         "form_data": form_data,
         "materials": cmf_records_services.get_raw_material_codes(),
         "users": list(user_list),
-        "primary_color": cmf_records_services.get_color_list(),
+        "primary_color": cmf_records_services.get_color_list(formula=True),
         "colorant_mismatch": colorant_mismatch,
         "ingredients": ingredients,
         "cmf_list": combined_list,
@@ -833,6 +839,13 @@ def cmf_dc_formula(request):
                     'matcher_id': header.matcher.id if header.matcher else "",
                 })
 
+                # Show the internal color saved on THIS formula, not the CMF's color.
+                # Older formulas that have none yet fall back to the product code's color,
+                # and finally to the CMF color set above.
+                saved_color_id = header.internal_color_id or (header.code.in_code_id if header.code else None)
+                if saved_color_id:
+                    form_data['color'] = saved_color_id
+
                 # Build the material_rows grid: one row per material with 10 version slots
                 dc_materials = list(
                     tbl_dc_extruder_materials.objects.filter(dc=header).order_by('material_id')
@@ -907,7 +920,7 @@ def cmf_dc_formula(request):
         "form_data": form_data,
         "materials": cmf_records_services.get_raw_material_codes(),
         "users": list(user_list),
-        "primary_color": cmf_records_services.get_color_list(),
+        "primary_color": cmf_records_services.get_color_list(formula=True),
         "colorant_mismatch": colorant_mismatch,
         "material_rows": material_rows,
         "cmf_list": combined_list,

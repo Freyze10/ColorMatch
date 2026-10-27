@@ -56,16 +56,30 @@ def save_dc_complete_formula(request):
             'C': 'Spectro C', 'H': 'Spectro H', 'notes': 'Note',
             'code': 'Product Code', 'material_code': 'Material Code',
             'matcher': 'Matcher Account', 'is_final': 'Final Formula',
-            'cm_no': 'CMF No.', 'primary_color': 'Internal Color',
+            'cm_no': 'CMF No.', 'internal_color': 'Internal Color',
             'index_no': 'Index Ref. No.',
         }
         return mapping.get(field, field.replace('_', ' ').title())
 
     try:
         with transaction.atomic():
-            # 1. Resolve Product Code
+            # 1. Resolve Color Selection first so it can be bound to product code
+            color_id = post_data.get('color')
+            color_obj = tbl_internal_color_code.objects.filter(pk=color_id).first() if color_id else None
+
+            # 2. Resolve Product Code and bind internal color code relation
             prod_code_str = post_data.get('product_code', '').strip()
-            prod_code_obj, _ = tbl_generated_prod_code.objects.get_or_create(product_code=prod_code_str) if prod_code_str else (None, False)
+            prod_code_obj = None
+
+            if prod_code_str:
+                prod_code_obj, created = tbl_generated_prod_code.objects.get_or_create(
+                    product_code=prod_code_str,
+                    defaults={'in_code': color_obj}
+                )
+                if not created and color_obj and not prod_code_obj.in_code:
+                    prod_code_obj.in_code = color_obj
+                    prod_code_obj.save(update_fields=['in_code'])
+
             # Resolve Personnel (The new Matcher Account)
             matcher_id = post_data.get('matcher_id')
             matcher_obj = User.objects.filter(pk=matcher_id).first() if matcher_id else None
@@ -91,23 +105,11 @@ def save_dc_complete_formula(request):
 
             cm_display = cmf_obj.cm_no if cmf_obj else (raw_cm_no or "N/A")
             parent_label = f"CMF: {cmf_obj.cm_no}" if cmf_obj else f"CMF: {raw_cm_no or 'N/A'}"
-            
-            # 3. Resolve Color Selection mapping
-            color_id = post_data.get('color')
-            color_obj = tbl_internal_color_code.objects.filter(pk=color_id).first() if color_id else None
 
             diff_logs = []
 
-            # --- SYNC PRIMARY COLOR BACK TO THE CMF HEADER RECORD ---
-            if cmf_obj:
-                old_color_obj = cmf_obj.in_code_no
-                old_color_name = old_color_obj.color if old_color_obj else "---"
-                new_color_name = color_obj.color if color_obj else "---"
-
-                if old_color_obj != color_obj:
-                    diff_logs.append(f"Internal Color ({old_color_name} -> {new_color_name})")
-                    cmf_obj.in_code_no = color_obj
-                    cmf_obj.save(update_fields=['in_code_no'])
+            # NOTE: the selected color is saved on the FORMULA itself (internal_color, see header_params).
+            # The CMF keeps its own (primary) color; it is no longer overwritten from the formula form.
                     
             # 3. Standardize Date
             raw_date = post_data.get('date_matched')
@@ -139,15 +141,21 @@ def save_dc_complete_formula(request):
             # 5. Header Data
             is_final_val = post_data.get('is_final') == 'true'
 
-            # Unset any other formula marked final for the SAME CMF parent record if this is marked final
+            # Unset any OTHER formula marked final for the SAME CMF parent record.
+            # The formula being saved is excluded: otherwise it is reset to False here, and the audit
+            # trail reports "Final Formula (False -> True)" on every save of a formula that is already final.
             if is_final_val and cmf_obj:
-                tbl_dc_extruder_formula.objects.filter(cm_no=cmf_obj).update(is_final=False)
+                others = tbl_dc_extruder_formula.objects.filter(cm_no=cmf_obj)
+                if formula_id:
+                    others = others.exclude(pk=formula_id)
+                others.update(is_final=False)
 
             header_params = {
                 'index_no': post_data.get('index_no'),
                 'date': formatted_date,
                 'cm_no': cmf_obj,
                 'code': prod_code_obj,
+                'internal_color': color_obj,   # NEW: the color picked in this formula
                 'material_code': mat_code_obj,
                 'sample_size': post_data.get('sample_size'),
                 'mixing_time': post_data.get('mixing_time'),
@@ -217,6 +225,9 @@ def save_dc_complete_formula(request):
                     if field == 'code':
                         curr_str = format_val(current_val.product_code if current_val else "")
                         new_str = format_val(new_val.product_code if new_val else "")
+                    elif field == 'internal_color':
+                        curr_str = format_val(current_val.color if current_val else "")
+                        new_str = format_val(new_val.color if new_val else "")
                     elif field == 'material_code':
                         curr_str = format_val(current_val.name if current_val else "")
                         new_str = format_val(new_val.name if new_val else "")

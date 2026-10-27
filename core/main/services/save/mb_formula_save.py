@@ -52,7 +52,7 @@ def save_mb_complete_formula(request):
             'B': 'Spectro B', 'C': 'Spectro C', 'H': 'Spectro H',
             'notes': 'Note', 'code': 'Product Code', 'date': 'Date',
             'matcher': 'Matcher Account', 'is_final': 'Final Formula',
-            'primary_color': 'Internal Color', 'index_no': 'Index Ref. No.',
+            'internal_color': 'Internal Color', 'index_no': 'Index Ref. No.',
         }
         return mapping.get(field, field.replace('_', ' ').title())
 
@@ -87,9 +87,24 @@ def save_mb_complete_formula(request):
         
     try:
         with transaction.atomic():
-            # 1. Resolve Product Code
+            # 1. Resolve Color Selection First
+            color_id = post_data.get('color')
+            color_obj = tbl_internal_color_code.objects.filter(pk=color_id).first() if color_id else None
+
+            # 2. Resolve Product Code and bind the internal color code relation
             prod_code_str = post_data.get('product', '').strip()
-            prod_code_obj, _ = tbl_generated_prod_code.objects.get_or_create(product_code=prod_code_str) if prod_code_str else (None, False)
+            prod_code_obj = None
+            
+            if prod_code_str:
+                # Use update_or_create or get_or_create while explicitly passing/updating in_code
+                prod_code_obj, created = tbl_generated_prod_code.objects.get_or_create(
+                    product_code=prod_code_str,
+                    defaults={'in_code': color_obj}
+                )
+                # If the product code already existed in tbl_generated_prod_code but lacked an in_code link, update it:
+                if not created and color_obj and not prod_code_obj.in_code:
+                    prod_code_obj.in_code = color_obj
+                    prod_code_obj.save(update_fields=['in_code'])
 
             # Resolve Personnel (The new Matcher Account)
             matcher_id = post_data.get('matcher_id')
@@ -112,21 +127,10 @@ def save_mb_complete_formula(request):
 
             parent_label = f"CMF: {cmf_obj.cm_no}" if cmf_obj else f"CMF: {raw_cm_no or 'N/A'}"
 
-            color_id = post_data.get('color')
-            color_obj = tbl_internal_color_code.objects.filter(pk=color_id).first() if color_id else None
-
             diff_logs = []
 
-             # --- SYNC PRIMARY COLOR BACK TO THE CMF HEADER RECORD ---
-            if cmf_obj:
-                old_color_obj = cmf_obj.in_code_no
-                old_color_name = old_color_obj.color if old_color_obj else "---"
-                new_color_name = color_obj.color if color_obj else "---"
-
-                if old_color_obj != color_obj:
-                    diff_logs.append(f"Internal Color ({old_color_name} -> {new_color_name})")
-                    cmf_obj.in_code_no = color_obj
-                    cmf_obj.save(update_fields=['in_code_no'])
+            # NOTE: the selected color is saved on the FORMULA itself (internal_color, see header_params).
+            # The CMF keeps its own (primary) color; it is no longer overwritten from the formula form.
 
             # 3. Standardize Date
             raw_date = post_data.get('date')
@@ -170,15 +174,21 @@ def save_mb_complete_formula(request):
             # 5. Header Params]
             is_final_val = post_data.get('is_final') == 'true'
             
-            # --- 2. SET AS FINAL: Unset any other formula marked final for the SAME parent record if this is marked final ---
+            # --- 2. SET AS FINAL: Unset any OTHER formula marked final for the SAME parent record ---
+            # The formula being saved is excluded: otherwise it is reset to False here, and the audit
+            # trail reports "Final Formula (False -> True)" on every save of a formula that is already final.
             if is_final_val and cmf_obj:
-                tbl_mb_extruder_formula.objects.filter(cm_no=cmf_obj).update(is_final=False)
+                others = tbl_mb_extruder_formula.objects.filter(cm_no=cmf_obj)
+                if formula_id:
+                    others = others.exclude(pk=formula_id)
+                others.update(is_final=False)
 
             header_params = {
                 'index_no': post_data.get('index_no'),
                 'date': formatted_date,
                 'cm_no': cmf_obj,
                 'code': prod_code_obj,
+                'internal_color': color_obj,   # NEW: the color picked in this formula
                 'lot_no': lot_no,
                 'mixing_time': post_data.get('mixing_time'),
                 'notes': post_data.get('note'),
@@ -248,6 +258,9 @@ def save_mb_complete_formula(request):
                     if field == 'code':
                         curr_str = format_val(current_val.product_code if current_val else "")
                         new_str = format_val(new_val.product_code if new_val else "")
+                    elif field == 'internal_color':
+                        curr_str = format_val(current_val.color if current_val else "")
+                        new_str = format_val(new_val.color if new_val else "")
                     elif field == 'total_weight':
                         curr_str = 'NONE' if current_val is None else format_val(current_val)
                         new_str = 'NONE' if new_val is None else format_val(new_val)
@@ -344,4 +357,3 @@ def save_mb_complete_formula(request):
         raise Exception("The Lot Number provided already exists.")
     except Exception as e:
         raise Exception(f"Database Error: {str(e)}")
-

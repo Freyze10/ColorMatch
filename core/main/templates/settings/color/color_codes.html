@@ -1,34 +1,87 @@
 {% extends "base.html" %}
 {% load static %}
 
+{% block extra_css %}
+<style>
+    /* TomSelect dropdown must sit above Bootstrap modals (z-index 1055) */
+    .ts-dropdown { z-index: 2000; }
+</style>
+{% endblock %}
+
 {% block navigation %} 
 Manage Internal Color Codes
 {% endblock navigation %}
 
 {% block content %}
 <div class="row g-4">
-    <!-- LEFT: Entry Form -->
+    <!-- LEFT: Entry Forms -->
     <div class="col-lg-4">
-        <div class="card shadow-sm border-0">
+
+        <!-- Add Sub Color -->
+        <div class="card shadow-sm border-0 mb-3">
             <div class="card-body p-3">
-                <h6 class="fw-bold mb-3 text-teal"><i class="bi bi-plus-circle me-1"></i> Add Internal Color Code</h6>
+                <h6 class="fw-bold mb-3 text-teal"><i class="bi bi-plus-circle me-1"></i> Add Sub Color</h6>
                 <form method="POST" action="{% url 'manage_color_codes' %}">
                     {% csrf_token %}
                     <input type="hidden" name="action" value="create">
+                    <input type="hidden" name="request_type" value="sub">
 
                     <div class="mb-2">
-                        <label class="extra-small fw-bold required-label">Internal Color:</label>
-                        <input type="text" name="color" class="form-control form-control-sm" placeholder="e.g. Blue" required autocomplete="off">
+                        <label class="extra-small fw-bold required-label">Color Name:</label>
+                        <input type="text" name="color" class="form-control form-control-sm" placeholder="e.g. Light Blue" required autocomplete="off">
                     </div>
 
-                    <div class="mb-3">
-                        <label class="extra-small fw-bold required-label">Code:</label>
-                        <input type="text" name="code" class="form-control form-control-sm" placeholder="e.g. B" required autocomplete="off">
+                    <div class="mb-2">
+                        <label class="extra-small fw-bold required-label">Under Primary Color:</label>
+                        <select name="primary_color_id" class="js-primary-select" placeholder="Select primary color..." required>
+                            <option value=""></option>
+                            {% for p in primary_colors %}
+                                <option value="{{ p.id }}">{{ p.in_code.color }} ({{ p.in_code.code }})</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+
+                    <div class="extra-small text-muted mb-3">
+                        The code is copied from the primary color.
+                        {% if is_admin %}Saved immediately.{% else %}Subject to admin approval.{% endif %}
                     </div>
 
                     <div class="d-grid">
                         <button type="submit" class="btn btn-sm btn-success shadow-sm">
-                            <i class="bi bi-save me-1"></i> Submit Code
+                            <i class="bi bi-save me-1"></i> Submit Sub Color
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+
+        <!-- Request New Primary Color -->
+        <div class="card shadow-sm border-0">
+            <div class="card-body p-3">
+                <h6 class="fw-bold mb-3 text-teal"><i class="bi bi-palette me-1"></i> Request New Primary Color</h6>
+                <form method="POST" action="{% url 'manage_color_codes' %}">
+                    {% csrf_token %}
+                    <input type="hidden" name="action" value="create">
+                    <input type="hidden" name="request_type" value="primary">
+
+                    <div class="mb-2">
+                        <label class="extra-small fw-bold required-label">Primary Color Name:</label>
+                        <input type="text" name="color" class="form-control form-control-sm" placeholder="e.g. Turquoise" required autocomplete="off">
+                    </div>
+
+                    <div class="mb-2">
+                        <label class="extra-small fw-bold required-label">Code:</label>
+                        <input type="text" name="code" class="form-control form-control-sm text-uppercase" placeholder="e.g. U" required autocomplete="off">
+                    </div>
+
+                    <div class="extra-small text-muted mb-3">
+                        Once approved, it is added to the primary colors and can be selected for sub colors.
+                        {% if is_admin %}Saved immediately.{% else %}Subject to admin approval.{% endif %}
+                    </div>
+
+                    <div class="d-grid">
+                        <button type="submit" class="btn btn-sm btn-success shadow-sm">
+                            <i class="bi bi-save me-1"></i> Submit Primary Color
                         </button>
                     </div>
                 </form>
@@ -50,6 +103,7 @@ Manage Internal Color Codes
                             <tr>
                                 <th>Color</th>
                                 <th>Code</th>
+                                <th>Type</th>
                                 <th>Status</th>
                                 <th class="text-end">Actions</th>
                             </tr>
@@ -59,6 +113,17 @@ Manage Internal Color Codes
                             <tr>
                                 <td class="fw-semibold">{{ c.color }}</td>
                                 <td>{{ c.code }}</td>
+                                <td>
+                                    {% if c.kind == 'primary' %}
+                                        <span class="badge bg-primary">Primary</span>
+                                    {% elif c.kind == 'sub' %}
+                                        <span class="badge bg-info text-dark">Sub of {{ c.parent_name }}</span>
+                                    {% elif c.kind == 'primary_request' %}
+                                        <span class="badge bg-secondary">Primary (requested)</span>
+                                    {% else %}
+                                        <span class="text-muted">-</span>
+                                    {% endif %}
+                                </td>
                                 <td>
                                     {% if c.status == 'approved' %}
                                         <span class="badge bg-success">Approved</span>
@@ -114,7 +179,8 @@ Manage Internal Color Codes
                                             <!-- Modal Header (Teal Theme) -->
                                             <div class="modal-header text-white p-3" style="background: var(--sidebar-header-bg);">
                                                 <h6 class="modal-title extra-small fw-bold text-uppercase mb-0">
-                                                    <i class="bi bi-pencil-square me-2"></i>Edit Pending Code
+                                                    <i class="bi bi-pencil-square me-2"></i>
+                                                    {% if c.kind == 'sub' %}Edit Pending Sub Color{% else %}Edit Pending Primary Color{% endif %}
                                                 </h6>
                                                 <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
                                             </div>
@@ -122,13 +188,28 @@ Manage Internal Color Codes
                                             <!-- Modal Body -->
                                             <div class="modal-body p-3">
                                                 <div class="mb-3 text-start">
-                                                    <label class="extra-small fw-bold required-label text-muted mb-1">Internal Color:</label>
+                                                    <label class="extra-small fw-bold required-label text-muted mb-1">Color Name:</label>
                                                     <input type="text" name="color" value="{{ c.color }}" class="form-control form-control-sm uniform-input" required autocomplete="off">
                                                 </div>
+
+                                                {% if c.kind == 'sub' %}
+                                                <!-- Sub color: pick the primary color, the code follows it -->
+                                                <div class="mb-2 text-start">
+                                                    <label class="extra-small fw-bold required-label text-muted mb-1">Under Primary Color:</label>
+                                                    <select name="primary_color_id" class="js-primary-select" placeholder="Select primary color..." required>
+                                                        <option value=""></option>
+                                                        {% for p in primary_colors %}
+                                                            <option value="{{ p.id }}" {% if p.id == c.primary_color_id %}selected{% endif %}>{{ p.in_code.color }} ({{ p.in_code.code }})</option>
+                                                        {% endfor %}
+                                                    </select>
+                                                </div>
+                                                {% else %}
+                                                <!-- Primary request: the code is entered directly -->
                                                 <div class="mb-2 text-start">
                                                     <label class="extra-small fw-bold required-label text-muted mb-1">Code:</label>
-                                                    <input type="text" name="code" value="{{ c.code }}" class="form-control form-control-sm uniform-input" required autocomplete="off">
+                                                    <input type="text" name="code" value="{{ c.code }}" class="form-control form-control-sm uniform-input text-uppercase" required autocomplete="off">
                                                 </div>
+                                                {% endif %}
                                             </div>
 
                                             <!-- Modal Footer -->
@@ -146,7 +227,7 @@ Manage Internal Color Codes
 
                             {% empty %}
                             <tr>
-                                <td colspan="4" class="text-center text-muted py-3">No color codes found.</td>
+                                <td colspan="5" class="text-center text-muted py-3">No color codes found.</td>
                             </tr>
                             {% endfor %}
                         </tbody>
@@ -161,6 +242,7 @@ Manage Internal Color Codes
 {% block scripts %}
 <script>
     document.addEventListener('DOMContentLoaded', function () {
+        // --- Delete confirmation ---
         document.querySelectorAll('.btn-delete-code').forEach(btn => {
             btn.addEventListener('click', function () {
                 const formId = this.getAttribute('data-form-id');
@@ -179,6 +261,28 @@ Manage Internal Color Codes
                     }
                 }
             });
+        });
+
+        // --- Primary color dropdowns (TomSelect) ---
+        function initPrimarySelect(el, dropdownParent) {
+            if (el.tomselect || typeof TomSelect === 'undefined') return;
+            new TomSelect(el, {
+                create: false,
+                maxOptions: 100,
+                selectOnTab: true,
+                placeholder: 'Select primary color...',
+                dropdownParent: dropdownParent
+            });
+        }
+
+        // the "Add Sub Color" form on the page
+        document.querySelectorAll('.js-primary-select').forEach(el => {
+            if (!el.closest('.modal')) initPrimarySelect(el, null);
+        });
+
+        // the edit modals: set up the dropdown the first time a modal opens
+        document.addEventListener('shown.bs.modal', function (e) {
+            e.target.querySelectorAll('.js-primary-select').forEach(el => initPrimarySelect(el, 'body'));
         });
     });
 </script>
