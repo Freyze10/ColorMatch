@@ -144,4 +144,12 @@ document.addEventListener("DOMContentLoaded", function () {
     navbar.addEventListener('click', function(e) {
         e.stopPropagation(); 
     });
+
+    document.getElementById('globalBackBtn')?.addEventListener('click', function () {
+        if (window.history.length > 1) {
+            window.history.back();
+        } else {
+            window.location.href = '/';
+        }
+    });
 });

@@ -9,22 +9,40 @@ CMF Entry
 <div class="container-fluid p-0">
     <form class="cmf-entry-form" method="POST" action="{% url 'cmf_entry' %}" enctype="multipart/form-data">
     {% csrf_token %}
-        <input type="hidden" name="original_cmf_no" value="{{ form_data.cmf_no|default:'' }}">
+        <input type="hidden" name="original_cmf_no" value="{% if form_data.is_new == '0' %}{{ form_data.cmf_no|default:'' }}{% endif %}">
         <input type="hidden" name="is_new" value="{{ form_data.is_new|default:'1' }}">
         <input type="file" name="file" id="hidden-file-input" multiple style="display:none;">
+        
         <div class="row g-2">
             
-            <!-- LEFT COLUMN -->
-            <div class="col-lg-7">
-                <!-- General Information -->
+            <!-- ==================== LEFT COLUMN ==================== -->
+            <div class="col-lg-6">
+
+                <!-- 1. General Information -->
                 <div class="card cmf-entry-card mb-2 shadow-sm">
                     <div class="card-body p-3">
-                        <h6 class="cmf-section-title mb-3">General Information</h6>
+                        <!-- Card Header with "For RS" Toggle -->
+                        <div class="d-flex justify-content-between align-items-center mb-3">
+                            <h6 class="cmf-section-title mb-0">General Information</h6>
+                            <div class="form-check form-switch mb-0 d-flex align-items-center gap-2">
+                                <!-- Disabled ONLY if it's an existing record AND it already has a formula attached -->
+                                <input class="form-check-input" type="checkbox" role="switch" id="toggleForRs" name="is_for_rs" value="1" 
+                                    {% if form_data.is_for_rs %}checked{% endif %} 
+                                    {% if form_data.is_new == '0' and form_data.has_formula %}disabled{% endif %}>
+                                <label class="form-check-label fw-bold extra-small text-teal" for="toggleForRs">For RS</label>
+
+                                <!-- If it's disabled via HTML attribute, include a hidden input to preserve its value on post if checked -->
+                                {% if form_data.is_new == '0' and form_data.has_formula and form_data.is_for_rs %}
+                                    <input type="hidden" name="is_for_rs" value="1">
+                                {% endif %}    
+                            </div>
+                        </div>
                         
+                        <!-- CMF No & Customer -->
                         <div class="row g-2 mb-2">
                             <div class="col-md-12">
                                 <label class="fw-bold extra-small required-label">Color Matching No:</label>
-                                <input type="text" id="id_cmf_no" name="cmf_no" value="{{ form_data.cmf_no|default:'' }}" class="form-control form-control-sm uniform-input" required>
+                                <input type="text" id="id_cmf_no" name="cmf_no" value="{{ form_data.cmf_no|default:'' }}" class="form-control form-control-sm uniform-input" autocomplete="off" required>
                             </div>
                             <div class="col-md-12">
                                 <label class="fw-bold extra-small required-label">Customer:</label>
@@ -36,53 +54,62 @@ CMF Entry
                                 </select>
                             </div>
                         </div>
-                        
-                        <!-- Dates -->
-                        <div class="row g-2 mb-2">
-                            <div class="col-6">
-                                <label class="fw-bold extra-small required-label">Date Created:</label>
-                                <div class="input-group input-group-sm flatpickr-container" data-wrap="true">
-                                    <input type="text" name="date_created" value="{{ form_data.date_created|default:'' }}" class="form-control uniform-input date-picker-single" placeholder="MM/DD/YYYY" data-input required>
-                                    <span class="input-group-text uniform-input border-start-0" data-toggle><i class="bi bi-calendar3"></i></span>
-                                </div>
-                            </div>
-                            <div class="col-6">
-                                <label class="fw-bold extra-small required-label">Required Date:</label>
-                                <div class="input-group input-group-sm flatpickr-container" data-wrap="true">
-                                    <input type="text" name="required_date" value="{{ form_data.required_date|default:'' }}" class="form-control uniform-input date-picker-asap" placeholder="MM/DD/YYYY or ASAP" data-input required>
-                                    <span class="input-group-text uniform-input border-start-0" data-toggle><i class="bi bi-calendar3"></i></span>
-                                </div>
+
+                        <!-- Stacked Dates -->
+                        <div class="mb-2">
+                            <label class="fw-bold extra-small required-label">Date Submitted (Date Created):</label>
+                            <div class="input-group input-group-sm flatpickr-container" data-wrap="true">
+                                <input type="text" name="date_created" value="{{ form_data.date_created|default:'' }}" class="form-control uniform-input date-picker-single" placeholder="MM/DD/YYYY" data-input autocomplete="off" required>
+                                <span class="input-group-text uniform-input border-start-0" data-toggle><i class="bi bi-calendar3"></i></span>
                             </div>
                         </div>
-                        {% if user.role.department != "Sales" %}
-                        <div class="row g-2 mb-2">
-                            <div class="col-6">
-                                <label class="fw-bold extra-small required-label">Date Received:</label>
-                                <div class="input-group input-group-sm flatpickr-container" data-wrap="true">
-                                    <input type="text" name="date_received" value="{{ form_data.date_received|default:'' }}" class="form-control uniform-input date-picker-multiple" placeholder="MM/DD/YYYY, MM/DD/YYYY" data-input required>
-                                    <span class="input-group-text uniform-input border-start-0" data-toggle><i class="bi bi-calendar3"></i></span>
-                                </div>
+
+                        <div class="mb-2">
+                            <label class="fw-bold extra-small required-label">Date Required:</label>
+                            <div class="input-group input-group-sm flatpickr-container" data-wrap="true">
+                                <input type="text" name="required_date" value="{{ form_data.required_date|default:'' }}" class="form-control uniform-input date-picker-asap" placeholder="MM/DD/YYYY or ASAP" data-input autocomplete="off" required>
+                                <span class="input-group-text uniform-input border-start-0" data-toggle><i class="bi bi-calendar3"></i></span>
                             </div>
-                            <div class="col-6">
-                                <label class="fw-bold extra-small required-label">Due Date:</label>
-                                <div class="input-group input-group-sm flatpickr-container" data-wrap="true">
-                                    <input type="text" name="due_date" value="{{ form_data.due_date|default:'' }}" class="form-control uniform-input date-picker-single" placeholder="MM/DD/YYYY" data-input required>
-                                    <span class="input-group-text uniform-input border-start-0" data-toggle><i class="bi bi-calendar3"></i></span>
-                                </div>
+                        </div>
+
+                        {% if user.role.department != "Sales" %}
+                        <div class="mb-2">
+                            <label class="fw-bold extra-small required-label">Date Received:</label>
+                            <div class="input-group input-group-sm flatpickr-container" data-wrap="true">
+                                <input type="text" name="date_received" value="{{ form_data.date_received|default:'' }}" class="form-control uniform-input date-picker-multiple" placeholder="MM/DD/YYYY, MM/DD/YYYY" data-input autocomplete="off" required>
+                                <span class="input-group-text uniform-input border-start-0" data-toggle><i class="bi bi-calendar3"></i></span>
+                            </div>
+                        </div>
+
+                        <div class="mb-2">
+                            <label class="fw-bold extra-small required-label">Due Date:</label>
+                            <div class="input-group input-group-sm flatpickr-container" data-wrap="true">
+                                <input type="text" name="due_date" value="{{ form_data.due_date|default:'' }}" class="form-control uniform-input date-picker-single" placeholder="MM/DD/YYYY" data-input autocomplete="off" required>
+                                <span class="input-group-text uniform-input border-start-0" data-toggle><i class="bi bi-calendar3"></i></span>
                             </div>
                         </div>
                         {% else %}
-                        <div class="row g-2 mb-2">
-                            <div class="col-6">
-                                <label class="fw-bold extra-small required-label">Submit to Lab:</label>
-                                <div class="input-group input-group-sm flatpickr-container" data-wrap="true">
-                                    <input type="text" name="submit_to_lab" value="{{ form_data.submit_to_lab|default:'' }}" class="form-control uniform-input date-picker-single" placeholder="MM/DD/YYYY" data-input required>
-                                    <span class="input-group-text uniform-input border-start-0" data-toggle><i class="bi bi-calendar3"></i></span>
-                                </div>
+                        <div class="mb-2">
+                            <label class="fw-bold extra-small required-label">Submit to Lab:</label>
+                            <div class="input-group input-group-sm flatpickr-container" data-wrap="true">
+                                <input type="text" name="submit_to_lab" value="{{ form_data.submit_to_lab|default:'' }}" class="form-control uniform-input date-picker-single" placeholder="MM/DD/YYYY" data-input autocomplete="off" required>
+                                <span class="input-group-text uniform-input border-start-0" data-toggle><i class="bi bi-calendar3"></i></span>
                             </div>
                         </div>
                         {% endif %}
 
+                        <!-- Sales Person -->
+                        <div class="mb-2">
+                            <label class="fw-bold extra-small required-label">Sales Person:</label>
+                            <select class="form-select form-select-sm ts-select" name="salesman" placeholder="Select sales person..." required>
+                                <option value=""></option>
+                                {% for s in salesman %}
+                                    <option value="{{ s.name }}" {% if form_data.salesman == s.name %}selected{% endif %}>{{ s.name }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+
+                        <!-- Matching Type + Product Status -->
                         <div class="row g-2 mb-2">
                             <div class="col-md-6">
                                 <label class="fw-bold extra-small d-block mb-1 required-label">Matching Type:</label>
@@ -112,33 +139,15 @@ CMF Entry
                             </div>
                         </div>
 
-                        <div class="row g-2 mb-2">
-                            <div class="col-md-8">
-                                <label class="fw-bold extra-small required-label">Sales Person:</label>
-                                <select class="form-select form-select-sm ts-select" name="salesman" placeholder="Select sales person..." required>
-                                    <option value=""></option>
-                                    {% for s in salesman %}
-                                        <option value="{{ s.name }}" {% if form_data.salesman == s.name %}selected{% endif %}>{{ s.name }}</option>
-                                    {% endfor %}
-                                </select>
-                            </div>
-                            <div class="col-md-4">
-                                <label class="fw-bold extra-small required-label">Est. Qty Order:</label>
-                                <div class="input-group input-group-sm">
-                                    <input type="text" name="est_qty_order" value="{{ form_data.est_qty_order|default:'' }}" class="form-control uniform-input est-qty-input text-end" placeholder="0.00" required>
-                                    <span class="input-group-text extra-small fw-bold bg-light">KG</span>
-                                </div>
-                            </div>
+                        <!-- Finished Product -->
+                        <div class="mb-2">
+                            <label class="fw-bold extra-small required-label">Finished Product:</label>
+                            <input type="text" name="finished_product" value="{{ form_data.finished_product|default:'' }}" class="form-control form-control-sm uniform-input" required>
                         </div>
 
-                        <div class="row g-2 mb-2">
-                            <div class="col-md-12">
-                                <label class="fw-bold extra-small required-label">Finished Product:</label>
-                                <input type="text" name="finished_product" value="{{ form_data.finished_product|default:'' }}" class="form-control form-control-sm uniform-input" required>
-                            </div>
-                        </div>
-
+                        <!-- Primary Color + Description -->
                         <div class="row g-2">
+                            {% if user.role.department != "Sales" %}
                             <div class="col-4">
                                 <label class="fw-bold extra-small required-label">Primary Color:</label>
                                 <select class="form-select form-select-sm ts-select" name="primary_color" placeholder="Select color" required>
@@ -148,16 +157,22 @@ CMF Entry
                                     {% endfor %}
                                 </select>
                             </div>
-                            <div class="col-8">
-                                <label class="fw-bold extra-small required-label">Description:</label>
-                                <input type="text" name="color_description" value="{{ form_data.color_description|default:'' }}" class="form-control form-control-sm uniform-input" placeholder="Enter color description..." required>
+                            {% else %}
+                                {% if form_data.primary_color %}
+                                <input type="hidden" name="primary_color" value="{{ form_data.primary_color }}">
+                                {% endif %}
+                            {% endif %}
+
+                            <div class="{% if user.role.department != 'Sales' %}col-8{% else %}col-12{% endif %}">
+                                <label class="fw-bold extra-small required-label">Customer Color Description:</label>
+                                <input type="text" name="color_description" value="{{ form_data.color_description|default:'' }}" class="form-control form-control-sm uniform-input" placeholder="Enter color description..." autocomplete="off" required>
                             </div>
                         </div>
                     </div>
                 </div>
 
-                <!-- Color Requirement -->
-                <div class="card cmf-entry-card mb-2 shadow-sm">
+                <!-- 2. Color Requirement (Directly after General Information) -->
+                <div class="card cmf-entry-card shadow-sm">
                     <div class="card-body p-3">
                         <h6 class="cmf-section-title mb-3 required-label">Color Requirement</h6>
                         <div class="d-flex flex-wrap gap-3 align-items-center">
@@ -172,29 +187,91 @@ CMF Entry
                                     <input class="form-check-input visible-check js-other-trigger" type="radio" name="colorReq" value="other" id="c7" {% if form_data.colorReq == 'other' %}checked{% endif %} required>
                                     <label class="form-check-label extra-small" for="c7">Others:</label>
                                 </div>
-                                <input type="text" class="form-control form-control-sm uniform-input js-other-input" name="colorReq_other" id="colorReq_other_input" value="{{ form_data.colorReq_other|default:'' }}" style="width: 150px; height: 26px;">
+                                <input type="text" class="form-control form-control-sm uniform-input js-other-input" name="colorReq_other" id="colorReq_other_input" value="{{ form_data.colorReq_other|default:'' }}" style="width: auto; height: 26px;">
                             </div>
                         </div>
                     </div>
                 </div>
+
             </div>
 
-            <!-- RIGHT COLUMN -->
-            <div class="col-lg-5">
-                <div class="card cmf-entry-card h-100 shadow-sm">
+            <!-- ==================== RIGHT COLUMN ==================== -->
+            <div class="col-lg-6">
+                <!-- 1. Process / Technical Specs (Ends naturally after processing temp) -->
+                <div class="card cmf-entry-card mb-2 shadow-sm">
                     <div class="card-body p-3">
                         <h6 class="cmf-section-title mb-3">Process / Technical Specs</h6>
-                        
-                        <div class="mb-2">
-                            <label class="fw-bold extra-small required-label">Resin Type:</label>
-                            <select class="form-select form-select-sm ts-select" name="resin" placeholder="Select resin" multiple required>
-                                <option value=""></option>
-                                {% for r in resin %}
-                                    <option value="{{ r.resin_no }}" {% if r.resin_no|stringformat:"s" in form_data.resin %}selected{% endif %}>{{ r.abbreviation }}</option>
-                                {% endfor %}
-                            </select>
+
+                        <!-- Sample Colorant Available + Colorant Type -->
+                        <div class="row g-2 mb-2">
+                            <div class="col-5">
+                                <label class="fw-bold extra-small d-block mb-1 required-label">Is Sample Colorant Available:</label>
+                                <div class="d-flex gap-3">
+                                    <div class="form-check form-check-inline"><input class="form-check-input visible-check" type="radio" value="Y" name="sampleColorant" id="sample_yes" {% if form_data.sampleColorant == 'Y' %}checked{% endif %} required><label class="form-check-label extra-small" for="sample_yes">Y</label></div>
+                                    <div class="form-check form-check-inline"><input class="form-check-input visible-check" type="radio" value="N" name="sampleColorant" id="sample_no" {% if form_data.sampleColorant == 'N' %}checked{% endif %} required><label class="form-check-label extra-small" for="sample_no">N</label></div>
+                                </div>
+                            </div>
+                            <div class="col-7">
+                                <label class="fw-bold extra-small d-block mb-1 required-label">Type of Colorant:</label>
+                                <div class="d-flex flex-wrap align-items-center gap-3">
+                                    <div class="form-check"><input class="form-check-input visible-check" type="radio" value="MB" name="colorantType" id="colorant_mb" {% if form_data.colorantType == 'MB' %}checked{% endif %} required><label class="form-check-label extra-small" for="colorant_mb">MB</label></div>
+                                    <div class="form-check"><input class="form-check-input visible-check" type="radio" value="DC" name="colorantType" id="colorant_dc" {% if form_data.colorantType == 'DC' %}checked{% endif %} required><label class="form-check-label extra-small" for="colorant_dc">DC</label></div>
+                                    <div class="d-flex align-items-center gap-1 js-other-container">
+                                        <div class="form-check mb-0">
+                                            <input class="form-check-input visible-check js-other-trigger" type="radio" value="Other" name="colorantType" id="colorant_type_other" {% if form_data.colorantType == 'Other' %}checked{% endif %} required>
+                                            <label class="form-check-label extra-small" for="colorant_type_other">Others:</label>
+                                        </div>
+                                        <input type="text" name="colorantTypeOther" value="{{ form_data.colorantTypeOther|default:'' }}" id="colorantTypeOtherInput" class="form-control form-control-sm uniform-input js-other-input" style="width: auto; height: 26px;">
+                                    </div>
+                                </div>
+                            </div>
                         </div>
 
+                        <!-- Dosage + Est. Qty Order -->
+                        <div class="row g-2 mb-2">
+                            <div class="col-4">
+                                <label class="fw-bold extra-small required-label">Dosage (%):</label>
+                                <input type="text" name="dosage" 
+                                    value="{% if form_data.dosage is not None and form_data.dosage != '' %}{{ form_data.dosage }}{% elif form_data.is_new == '0' %}NA{% else %}{{ form_data.dosage|default:'' }}{% endif %}" 
+                                    class="form-control form-control-sm uniform-input dosage-input" 
+                                    placeholder="Enter Dosage or NA" autocomplete="off" required>
+                            </div>
+                            <div class="col-4">
+                                <label class="fw-bold extra-small">Dosage Note:</label>
+                                <input type="text" name="dosage_note" value="{{ form_data.dosage_note|default:'' }}" class="form-control form-control-sm uniform-input" autocomplete="off" placeholder="Enter note">
+                            </div>
+                            <div class="col-4">
+                                <label class="fw-bold extra-small required-label">Est. Qty Per Order:</label>
+                                <div class="input-group input-group-sm">
+                                    <input type="text" name="est_qty_order" value="{{ form_data.est_qty_order|default:'' }}" class="form-control uniform-input est-qty-input text-end" autocomplete="off" placeholder="0.00" required>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Resin Type -->
+                        <div class="row g-2 mb-2">
+                            <div class="col-7">
+                                <label class="fw-bold extra-small required-label">Resin:</label>
+                                <select class="form-select form-select-sm ts-select" name="resin" placeholder="Select resin" multiple required>
+                                    <option value=""></option>
+                                    {% for r in resin %}
+                                        <option value="{{ r.resin_no }}" {% if r.resin_no|stringformat:"s" in form_data.resin %}selected{% endif %}>{{ r.abbreviation }}</option>
+                                    {% endfor %}
+                                </select>
+                            </div>
+                            <div class="col-5">
+                                <label class="fw-bold extra-small">Resin Note:</label>
+                                <input type="text" 
+                                    name="resin_note" 
+                                    id="id_resin_note" 
+                                    value="{{ form_data.resin_note|default:'' }}" 
+                                    class="form-control form-control-sm uniform-input" 
+                                    placeholder="Optional..."
+                                    autocomplete="off">
+                            </div>
+                        </div>
+
+                        <!-- Process -->
                         <div class="mb-2">
                             <label class="fw-bold extra-small d-block mb-1 required-label">Process:</label>
                             <div class="d-flex flex-wrap gap-2">
@@ -217,21 +294,19 @@ CMF Entry
                                 <div class="form-check d-flex align-items-center mb-0 js-other-container">
                                     <input class="form-check-input visible-check js-other-trigger" name="process" value="others" type="checkbox" id="p5" {% if 'others' in form_data.process %}checked{% endif %}>
                                     <label class="form-check-label extra-small ms-2 me-1" for="p5">Others:</label>
-                                    <input type="text" class="form-control form-control-sm uniform-input ms-1 js-other-input" name="otherProcess" id="otherProcessInput" value="{{ form_data.otherProcess|default:'' }}" style="width: 120px; height: 26px;">
+                                    <input type="text" class="form-control form-control-sm uniform-input ms-1 js-other-input" name="otherProcess" id="otherProcessInput" value="{{ form_data.otherProcess|default:'' }}" style="width: auto; height: 26px;">
                                 </div>
                             </div>          
                         </div>
 
+                        <!-- Qty Resin for Test + Customer Resin Provided -->
                         <div class="row g-2 mb-2">
                             <div class="col-7">
                                 <label class="fw-bold extra-small required-label">Qty Resin for Test:</label>
-                                <!-- Hidden field that actually gets sent to the server -->
-                                 <input type="hidden" name="qty_resin_test" id="id_qty_resin_test_hidden" value="{{ form_data.qty_resin_test|default:'' }}">
+                                <input type="hidden" name="qty_resin_test" id="id_qty_resin_test_hidden" value="{{ form_data.qty_resin_test|default:'' }}">
                                 
                                 <div class="input-group input-group-sm">
-                                    <!-- Input for the number -->
-                                    <input type="text" id="id_qty_resin_num" class="form-control uniform-input qty-resin-input" placeholder="Amount" required>
-                                    <!-- Select for unit -->
+                                    <input type="text" id="id_qty_resin_num" class="form-control uniform-input qty-resin-input" placeholder="Amount" autocomplete="off" required>
                                     <select id="id_qty_resin_unit" class="form-select uniform-input" style="max-width: 80px;">
                                         <option value="KG">KG</option>
                                         <option value="G">G</option>
@@ -239,71 +314,20 @@ CMF Entry
                                 </div>
                             </div>
                             <div class="col-5">
-                                <label class="fw-bold extra-small d-block required-label">Customer Resin Provided:</label>
+                                <label class="fw-bold extra-small d-block required-label">Customer Provided Resin:</label>
                                 <div class="form-check form-check-inline"><input class="form-check-input visible-check" value="Y" type="radio" name="customerResin" id="resin_yes" {% if form_data.customerResin == 'Y' %}checked{% endif %} required><label class="form-check-label extra-small" for="resin_yes">Y</label></div>
                                 <div class="form-check form-check-inline"><input class="form-check-input visible-check" value="N" type="radio" name="customerResin" id="resin_no" {% if form_data.customerResin == 'N' %}checked{% endif %} required><label class="form-check-label extra-small" for="resin_no">N</label></div>
                             </div>
                         </div>
 
-                        <div class="row g-2 mb-2">
-                            <div class="col-7"><label class="fw-bold extra-small required-label">MI Customer Resin:</label><input type="text" name="mi_customer_resin" value="{{ form_data.mi_customer_resin|default:'N/A' }}" class="form-control form-control-sm uniform-input" required></div>
-                            <div class="col-5">
-                                <label class="fw-bold extra-small d-block required-label">Sample Colorant Available:</label>
-                                <div class="form-check form-check-inline"><input class="form-check-input visible-check" type="radio" value="Y" name="sampleColorant" id="sample_yes" {% if form_data.sampleColorant == 'Y' %}checked{% endif %} required><label class="form-check-label extra-small" for="sample_yes">Y</label></div>
-                                <div class="form-check form-check-inline"><input class="form-check-input visible-check" type="radio" value="N" name="sampleColorant" id="sample_no" {% if form_data.sampleColorant == 'N' %}checked{% endif %} required><label class="form-check-label extra-small" for="sample_no">N</label></div>
-                            </div>
-                        </div>
-
-                        <div class="mb-2">
-                            <label class="fw-bold extra-small d-block mb-1 required-label">Colorant Type:</label>
-                            <div class="d-flex align-items-center gap-3">
-                                <div class="form-check"><input class="form-check-input visible-check" type="radio" value="MB" name="colorantType" id="colorant_mb" {% if form_data.colorantType == 'MB' %}checked{% endif %} required><label class="form-check-label extra-small" for="colorant_mb">MB</label></div>
-                                <div class="form-check"><input class="form-check-input visible-check" type="radio" value="DC" name="colorantType" id="colorant_dc" {% if form_data.colorantType == 'DC' %}checked{% endif %} required><label class="form-check-label extra-small" for="colorant_dc">DC</label></div>
-                                <div class="d-flex align-items-center gap-1 js-other-container">
-                                    <div class="form-check mb-0">
-                                        <input class="form-check-input visible-check js-other-trigger" type="radio" value="Other" name="colorantType" id="colorant_type_other" {% if form_data.colorantType == 'Other' %}checked{% endif %} required>
-                                        <label class="form-check-label extra-small" for="colorant_type_other">Others:</label>
-                                    </div>
-                                    <input type="text" name="colorantTypeOther" value="{{ form_data.colorantTypeOther|default:'' }}" id="colorantTypeOtherInput" class="form-control form-control-sm uniform-input js-other-input" style="width: 100px; height: 26px;">
-                                </div>
-                            </div>
-                        </div>
-
+                        <!-- MI Customer Resin + Color Guide to be Returned -->
                         <div class="row g-2 mb-2">
                             <div class="col-6">
-                                <label class="fw-bold extra-small required-label">Dosage (%):</label>
-                                <input type="text" name="dosage" value="{{ form_data.dosage|default:'' }}" class="form-control form-control-sm uniform-input dosage-input" placeholder="Enter Dosage" required>
+                                <label class="fw-bold extra-small required-label">MI Customer's Resin:</label>
+                                <input type="text" name="mi_customer_resin" value="{{ form_data.mi_customer_resin|default:'Not Given' }}" class="form-control form-control-sm uniform-input" autocomplete="off" required>
                             </div>
                             <div class="col-6">
-                                <label class="fw-bold extra-small required-label">Processing Temp (°C):</label>
-                                <input type="text" name="processing_temp" value="{{ form_data.processing_temp|default:'N/A' }}" class="form-control form-control-sm uniform-input temp-input" required>
-                            </div>
-                        </div>
-
-                        <div class="mb-2">
-                            <label class="fw-bold extra-small d-block mb-1 required-label">Other Specification:</label>
-                            <div class="d-flex flex-wrap align-items-center gap-3 row-gap-2">
-                                <div class="form-check mb-0">
-                                    <input class="form-check-input visible-check" type="checkbox" name="specification" value="Food Contact" id="spec_food_contact" {% if 'Food Contact' in form_data.specification %}checked{% endif %}>
-                                    <label class="form-check-label extra-small" for="spec_food_contact">Food Contact</label>
-                                </div>
-                                <div class="form-check mb-0">
-                                    <input class="form-check-input visible-check" type="checkbox" name="specification" value="Sunlight Exposure" id="spec_sunlight_exposure" {% if 'Sunlight Exposure' in form_data.specification %}checked{% endif %}>
-                                    <label class="form-check-label extra-small" for="spec_sunlight_exposure">Sunlight Exposure</label>
-                                </div>
-                                <div class="d-flex align-items-center gap-1 js-other-container">
-                                    <div class="form-check mb-0">
-                                        <input class="form-check-input visible-check js-other-trigger" type="checkbox" name="specification" value="Others" id="spec_others" {% if 'Others' in form_data.specification %}checked{% endif %}>
-                                        <label class="form-check-label extra-small" for="spec_others">Others</label>
-                                    </div>
-                                    <input type="text" class="form-control form-control-sm uniform-input js-other-input" name="specificationOther" value="{{ form_data.specificationOther|default:'' }}" id="specificationOtherInput" style="width: 110px; height: 26px;" placeholder="Specify">
-                                </div>
-                            </div>
-                        </div>
-
-                        <div class="row mb-2">
-                            <div class="col">
-                                <label class="fw-bold extra-small d-block mb-1 required-label">Color Guide to be Returned:</label>
+                                <label class="fw-bold extra-small d-block mb-1 required-label">Is Color Guide to be Returned:</label>
                                 <div class="d-flex gap-3 mt-1">
                                     <div class="form-check form-check-inline mb-0">
                                         <input class="form-check-input visible-check" type="radio" name="color_guide_return" value="Y" id="color_guide_yes" {% if form_data.color_guide_return == 'Y' %}checked{% endif %} required>
@@ -315,8 +339,43 @@ CMF Entry
                                     </div>
                                 </div>
                             </div>
-                            <div class="col">
-                                <label class="fw-bold extra-small d-block mb-1 required-label">Is Low Cost?</label>
+                        </div>
+
+                        <!-- Other Specification -->
+                        <div class="mb-2">
+                            <label class="fw-bold extra-small d-block mb-1 required-label">Other Specification:</label>
+                            <div class="d-flex flex-wrap align-items-center gap-3 row-gap-2">
+                                <div class="form-check mb-0">
+                                    <input class="form-check-input visible-check cross-check spec-item" type="checkbox" name="specification" value="Food Contact" id="spec_food_contact" {% if 'Food Contact' in form_data.specification %}checked{% endif %}>
+                                    <label class="form-check-label extra-small" for="spec_food_contact">Food Contact</label>
+                                </div>
+                                <div class="form-check mb-0">
+                                    <input class="form-check-input visible-check cross-check spec-item" type="checkbox" name="specification" value="Sunlight Exposure" id="spec_sunlight_exposure" {% if 'Sunlight Exposure' in form_data.specification %}checked{% endif %}>
+                                    <label class="form-check-label extra-small" for="spec_sunlight_exposure">Sunlight Exposure</label>
+                                </div>
+                                <!-- 🛑 ADDED: Not Specified -->
+                                <div class="form-check mb-0">
+                                    <input class="form-check-input visible-check cross-check" type="checkbox" name="specification" value="Not Specified" id="spec_not_specified" {% if 'Not Specified' in form_data.specification %}checked{% endif %}>
+                                    <label class="form-check-label extra-small" for="spec_not_specified">Not Specified</label>
+                                </div>
+                                <div class="d-flex align-items-center gap-1 js-other-container">
+                                    <div class="form-check mb-0">
+                                        <input class="form-check-input visible-check cross-check js-other-trigger spec-item" type="checkbox" name="specification" value="Others" id="spec_others" {% if 'Others' in form_data.specification %}checked{% endif %}>
+                                        <label class="form-check-label extra-small" for="spec_others">Others</label>
+                                    </div>
+                                    <input type="text" class="form-control form-control-sm uniform-input js-other-input" name="specificationOther" value="{{ form_data.specificationOther|default:'' }}" id="specificationOtherInput" style="width: auto; height: 26px;" placeholder="Specify">
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Processing Temp + Is Low Cost -->
+                        <div class="row g-2">
+                            <div class="col-6">
+                                <label class="fw-bold extra-small required-label">MaxProcessing Temp (°C):</label>
+                                <input type="text" name="processing_temp" value="{{ form_data.processing_temp|default:'Not Given' }}" class="form-control form-control-sm uniform-input temp-input" autocomplete="off" required>
+                            </div>
+                            <div class="col-6">
+                                <label class="fw-bold extra-small d-block mb-1 required-label">Low Cost?</label>
                                 <div class="d-flex gap-3 mt-1">
                                     <div class="form-check form-check-inline mb-0">
                                         <input class="form-check-input visible-check" type="radio" name="is_low_cost" value="Y" id="low_cost_yes" {% if form_data.is_low_cost == 'Y' %}checked{% endif %} required>
@@ -332,27 +391,52 @@ CMF Entry
 
                     </div>
                 </div>
-            </div>
 
-            <!-- ADDITIONAL INFO (Below Left) -->
-            <div class="col-lg-7">
-                <div class="card cmf-entry-card shadow-sm">
+                <!-- 2. Remarks (Directly after Process / Technical Specs) -->
+                <div class="card cmf-entry-card mb-2 shadow-sm">
                     <div class="card-body p-3">
                         <h6 class="cmf-section-title mb-2">Remarks</h6>
-                        <textarea class="form-control form-control-sm uniform-input" name="remarks" rows="3" placeholder="Additional information...">{{ form_data.remarks|default:'' }}</textarea>
+                        <textarea class="form-control form-control-sm uniform-input" name="remarks" rows="5" placeholder="Additional information...">{{ form_data.remarks|default:'' }}</textarea>
                     </div>
                 </div>
-            </div>
 
-            <!-- PRODUCT CODE BAR (Below Right) -->
-            <div class="col-lg-5">
+                <!-- 3. Product Code (Directly below Remarks) -->
                 <div class="card cmf-entry-card shadow-sm">
                     <div class="card-body p-3">
-                         <label class="fw-bold extra-small text-uppercase mb-1">Product Code:</label>
-                         <input type="text" name="product_code" value="{{ form_data.product_code|default:'' }}" class="form-control form-control-sm uniform-input readonly-gray fw-bold" readonly>
+                        <label class="fw-bold extra-small text-uppercase mb-2">Product Code:</label>
+
+                        <!-- 1. DEFAULT: Readonly Text Input -->
+                        <div id="product_code_input_wrapper">
+                            <input type="text" 
+                                id="id_product_code_input" 
+                                name="product_code" 
+                                value="{{ form_data.product_code|default:'' }}{% if form_data.product_code and form_data.ar_no %},  AR No: {{ form_data.ar_no }}{% endif %}" 
+                                class="form-control form-control-sm uniform-input readonly-gray fw-bold"
+                                style="color: #dc3545 !important;" 
+                                readonly>
+                        </div>
+
+                        <!-- 2. FOR RS: TomSelect Dropdown (Hidden by default) -->
+                        <div id="product_code_select_wrapper" style="display: none;">
+                            <select class="form-select form-select-sm ts-select" 
+                                    id="id_product_code_select" 
+                                    name="product_code" 
+                                    placeholder="Select product code..." 
+                                    disabled>
+                                <option value=""></option>
+                                {% for c in codes %}
+                                    <option value="{{ c.code_no }}" 
+                                        {% if form_data.product_code == c.product_code or form_data.product_code == c %}selected{% endif %}>
+                                        {{ c.product_code }}
+                                    </option>
+                                {% endfor %}
+                            </select>
+                        </div>
                     </div>
                 </div>
+
             </div>
+
         </div>
 
         <!-- ACTION BUTTONS -->
@@ -389,6 +473,7 @@ CMF Entry
         </div>
     </form>
 </div>
+
 {% if attachments %}
 <div class="modal fade" id="viewFilesModal" tabindex="-1" aria-hidden="true">
     <div class="modal-dialog modal-dialog-centered">

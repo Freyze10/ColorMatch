@@ -1,15 +1,16 @@
-from datetime import datetime
+from datetime import date, datetime
 
 from django.core.cache import cache
 from django.db import transaction
 from django.http import JsonResponse
-from django.db.models import Q, Value, CharField
+from django.db.models import F, Q, DateField, Value, CharField
 from django.db.models.functions import Coalesce
 from django.db.models.expressions import OuterRef, Subquery, Case, When
+from main.services.cmf_records import cmf_records_services
 from main.utils.log_audit_trail import log_audit
 from main.models import (
-    tbl_feedback_details, tbl_cmf_pending_completed, tbl_cmf_formula,
-    tbl_cmf_dates, tbl_mb_extruder_formula, tbl_dc_extruder_formula,
+    tbl_cmf_salesman, tbl_feedback_details, tbl_cmf_pending_completed, tbl_cmf_formula,
+    tbl_cmf_dates, tbl_mb_extruder_formula, tbl_dc_extruder_formula, tbl_submitted_option,
     tbl_submitted_selected,
 )
 
@@ -20,6 +21,7 @@ FEEDBACK_STATUS_OPTIONS = [
     'Pending',
     'Rematch',
     'Abandoned',
+    'Rejected',
     'Ordered',
     'Approved with result',
     'Approved without result',
@@ -28,7 +30,7 @@ FEEDBACK_STATUS_OPTIONS = [
 ]
 
 # Always available, regardless of what was submitted.
-BASE_STATUSES = ['Rematch', 'Abandoned', 'Ordered']
+BASE_STATUSES = ['Rematch', 'Abandoned', 'Ordered', 'Rejected']
 
 # When Sample is among the submitted items — full 3-choice set.
 SAMPLE_STATUSES = [
@@ -41,7 +43,7 @@ SAMPLE_STATUSES = [
 CHIP_PRICE_STATUSES = [
     'Approved without result',
     'Request for additional samples',
-    'Approve and request for samples',
+    'Approved and request for samples',
 ]
 
 def get_feedback_status_choices(selected_option_names):
@@ -95,93 +97,114 @@ def _get_selected_option_names(tracking):
 
 def get_feedback_form_data(feedback_no):
     """
-    Fetches a single feedback record with all related CMF/RS context,
-    formatted for the feedback entry form. Returns {} if not found.
+    Fetches a single feedback record strictly for CMF with all related context,
+    submitted options, and tracking details. Returns {} if not found or if not a CMF.
     """
     form_data = {}
-    fb = tbl_feedback_details.objects.select_related('cm_no', 'rs_no').filter(feedback_no=feedback_no).first()
-    if not fb:
+    
+    # Strictly fetch CMF feedback records
+    fb = (
+        tbl_feedback_details.objects
+        .select_related('cm_no', 'cm_no__sm')
+        .filter(feedback_no=feedback_no, cm_no__isnull=False)
+        .first()
+    )
+    if not fb or not fb.cm_no:
         return form_data
 
-    tracking = None
+    cmf = fb.cm_no
 
-    if fb.cm_no:
-        pending_info = tbl_cmf_pending_completed.objects.filter(cm_no=fb.cm_no).select_related('code').first()
-        formula = tbl_cmf_formula.objects.filter(cm_no=fb.cm_no).first()
-        dates = tbl_cmf_dates.objects.filter(cm_no=fb.cm_no).first()
-        pending = tbl_cmf_pending_completed.objects.filter(cm_no=fb.cm_no).first()
-        tracking = pending
+    # 1. Fetch related CMF records
+    tracking = (
+        tbl_cmf_pending_completed.objects
+        .filter(cm_no=cmf)
+        .select_related('code')
+        .first()
+    )
+    formula = tbl_cmf_formula.objects.filter(cm_no=cmf).first()
+    dates = tbl_cmf_dates.objects.filter(cm_no=cmf).first()
 
-        form_data = {
-            'feedback_no': fb.feedback_no,
-            'matching_no': fb.cm_no.cm_no,
-            'customer': formula.customer if formula else '',
-            'date_created': dates.form_made.strftime('%m/%d/%Y') if dates and dates.form_made else '',
-            'required_date': dates.date_required if dates else '',
-            'date_received': dates.date_received_lab if dates else '',
-            'due_date': dates.due_date_lab.strftime('%m/%d/%Y') if dates and dates.due_date_lab else '',
-            'finished_product': formula.finished_product if formula else '',
-            'color_description': fb.cm_no.color_desc or '',
-            'matching_type': fb.cm_no.matching_type or '',
-            'sales_person': fb.cm_no.sm.name if fb.cm_no.sm else '',
-            'current_status': 'Completed' if (pending and pending.is_completed) else 'Pending',
-            'pending_reason': pending.reason if pending else '',
-            'product_code': pending_info.code.product_code if pending_info and pending_info.code else "",
-            'code_description': pending.code_details if pending else '',
-            'date_submitted': pending.date_submitted.strftime('%m/%d/%Y') if pending and pending.date_submitted else '',
-            'ar_number': pending.ar_no if pending else '',
-            'ar_date': pending.ar_date.strftime('%m/%d/%Y') if pending and pending.ar_date else '',
-            'record_type': 'cmf',
-            'feedback_status': fb.status or 'Pending',
-            'date_sample_received': fb.date_sample_received.strftime('%m/%d/%Y') if fb.date_sample_received else '',
-            'comments': fb.comment or '',
-            'storage_details': fb.storage_details or '',
-        }
+    # 2. Resolve Product Code & Lot Number (same hierarchy as cmf_pending_completed)
+    final_formula = tbl_mb_extruder_formula.objects.filter(cm_no=cmf, is_final=True).select_related('code').first()
+    if not final_formula:
+        final_formula = tbl_dc_extruder_formula.objects.filter(cm_no=cmf, is_final=True).select_related('code').first()
 
-    elif fb.rs_no:
-        pending_info = tbl_cmf_pending_completed.objects.filter(rs_no=fb.rs_no).select_related('code').first()
-        pending = tbl_cmf_pending_completed.objects.filter(rs_no=fb.rs_no).first()
-        dates = tbl_cmf_dates.objects.filter(rs_no=fb.rs_no).first()
-        tracking = pending
+    final_prod_code = (
+        final_formula.code.product_code if final_formula and final_formula.code else
+        (tracking.code.product_code if tracking and tracking.code else "")
+    )
 
-        form_data = {
-            'feedback_no': fb.feedback_no,
-            'matching_no': fb.rs_no.rs_no,
-            'customer': fb.rs_no.customer or '',
-            'date_created': dates.form_made.strftime('%m/%d/%Y') if dates and dates.form_made else '',
-            'required_date': dates.date_required if dates else '',
-            'date_received': dates.date_received_lab if dates else '',
-            'due_date': dates.due_date_lab.strftime('%m/%d/%Y') if dates and dates.due_date_lab else '',
-            'finished_product': fb.rs_no.finished_product or '',
-            'color_description': fb.rs_no.color_desc or '',
-            'matching_type': fb.rs_no.matching_type or '',
-            'sales_person': fb.rs_no.sm_no.name if fb.rs_no.sm_no else '',
-            'current_status': 'Completed' if (pending and pending.is_completed) else 'Pending',
-            'pending_reason': pending.reason if pending else '',
-            'product_code': pending_info.code.product_code if pending_info and pending_info.code else "",
-            'code_description': pending.code_details if pending else '',
-            'date_submitted': pending.date_submitted.strftime('%m/%d/%Y') if pending and pending.date_submitted else '',
-            'ar_number': pending.ar_no if pending else '',
-            'ar_date': pending.ar_date.strftime('%m/%d/%Y') if pending and pending.ar_date else '',
-            'record_type': 'rs',
-            'feedback_status': fb.status or 'Pending',
-            'date_sample_received': fb.date_sample_received.strftime('%m/%d/%Y') if fb.date_sample_received else '',
-            'comments': fb.comment or '',
-            'storage_details': fb.storage_details or '',
-        }
+    selected_lot = (
+        tracking.lot_no if tracking and tracking.lot_no else
+        (final_formula.lot_no if final_formula and final_formula.lot_no else "N/A")
+    )
 
-    # --- Compute the allowed status choices for this record ---
-    selected_names = _get_selected_option_names(tracking)
+    # 3. Retrieve Submitted Options (using tbl_submitted_option and tbl_submitted_selected)
+    all_options = list(tbl_submitted_option.objects.all())
+
+    selected_option_ids = list(
+        tbl_submitted_selected.objects.filter(completed_id=tracking).values_list('option_id', flat=True)
+    ) if tracking else []
+
+    selected_names = list(
+        tbl_submitted_selected.objects.filter(completed_id=tracking).values_list('option_id__name', flat=True)
+    ) if tracking else []
+
+    # 4. Build complete form_data
+    form_data = {
+        'feedback_no': fb.feedback_no,
+        'matching_no': cmf.cm_no,
+        'customer': formula.customer if formula else '',
+        'date_created': dates.form_made.strftime('%m/%d/%Y') if dates and dates.form_made else '',
+        'required_date': dates.date_required if dates else '',
+        'date_received': dates.date_received_lab if dates else '',
+        'due_date': dates.due_date_lab.strftime('%m/%d/%Y') if dates and dates.due_date_lab else '',
+        'finished_product': formula.finished_product if formula else '',
+        'color_description': cmf.color_desc or '',
+        'sales_person': cmf.sm.name if cmf.sm else '',
+        'product_code': final_prod_code,
+
+        # Right Column tracking & feedback details
+        'current_status': 'Completed' if (tracking and tracking.is_completed) else 'Pending',
+        'pending_reason': tracking.reason if tracking else '',
+        'code_description': tracking.code_details if tracking else (cmf.color_desc or ''),
+        'lot_no': selected_lot,
+        'quantity_kg': fb.quantity_given if fb.quantity_given is not None else '',
+        'set_pc': fb.pieces if fb.pieces is not None else '',
+        'date_submitted': tracking.date_submitted.strftime('%m/%d/%Y') if tracking and tracking.date_submitted else '',
+        'ar_number': tracking.ar_no if tracking else '',
+        'ar_date': tracking.ar_date.strftime('%m/%d/%Y') if tracking and tracking.ar_date else '',
+
+        # Submitted options context for checkboxes & conditional visibility
+        'submitted_options': all_options,
+        'selected_option_ids': selected_option_ids,
+        'has_sample': any('sample' in n.lower() for n in selected_names),
+        'has_chips': any('chip' in n.lower() for n in selected_names),
+        'has_price': any('price' in n.lower() for n in selected_names),
+        'submitted_str': ", ".join(selected_names),
+
+        "salesman": cmf_records_services.get_salesman_list(),
+        'submitted_by_id': fb.submitted_by_id,
+
+        # Feedback specific editable fields
+        'record_type': 'cmf',
+        'feedback_status': fb.status or 'Pending',
+        'abandoned_reason': fb.abandoned_reason or '',  # <-- ADDED
+        'order_form_no': fb.order_form_no or '',   
+        'date_sample_received': fb.date_sample_received.strftime('%m/%d/%Y') if fb.date_sample_received else '',
+        'comments': fb.comment or '',
+        'storage_details': fb.storage_details or '',
+    }
+
+    # 5. Compute the allowed status choices for this record
     form_data['status_choices'] = get_feedback_status_choices(selected_names)
 
     return form_data
-
-
+    
 def get_feedback_queryset():
     """
-    Base queryset for Feedback Records with every display field annotated
-    at the DB level via subqueries. Pagination/search/sort all run in SQL,
-    so a page load only touches `length` rows instead of the whole table.
+    Base queryset for Feedback Records strictly for CMFs.
+    Pulls technical specs, formulas, schedule dates, and pending/completed details.
     """
     mb_final_code = tbl_mb_extruder_formula.objects.filter(
         cm_no=OuterRef('cm_no'), is_final=True
@@ -192,39 +215,30 @@ def get_feedback_queryset():
     ).values('code__product_code')[:1]
 
     cmf_formula = tbl_cmf_formula.objects.filter(cm_no=OuterRef('cm_no'))
+    cmf_dates = tbl_cmf_dates.objects.filter(cm_no=OuterRef('cm_no'))
+    cmf_pending = tbl_cmf_pending_completed.objects.filter(cm_no=OuterRef('cm_no'))
 
-    cmf_dates_cm = tbl_cmf_dates.objects.filter(cm_no=OuterRef('cm_no'))
-    cmf_dates_rs = tbl_cmf_dates.objects.filter(rs_no=OuterRef('rs_no'))
-
-    rs_pending_code = tbl_cmf_pending_completed.objects.filter(
-        rs_no=OuterRef('rs_no')
-    ).values('code__product_code')[:1]
-
-    return tbl_feedback_details.objects.select_related('cm_no', 'rs_no', 'code').annotate(
-        matching_no=Coalesce('cm_no__cm_no', 'rs_no__rs_no'),
-        customer=Coalesce(Subquery(cmf_formula.values('customer')[:1]), 'rs_no__customer'),
-        color_desc=Coalesce('cm_no__color_desc', 'rs_no__color_desc'),
-        finished_prod=Coalesce(Subquery(cmf_formula.values('finished_product')[:1]), 'rs_no__finished_product'),
-        matching_type=Coalesce('cm_no__matching_type', 'rs_no__matching_type'),
-        required_date=Coalesce(
-            Subquery(cmf_dates_cm.values('date_required')[:1]),
-            Subquery(cmf_dates_rs.values('date_required')[:1]),
-        ),
-        due_date=Coalesce(
-            Subquery(cmf_dates_cm.values('due_date_lab')[:1]),
-            Subquery(cmf_dates_rs.values('due_date_lab')[:1]),
-        ),
-        prod_code=Coalesce(
-            Subquery(mb_final_code),
-            Subquery(dc_final_code),
-            Subquery(rs_pending_code),
-            'code__product_code',
-        ),
-        mode=Case(
-            When(cm_no__isnull=False, then=Value('cmf')),
-            default=Value('rs'),
-            output_field=CharField(),
-        ),
+    return (
+        tbl_feedback_details.objects.filter(cm_no__isnull=False)
+        .select_related('cm_no', 'code')
+        .annotate(
+            matching_no=F('cm_no__cm_no'),
+            customer=Subquery(cmf_formula.values('customer')[:1], output_field=CharField()),
+            color_desc=F('cm_no__color_desc'),
+            finished_prod=Subquery(cmf_formula.values('finished_product')[:1], output_field=CharField()),
+            matching_type=F('cm_no__matching_type'),
+            required_date=Subquery(cmf_dates.values('date_required')[:1], output_field=CharField()),
+            due_date=Subquery(cmf_dates.values('due_date_lab')[:1], output_field=DateField()),
+            date_submitted=Subquery(cmf_pending.values('date_submitted')[:1], output_field=DateField()),
+            ar_no=Subquery(cmf_pending.values('ar_no')[:1], output_field=CharField()),
+            prod_code=Coalesce(
+                Subquery(mb_final_code, output_field=CharField()),
+                Subquery(dc_final_code, output_field=CharField()),
+                'code__product_code',
+                output_field=CharField(),
+            ),
+            mode=Value('cmf', output_field=CharField()),
+        )
     )
 
 COLUMN_FIELD_MAP = {
@@ -234,24 +248,35 @@ COLUMN_FIELD_MAP = {
     'Color Description': 'color_desc',
     'Finished Product': 'finished_prod',
     'Type': 'matching_type',
+    'AR No.': 'ar_no',
     'Status': 'status',
 }
 
-
-# Index position matches the `columns` array in feedback_records.js (0-based)
+# 0-based indices strictly matching the new 12-column table order
 ORDER_COLUMN_MAP = {
     '0': 'matching_no',
     '1': 'customer',
     '2': 'prod_code',
     '3': 'color_desc',
     '4': 'finished_prod',
-    '5': 'required_date',
-    '6': 'due_date',
-    '7': 'matching_type',
-    '8': 'status',
-    '9': 'comment',
-    '10': 'storage_details',
+    '5': 'matching_type',
+    '6': 'required_date',
+    '7': 'due_date',
+    '8': 'date_submitted',
+    '9': 'ar_no',
+    '10': 'status',
+    '11': 'comment',
 }
+
+def format_date_safe(val):
+    if not val:
+        return '---'
+    if isinstance(val, (datetime, date)):
+        return val.strftime('%m/%d/%Y')
+    try:
+        return datetime.strptime(str(val).split('T')[0], '%Y-%m-%d').strftime('%m/%d/%Y')
+    except Exception:
+        return str(val)
 
 def get_feedback_records_data(request):
     """DataTables server-side endpoint for the Feedback Records table."""
@@ -276,9 +301,9 @@ def get_feedback_records_data(request):
                 Q(color_desc__icontains=search_value) |
                 Q(finished_prod__icontains=search_value) |
                 Q(matching_type__icontains=search_value) |
+                Q(ar_no__icontains=search_value) |
                 Q(status__icontains=search_value) |
-                Q(comment__icontains=search_value) |
-                Q(storage_details__icontains=search_value)
+                Q(comment__icontains=search_value)
             )
 
     filtered_records = queryset.count()
@@ -293,8 +318,8 @@ def get_feedback_records_data(request):
 
     page = queryset[start:start + length].values(
         'feedback_no', 'matching_no', 'customer', 'prod_code', 'color_desc',
-        'finished_prod', 'required_date', 'due_date', 'matching_type',
-        'status', 'comment', 'storage_details', 'mode',
+        'finished_prod', 'matching_type', 'required_date', 'due_date',
+        'date_submitted', 'ar_no', 'status', 'comment', 'mode',
     )
 
     data = [
@@ -305,12 +330,13 @@ def get_feedback_records_data(request):
             'prod_code': row['prod_code'] or '---',
             'color_desc': row['color_desc'] or '---',
             'finished_prod': row['finished_prod'] or '---',
-            'required_date': row['required_date'] or '---',
-            'due_date': row['due_date'].strftime('%m/%d/%Y') if row['due_date'] else '---',
             'type': row['matching_type'] or '---',
-            'status': row['status'],
+            'required_date': row['required_date'] or '---',
+            'due_date': format_date_safe(row['due_date']),
+            'date_submitted': format_date_safe(row['date_submitted']),
+            'ar_no': row['ar_no'] or '---',
+            'status': row['status'] or '---',
             'details': row['comment'] or '---',
-            'package_details': row['storage_details'] or '---',
             'mode': row['mode'],
         }
         for row in page
@@ -323,24 +349,23 @@ def get_feedback_records_data(request):
         "data": data,
     })
 
-
 def save_feedback_entry(request, feedback_no):
-    """
-    Handles the save/update + audit-diff logic for a single feedback
-    record, validating the submitted status against the allowed set
-    for this record's submitted items. Returns (success: bool, message: str).
-    """
     try:
         with transaction.atomic():
             data = request.POST
 
-            fb_instance = tbl_feedback_details.objects.select_related('cm_no', 'rs_no').filter(feedback_no=feedback_no).first()
+            fb_instance = (
+                tbl_feedback_details.objects
+                .select_related('cm_no', 'rs_no', 'submitted_by')
+                .filter(feedback_no=feedback_no)
+                .first()
+            )
             if not fb_instance:
                 return False, "Feedback record not found."
 
-            parent_no = fb_instance.cm_no.cm_no if fb_instance.cm_no else fb_instance.rs_no.rs_no
+            parent_no = fb_instance.cm_no.cm_no if fb_instance.cm_no else (fb_instance.rs_no.rs_no if fb_instance.rs_no else "N/A")
 
-            # --- Validate submitted status against the allowed set for this record ---
+            # --- Validation for status ---
             tracking = None
             if fb_instance.cm_no:
                 tracking = tbl_cmf_pending_completed.objects.filter(cm_no=fb_instance.cm_no).first()
@@ -350,16 +375,53 @@ def save_feedback_entry(request, feedback_no):
             selected_names = _get_selected_option_names(tracking)
             allowed_statuses = get_feedback_status_choices(selected_names)
 
-            submitted_status = data.get('feedback_status', '')
+            submitted_status = data.get('feedback_status', '').strip()
             if submitted_status and submitted_status not in allowed_statuses:
                 return False, f"'{submitted_status}' is not a valid status for this record's submitted items."
 
+            status_clean = submitted_status.lower()
+
+            # --- Foreign Key: Submitted By (sm_no) ---
+            submitted_by_raw = data.get('submitted_by', '').strip()
+            if not submitted_by_raw:
+                return False, "Please select who submitted this feedback."
+
+            try:
+                new_sm_id = int(submitted_by_raw)
+            except (ValueError, TypeError):
+                return False, "Invalid sales person selected."
+
+            # --- Conditional Fields Validation & Clean ---
+            abandoned_reason = data.get('abandoned_reason', '').strip()
+            if status_clean == 'abandoned' and not abandoned_reason:
+                return False, "Please provide the reason why matching was abandoned."
+
+            order_form_no = data.get('order_form_no', '').strip()
+            if status_clean == 'ordered' and not order_form_no:
+                return False, "Please provide the Order Form No."
+
+            clean_abandoned_reason = abandoned_reason if status_clean == 'abandoned' else None
+            clean_order_form_no = order_form_no if status_clean == 'ordered' else None
+
             diff_logs = []
+
+            # 1. Audit diff for Submitted By (Names instead of raw IDs)
+            old_sm_id = fb_instance.submitted_by_id
+            if old_sm_id != new_sm_id:
+                old_name = fb_instance.submitted_by.name if fb_instance.submitted_by else "None"
+                new_sm_obj = tbl_cmf_salesman.objects.filter(sm_no=new_sm_id).first()
+                new_name = new_sm_obj.name if new_sm_obj else "None"
+                diff_logs.append(f"Submitted By ({old_name} -> {new_name})")
+                fb_instance.submitted_by_id = new_sm_id
+
+            # 2. Standard field diffs
             update_map = {
-                'feedback_status': ('status', 'Status'),
+                'feedback_status': ('status', 'Status', lambda v: v.strip() if v else None),
+                'abandoned_reason': ('abandoned_reason', 'Abandoned Reason', lambda _: clean_abandoned_reason),
+                'order_form_no': ('order_form_no', 'Order Form No', lambda _: clean_order_form_no),
                 'date_sample_received': ('date_sample_received', 'Sample Received Date', _parse_date),
-                'comments': ('comment', 'Comments'),
-                'storage_details': ('storage_details', 'Storage Details'),
+                'comments': ('comment', 'Comments', lambda v: v.strip() if v else None),
+                'storage_details': ('storage_details', 'Storage Details', lambda v: v.strip() if v else None),
             }
 
             for post_key, mapping in update_map.items():
@@ -368,7 +430,7 @@ def save_feedback_entry(request, feedback_no):
 
                 old_db_val = getattr(fb_instance, attr)
                 raw_new_val = data.get(post_key, '')
-                new_form_val = transform(raw_new_val) if transform else raw_new_val
+                new_form_val = transform(raw_new_val) if transform else (raw_new_val.strip() if isinstance(raw_new_val, str) else raw_new_val)
 
                 curr_str = _format_val(old_db_val)
                 new_str = _format_val(new_form_val)

@@ -1,3 +1,4 @@
+from decimal import Decimal, InvalidOperation
 import re
 import json
 from django.core.cache import cache
@@ -9,7 +10,7 @@ from main.services.save.utils import to_bool, format_date, clean_numeric
 from main.utils.log_audit_trail import log_audit
 from main.models import (
     tbl_cmf, tbl_cmf_color_req, tbl_cmf_dates, tbl_cmf_formula, 
-    tbl_cmf_process, tbl_cmf_process02, tbl_cmf_scanned, tbl_resin, tbl_resins_selected,
+    tbl_cmf_process, tbl_cmf_process02, tbl_cmf_scanned, tbl_field_note, tbl_generated_prod_code, tbl_resin, tbl_resins_selected,
     tbl_cmf_specification, tbl_cmf_specification02, tbl_cmf_salesman,
     tbl_cmf_pending_completed, tbl_feedback_details
 )
@@ -33,6 +34,18 @@ def blank_to_none(val):
         return None
     val = val.strip()
     return val if val else None
+
+def parse_dosage(raw_val):
+    """Converts numeric inputs to Decimal, saves non-numeric ('NA', 'N/A', etc.) as None (NULL)."""
+    if not raw_val:
+        return None
+    cleaned = str(raw_val).replace('%', '').strip()
+    if cleaned.upper() in ('NA', 'N/A', 'NONE'):
+        return None
+    try:
+        return Decimal(cleaned)
+    except (ValueError, TypeError, InvalidOperation):
+        return None
 
 def save_cmf_complete_entry(request):
     data = request.POST
@@ -65,7 +78,7 @@ def save_cmf_complete_entry(request):
             cm_no=cm_no,
             matching_type=data.get('matchType'),
             product_status=data.get('product_status'),
-            est_qty_order=clean_numeric(data.get('est_qty_order')),
+            est_qty_order=data.get('est_qty_order'),
             in_code_no_id=data.get('primary_color'),
             color_desc=data.get('color_description'),
             qty_resin_testing=data.get('qty_resin_test'),
@@ -97,9 +110,25 @@ def save_cmf_complete_entry(request):
         formula_obj = tbl_cmf_formula.objects.create(
             customer=data.get('customer'),
             finished_product=data.get('finished_product'),
-            dosage=clean_numeric(data.get('dosage')),
+            dosage = parse_dosage(data.get('dosage')),
             cm_no=cmf_main
         )
+        dosage_note = (data.get('dosage_note') or '').strip()
+        resin_note = (data.get('resin_note') or '').strip()
+
+        if dosage_note:
+            tbl_field_note.objects.create(
+                cmf_formula_no=formula_obj,
+                field='dosage',
+                note=dosage_note
+            )
+
+        if resin_note:
+            tbl_field_note.objects.create(
+                cmf_formula_no=formula_obj,
+                field='resin',
+                note=resin_note
+            )
 
         for p_name in selected_processes:
             p_name = data.get('otherProcess') if p_name == "others" else p_name
@@ -114,11 +143,53 @@ def save_cmf_complete_entry(request):
         for s_name in selected_specs:
             s_name = data.get('specificationOther') if s_name == "Others" else s_name
             if s_name:
+                # Links to 'Not Specified' (or any standard/custom spec) by its spec_no
                 s_ref, _ = tbl_cmf_specification.objects.get_or_create(name=s_name.strip())
                 tbl_cmf_specification02.objects.create(cm_no=cmf_main, spec_no=s_ref)
-        
-        tbl_cmf_pending_completed.objects.create(cm_no=cmf_main)
-        tbl_feedback_details.objects.create(cm_no=cmf_main)
+
+        # --- RESOLVE PRODUCT CODE ---
+        prod_code_val = (data.get('product_code') or '').strip()
+        code_obj = None
+
+        if prod_code_val and prod_code_val.lower() not in ('none', 'null', 'n/a'):
+            # A. If submitted from TomSelect (For RS), it passes the numeric code_no ID
+            if prod_code_val.isdigit():
+                code_obj = tbl_generated_prod_code.objects.filter(code_no=int(prod_code_val)).first()
+            
+            # B. If submitted from the text input (product code string)
+            if not code_obj:
+                code_obj = tbl_generated_prod_code.objects.filter(product_code=prod_code_val).first()
+       
+        tbl_cmf_pending_completed.objects.create(
+            cm_no=cmf_main,
+            code=code_obj,
+            is_completed=False
+        )
+        tbl_feedback_details.objects.create(
+            cm_no=cmf_main,
+            code=code_obj
+        )
+
+        # --- REMATCH FEEDBACK AUTOMATION LOGIC ---
+        match_parts = re.match(r'^(.+)([a-zA-Z])$', cm_no)
+        if match_parts:
+            base, suffix = match_parts.groups()
+            suffix = suffix.lower()
+
+            # Check if suffix is 'b' through 'z' (meaning it's a rematch entry)
+            if 'b' <= suffix <= 'z':
+                prev_suffix = chr(ord(suffix) - 1)
+                prev_cm_no = f"{base}{prev_suffix}"
+
+                # Look up feedback details for the previous CMF version
+                prev_feedback = tbl_feedback_details.objects.filter(cm_no__cm_no__iexact=prev_cm_no).first()
+                if prev_feedback:
+                    # Check if status is strictly 'waiting for result'
+                    if (prev_feedback.status or '').strip().lower() == 'waiting for result':
+                        prev_feedback.status = 'Rematch'
+                        # Inherit the exact same submitted_by salesman relation
+                        prev_feedback.submitted_by = prev_feedback.submitted_by
+                        prev_feedback.save(update_fields=['status', 'submitted_by'])
 
         num_files = _handle_file_uploads(request, cmf_main)
         
@@ -153,7 +224,7 @@ def update_cmf_complete_entry(request, original_cmf_no):
     def get_pretty_name(field):
         mapping = {
             'matching_type': 'Matching Type', 'product_status': 'Product Status', 
-            'est_qty_order': 'Est. Qty Order',  'in_code_no_id': 'Primary Color',
+            'est_qty_order': 'Est. Qty Order',  'in_code_no_id': 'Internal Color',
             'color_desc': 'Color Description', 'qty_resin_testing': 'Qty Resin',
             'is_resin_provided': 'Resin Provided', 'mi_c_resin': 'MI Resin',
             'is_sample_available': 'Sample Available', 'colorant_type': 'Colorant Type',
@@ -162,7 +233,8 @@ def update_cmf_complete_entry(request, original_cmf_no):
             'customer': 'Customer', 'finished_product': 'Finished Product', 'dosage': 'Dosage',
             'color_req': 'Color Requirement', 'form_made': 'Date Created', 
             'date_required': 'Req. Date', 'date_received_lab': 'Date Received', 'due_date_lab': 'Due Date',
-            'submit_to_lab': 'Submit to Lab'
+            'submit_to_lab': 'Submit to Lab', 'product_code': 'Product Code', 'dosage_note': 'Dosage Note',
+            'resin_note': 'Resin Note',
         }
         return mapping.get(field, field.replace('_', ' ').title())
 
@@ -188,7 +260,7 @@ def update_cmf_complete_entry(request, original_cmf_no):
         header_map = {
             'matching_type': data.get('matchType'),
             'product_status': data.get('product_status'),
-            'est_qty_order': clean_numeric(data.get('est_qty_order')),
+            'est_qty_order': data.get('est_qty_order'),
             'in_code_no_id': int(data.get('primary_color')) if data.get('primary_color') else None,
             'color_desc': data.get('color_description'),
             'qty_resin_testing': data.get('qty_resin_test'),
@@ -207,9 +279,6 @@ def update_cmf_complete_entry(request, original_cmf_no):
             current_val = getattr(old_cmf, field)
             curr_str = format_val(current_val.name if field == 'sm' and current_val else current_val)
             new_str = format_val(new_val.name if field == 'sm' and new_val else new_val)
-            if field == 'est_qty_order':
-                curr_str = str(float(current_val or 0))
-                new_str = str(float(new_val or 0))
 
             if curr_str != new_str:
                 diff_logs.append(f"{get_pretty_name(field)} ({curr_str} -> {new_str})")
@@ -247,7 +316,7 @@ def update_cmf_complete_entry(request, original_cmf_no):
         formula_map = {
             'customer': data.get('customer'),
             'finished_product': data.get('finished_product'),
-            'dosage': str(clean_numeric(data.get('dosage')))
+            'dosage': parse_dosage(data.get('dosage'))
         }
         for f_field, f_val in formula_map.items():
             curr_f_val = format_val(getattr(formula_obj, f_field))
@@ -255,6 +324,23 @@ def update_cmf_complete_entry(request, original_cmf_no):
             if curr_f_val != new_f_val:
                 diff_logs.append(f"{get_pretty_name(f_field)} ({curr_f_val} -> {new_f_val})")
 
+        # --- Track Dosage Note & Resin Note differences ---
+        old_dosage_note = tbl_field_note.objects.filter(cmf_formula_no=formula_obj, field='dosage').first()
+        old_resin_note = tbl_field_note.objects.filter(cmf_formula_no=formula_obj, field='resin').first()
+
+        new_dosage_note = (data.get('dosage_note') or '').strip()
+        new_resin_note = (data.get('resin_note') or '').strip()
+
+        curr_dn_str = format_val(old_dosage_note.note if old_dosage_note else "")
+        new_dn_str = format_val(new_dosage_note)
+        if curr_dn_str != new_dn_str:
+            diff_logs.append(f"Dosage Note ({curr_dn_str} -> {new_dn_str})")
+
+        curr_rn_str = format_val(old_resin_note.note if old_resin_note else "")
+        new_rn_str = format_val(new_resin_note)
+        if curr_rn_str != new_rn_str:
+            diff_logs.append(f"Resin Note ({curr_rn_str} -> {new_rn_str})")
+            
         # --- E. TRACK JUNCTIONS ---
         # Resins
         curr_resins = ", ".join(sorted(tbl_resins_selected.objects.filter(cm_no=old_cmf).values_list('resin_no__abbreviation', flat=True)))
@@ -276,7 +362,24 @@ def update_cmf_complete_entry(request, original_cmf_no):
         if curr_specs != new_specs_str:
             diff_logs.append(f"Specifications ({curr_specs or 'None'} -> {new_specs_str or 'None'})")
 
-        # --- 3. DATABASE EXECUTION ---
+        # --- F. RESOLVE & TRACK PRODUCT CODE ---
+        prod_code_val = (data.get('product_code') or '').strip()
+        new_code_obj = None
+
+        if prod_code_val and prod_code_val.lower() not in ('none', 'null', 'n/a'):
+            if prod_code_val.isdigit():
+                new_code_obj = tbl_generated_prod_code.objects.filter(code_no=int(prod_code_val)).first()
+            if not new_code_obj:
+                new_code_obj = tbl_generated_prod_code.objects.filter(product_code=prod_code_val).first()
+
+        old_tracking = tbl_cmf_pending_completed.objects.filter(cm_no=old_cmf).select_related('code').first()
+        old_code_str = old_tracking.code.product_code if (old_tracking and old_tracking.code) else "---"
+        new_code_str = new_code_obj.product_code if new_code_obj else "---"
+
+        if old_code_str != new_code_str:
+            diff_logs.append(f"Product Code ({old_code_str} -> {new_code_str})")
+
+        # --- 3. DATABASE EXECUTION (cmf_main is created/assigned here) ---
         if renaming:
             if tbl_cmf.objects.filter(cm_no=new_cmf_no).exists(): raise Exception("Duplicate No.")
             cmf_main = tbl_cmf.objects.create(cm_no=new_cmf_no, user=old_cmf.user, **header_map)
@@ -299,6 +402,25 @@ def update_cmf_complete_entry(request, original_cmf_no):
         )
         tbl_cmf_formula.objects.filter(cm_no=cmf_main).update(**formula_map)
         
+        # --- UPDATE / SYNC FIELD NOTES ---
+        if new_dosage_note:
+            tbl_field_note.objects.update_or_create(
+                cmf_formula_no=formula_obj,
+                field='dosage',
+                defaults={'note': new_dosage_note}
+            )
+        else:
+            tbl_field_note.objects.filter(cmf_formula_no=formula_obj, field='dosage').delete()
+
+        if new_resin_note:
+            tbl_field_note.objects.update_or_create(
+                cmf_formula_no=formula_obj,
+                field='resin',
+                defaults={'note': new_resin_note}
+            )
+        else:
+            tbl_field_note.objects.filter(cmf_formula_no=formula_obj, field='resin').delete()
+            
         # Junctions
         tbl_cmf_process02.objects.filter(cmf_formula_no__cm_no=cmf_main).delete()
         for name in new_procs_list:
@@ -314,6 +436,16 @@ def update_cmf_complete_entry(request, original_cmf_no):
         for name in new_specs_list:
             s_ref, _ = tbl_cmf_specification.objects.get_or_create(name=name)
             tbl_cmf_specification02.objects.create(cm_no=cmf_main, spec_no=s_ref)
+
+        # Update or Create Product Code on Tracking & Feedback
+        tbl_cmf_pending_completed.objects.update_or_create(
+            cm_no=cmf_main,
+            defaults={'code': new_code_obj}
+        )
+        tbl_feedback_details.objects.update_or_create(
+            cm_no=cmf_main,
+            defaults={'code': new_code_obj}
+        )
 
         num_files = _handle_file_uploads(request, cmf_main)
         if num_files > 0:

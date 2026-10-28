@@ -1,5 +1,5 @@
-from datetime import datetime
-from django.db.models import Q, Max
+from datetime import date, datetime
+from django.db.models import Q, Max, OuterRef, Subquery
 from django.views.decorators.http import require_POST
 from django.db import transaction
 from django.core.cache import cache
@@ -7,7 +7,7 @@ from django.http import JsonResponse
 from main.utils.log_audit_trail import log_audit
 from ...models import (
     tbl_cmf, tbl_cmf_formula, tbl_cmf_dates, 
-    tbl_cmf_pending_completed, tbl_cmf_salesman, tbl_customer, tbl_dc_extruder_formula, tbl_dc_extruder_materials, tbl_dc_extruder_version, tbl_internal_color_code, tbl_mb_extruder_formula, tbl_mb_extruder_formula02, tbl_resin, tbl_rm_incoming, tbl_rs
+    tbl_cmf_pending_completed, tbl_cmf_salesman, tbl_customer, tbl_dc_extruder_formula, tbl_dc_extruder_materials, tbl_dc_extruder_version, tbl_feedback_details, tbl_generated_prod_code, tbl_internal_color_code, tbl_mb_extruder_formula, tbl_mb_extruder_formula02, tbl_primary_color, tbl_resin, tbl_rm_incoming, tbl_rs, tbl_submitted_selected
 )
 
 def get_salesman_list():
@@ -15,21 +15,43 @@ def get_salesman_list():
     if not data:
         # If not there, get from DB and save for 1 day
         data = list(tbl_cmf_salesman.objects.all().order_by('name'))
-        cache.set('salesman_list', data, 86400)
+        cache.set('salesman_list', data, 3600)
     return data
 
-def get_color_list():
-    data = cache.get('color_list')
+def get_color_list(formula=False):
+    """
+    formula=False (default): only colors that exist in tbl_primary_color.
+    formula=True: every approved, non-deleted internal color (formula forms).
+    """
+    cache_key = 'color_list' if formula else 'color_list_primary'
+    data = cache.get(cache_key)
     if not data:
-        data = list(tbl_internal_color_code.objects.all().order_by('color'))
-        cache.set('color_list', data, 86400)
+        colors = tbl_internal_color_code.objects.filter(status='approved', is_deleted=False)
+        if not formula:
+            # only colors that have their own row in tbl_primary_color
+            # (NOT primary_color_id: sub colors like Light Blue carry that too)
+            colors = colors.filter(in_code_no__in=tbl_primary_color.objects.values('in_code_id'))
+        data = list(colors.order_by('color'))
+        cache.set(cache_key, data, 3600)
     return data
 
 def get_resin_list():
     data = cache.get('resin_list')
     if not data:
         data = list(tbl_resin.objects.filter(is_deleted=False).order_by('abbreviation'))
-        cache.set('resin_list', data, 86400)
+        cache.set('resin_list', data, 3600)
+    return data
+
+def get_color_code_list():
+    cache_key = 'final_code_list'
+    data = cache.get(cache_key)
+    if not data:
+        # Get distinct product codes that are linked in tbl_cmf_pending_completed
+        # (Optional: add .filter(tbl_cmf_pending_completed__is_completed=True) if "final" strictly means completed)
+        code_ids = tbl_cmf_pending_completed.objects.exclude(code__isnull=True).values_list('code_id', flat=True).distinct()
+        
+        data = list(tbl_generated_prod_code.objects.filter(code_no__in=code_ids).order_by('code_no'))
+        cache.set(cache_key, data, 3600)
     return data
 
 def get_customer_list():
@@ -45,87 +67,48 @@ def get_customer_list():
             .order_by('customer')
         )
         # Cache for 24 hours (86400 seconds)
-        cache.set('customer_list', data, 86400)
+        cache.set('customer_list', data, 3600)
     return data
 
-def get_cmf_records():
-    cached_data = cache.get('cmf_records_list')
-    if cached_data is not None:
-        return cached_data
+# def get_cmf_records():
+#     cached_data = cache.get('cmf_records_list')
+#     if cached_data is not None:
+#         return cached_data
 
-    # Added 'code' to select_related for efficiency
-    status_records = tbl_cmf_pending_completed.objects.filter(
-        cm_no__isnull=False
-    ).select_related('cm_no', 'code').order_by('-cm_no')
+#     # Added 'code' to select_related for efficiency
+#     status_records = tbl_cmf_pending_completed.objects.filter(
+#         cm_no__isnull=False
+#     ).select_related('cm_no', 'code').order_by('-cm_no')
     
-    results = []
-    for entry in status_records:
-        cmf = entry.cm_no
-        formula = tbl_cmf_formula.objects.filter(cm_no=cmf.cm_no).first()
-        dates = tbl_cmf_dates.objects.filter(cm_no=cmf.cm_no).first()
+#     results = []
+#     for entry in status_records:
+#         cmf = entry.cm_no
+#         formula = tbl_cmf_formula.objects.filter(cm_no=cmf.cm_no).first()
+#         dates = tbl_cmf_dates.objects.filter(cm_no=cmf.cm_no).first()
 
-        results.append({
-            "id": cmf.cm_no,
-            "no": cmf.cm_no,
-            "customer": formula.customer if formula else "---",
-            "primary_color": cmf.in_code_no.color if cmf.in_code_no else "---",
-            "description": cmf.color_desc or "---",
-            "product": formula.finished_product if formula else "---",
-            "required_date": dates.date_required if dates else "---",
-            "target_date": dates.due_date_lab.strftime('%m/%d/%y') if (dates and dates.due_date_lab) else "---",
-            "type": cmf.matching_type or "---",
-            "colorant_type": cmf.colorant_type or "---",
-            # Updated: Access string via the new 'code' ForeignKey
-            "code": entry.code.product_code if entry.code else "---",
-            "status": "Completed" if entry.is_completed else "Pending",
-            "submitted_date": entry.date_submitted.strftime('%m/%d/%y') if entry.date_submitted else "",
-            "ar_no": entry.ar_no or "",
-            "reason": entry.reason or "",
-            "mode": "cmf"
-        })
+#         results.append({
+#             "id": cmf.cm_no,
+#             "no": cmf.cm_no,
+#             "customer": formula.customer if formula else "---",
+#             "primary_color": cmf.in_code_no.color if cmf.in_code_no else "---",
+#             "description": cmf.color_desc or "---",
+#             "product": formula.finished_product if formula else "---",
+#             "required_date": dates.date_required if dates else "---",
+#             "target_date": dates.due_date_lab.strftime('%m/%d/%y') if (dates and dates.due_date_lab) else "---",
+#             "type": cmf.matching_type or "---",
+#             "colorant_type": cmf.colorant_type or "---",
+#             # Updated: Access string via the new 'code' ForeignKey
+#             "code": entry.code.product_code if entry.code else "---",
+#             "status": "Completed" if entry.is_completed else "Pending",
+#             "submitted_date": entry.date_submitted.strftime('%m/%d/%y') if entry.date_submitted else "",
+#             "ar_no": entry.ar_no or "",
+#             "reason": entry.reason or "",
+#             "mode": "cmf"
+#         })
 
-    final_results = sorted(results, key=lambda x: x['no'], reverse=True)
-    cache.set('cmf_records_list', final_results, 3600)
-    return final_results
-
-
-def get_rs_records():
-    cached_data = cache.get('rs_records_list')
-    if cached_data is not None:
-        return cached_data
-
-    # Added 'code' to select_related
-    status_records = tbl_cmf_pending_completed.objects.filter(
-        rs_no__isnull=False
-    ).select_related('rs_no', 'code').order_by('-rs_no')
-    
-    results = []
-    for entry in status_records:
-        rs = entry.rs_no
-        dates = tbl_cmf_dates.objects.filter(rs_no=rs).first()
-
-        results.append({
-            "id": rs.id,
-            "no": rs.rs_no,
-            "customer": rs.customer or "---",
-            "primary_color": rs.primary_color or "---",
-            "description": rs.color_desc or "---",
-            "product": rs.finished_product or "---",
-            "required_date": dates.date_required if dates else "---",
-            "target_date": dates.due_date_lab.strftime('%m/%d/%y') if (dates and dates.due_date_lab) else "---",
-            "type": rs.matching_type or "---",
-            "colorant_type": rs.colorant_type or "---",
-            # Updated: Access string via the new 'code' ForeignKey
-            "code": entry.code.product_code if entry.code else "---",
-            "status": "Completed" if entry.is_completed else "Pending",
-            "submitted_date": entry.date_submitted.strftime('%m/%d/%y') if entry.date_submitted else "",
-            "ar_no": entry.ar_no or "",
-            "reason": entry.reason or "",
-            "mode": "rs"
-        })
-
-    cache.set('rs_records_list', results, 3600)
-    return results
+#     final_results = sorted(results, key=lambda x: x['no'], reverse=True)
+#     cache.set('cmf_records_list', final_results, 3600)
+#     return final_results
 
 def get_raw_material_codes():
     """
@@ -149,11 +132,12 @@ def get_raw_material_codes():
 
     return materials
 
-def get_all_records_combined():
-    """
-    Returns all CMF and RS records loaded once for instant JS filtering.
-    """
-    return get_cmf_records() + get_rs_records()
+# def get_all_records_combined():
+#     """
+#     Returns all CMF and RS records loaded once for instant JS filtering.
+#     """
+#     # return get_cmf_records() + get_rs_records()
+#     return get_cmf_records()
 
 
 @require_POST
@@ -161,7 +145,7 @@ def toggle_final_formula(request, formula_type, formula_id):
     model = tbl_mb_extruder_formula if formula_type == 'mb' else tbl_dc_extruder_formula
     
     # Optimization: select_related parent objects so audit log doesn't trigger extra DB hits
-    header = model.objects.filter(pk=formula_id).select_related('code', 'cm_no', 'rs_no').first()
+    header = model.objects.filter(pk=formula_id).select_related('code', 'cm_no').first()
 
     if not header:
         return JsonResponse({'success': False, 'error': 'Formula record not found.'}, status=404)
@@ -175,11 +159,9 @@ def toggle_final_formula(request, formula_type, formula_id):
             new_status_code = None
         else:
             # 2. SET AS FINAL
-            # Unset any other formula marked final for the SAME parent record
+            # Unset any other formula marked final for the SAME CMF parent record
             if header.cm_no_id:
                 model.objects.filter(cm_no=header.cm_no).exclude(pk=header.pk).update(is_final=False)
-            elif header.rs_no_id:
-                model.objects.filter(rs_no=header.rs_no).exclude(pk=header.pk).update(is_final=False)
 
             header.is_final = True
             header.save(update_fields=['is_final'])
@@ -187,12 +169,8 @@ def toggle_final_formula(request, formula_type, formula_id):
             new_status_code = header.code
 
         # --- UPDATE PENDING/COMPLETED STATUS RECORD ---
-        # We perform the update directly on the queryset. 
-        # No need to fetch 'status_record' into a variable first.
         if header.cm_no_id:
             tbl_cmf_pending_completed.objects.filter(cm_no=header.cm_no).update(code=new_status_code)
-        elif header.rs_no_id:
-            tbl_cmf_pending_completed.objects.filter(rs_no=header.rs_no).update(code=new_status_code)
 
         # --- PREPARE AUDIT MESSAGE ---
         # Determine formula identifier (Lot for MB, Product Code for DC)
@@ -201,8 +179,8 @@ def toggle_final_formula(request, formula_type, formula_id):
         else:
             formula_id_display = f"Code: {header.code.product_code if header.code else 'N/A'}"
 
-        # Determine parent identifier (CMF No or RS No)
-        parent_display = header.cm_no.cm_no if header.cm_no else (header.rs_no.rs_no if header.rs_no else "Unknown")
+        # Determine parent identifier (CMF No)
+        parent_display = header.cm_no.cm_no if header.cm_no else "Unknown"
 
         action = "Marked" if is_final_now else "Unmarked"
         audit_msg = f"{action} {formula_type.upper()} formula ({formula_id_display}) as Final for {parent_display}."
@@ -218,80 +196,108 @@ def toggle_final_formula(request, formula_type, formula_id):
 
 
 # Formula Records Retrieval for CMF and RS
-# Index 0 (checkbox) and 8 (swatch/html) are intentionally excluded —
-# not meaningful to text-search.
+
+# Mapped 1-to-1 with DataTables column indices
 SEARCHABLE_COLUMNS = {
     1: 'date_display',
     2: 'cmf_no',
-    3: 'product_code',
-    4: 'color',
-    5: 'mixing',
-    6: 'matched_by',
-    7: 'lot_no',
-    9: 'type',
+    3: 'customer',
+    4: 'product_code',
+    5: 'lot_no',
+    6: 'color',
+    7: 'dosage_display',
+}
+
+SORTABLE_COLUMNS = {
+    1: 'date',
+    2: 'cmf_no',
+    3: 'customer',
+    4: 'product_code',
+    5: 'lot_no',
+    6: 'color',
+    7: 'dosage',
 }
 
 
 def get_all_formula_records():
-    # This remains the same as the parent 'tbl_dc_extruder_formula' hasn't changed
-    # It still pulls code, cm_no, rs_no, and header details.
-    mb_qs = tbl_mb_extruder_formula.objects.select_related('code', 'cm_no', 'rs_no')
-    dc_qs = tbl_dc_extruder_formula.objects.select_related('code', 'cm_no', 'rs_no')
+    # 1. Preload customer and dosage from tbl_cmf_formula in 1 query for instant O(1) lookup
+    formula_map = {}
+    for f in tbl_cmf_formula.objects.all().only('cm_no', 'customer', 'dosage'):
+        if f.cm_no_id:
+            formula_map[str(f.cm_no_id)] = f
+
+    # select_related pulls the colors in the same query (no extra query per row)
+    mb_qs = tbl_mb_extruder_formula.objects.select_related('code', 'cm_no', 'cm_no__in_code_no', 'internal_color')
+    dc_qs = tbl_dc_extruder_formula.objects.select_related('code', 'cm_no', 'cm_no__in_code_no')
 
     combined_results = []
 
+    # MB Formulas
     for f in mb_qs:
-        color = f.cm_no.color_desc if f.cm_no else (f.rs_no.color_desc if f.rs_no else "---")
-        if f.cm_no:
-            record_type, record_no = 'cmf', f.cm_no.cm_no
-        elif f.rs_no:
-            record_type, record_no = 'rs', f.rs_no.pk
+        cm_obj = f.cm_no
+        cmf_no = cm_obj.cm_no if cm_obj else "N/A"
+        # color = cm_obj.color_desc if (cm_obj and cm_obj.color_desc) else "---" COLOR DESC
+        # Show the internal color saved on THIS formula, not the CMF's color.
+        # Fall back to the CMF's primary color if the formula has none, then to "---".
+        if f.internal_color and f.internal_color.color:
+            color = f.internal_color.color
+        elif cm_obj and cm_obj.in_code_no and cm_obj.in_code_no.color:
+            color = cm_obj.in_code_no.color
         else:
-            record_type, record_no = '', ''
+            color = "---"
+
+        f_info = formula_map.get(str(cm_obj.cm_no)) if cm_obj else None
+        customer = f_info.customer.upper() if f_info and f_info.customer else "---"
+        raw_dosage = f_info.dosage if f_info else None
+        dosage_display = f"{float(raw_dosage):g}%" if raw_dosage is not None else "---"
 
         combined_results.append({
-            "id": f.mb_no, "type": "MB", "date": f.date,
-            "cmf_no": f.cm_no.cm_no if f.cm_no else (f.rs_no.rs_no if f.rs_no else "N/A"),
-            "record_type": record_type, "record_no": record_no,
+            "id": f.mb_no,
+            "type": "MB",
+            "date": f.date,
+            "cmf_no": cmf_no,
+            "record_type": "cmf",
+            "record_no": cmf_no if cmf_no != "N/A" else "",
+            "customer": customer,
             "product_code": f.code.product_code if f.code else "---",
-            "color": color, "mixing": f.mixing_time or "---",
-            "matched_by": f.matched_by or "---", "lot_no": f.lot_no or "N/A",
-            "html": f.html or "#ffffff"
+            "lot_no": f.lot_no or "N/A",
+            "color": color,
+            "dosage": float(raw_dosage) if raw_dosage is not None else None,
+            "dosage_display": dosage_display,
+            "html": (f.html or "").strip(),   # empty = no swatch ("N/A" is shown in the table)
+            "is_final": bool(getattr(f, 'is_final', False))
         })
 
+    # DC Formulas
     for f in dc_qs:
-        color = f.cm_no.color_desc if f.cm_no else (f.rs_no.color_desc if f.rs_no else "---")
-        if f.cm_no:
-            record_type, record_no = 'cmf', f.cm_no.cm_no
-        elif f.rs_no:
-            record_type, record_no = 'rs', f.rs_no.pk
-        else:
-            record_type, record_no = '', ''
+        cm_obj = f.cm_no
+        cmf_no = cm_obj.cm_no if cm_obj else "N/A"
+        # color = cm_obj.color_desc if (cm_obj and cm_obj.color_desc) else "---" COLOR DESC
+        color = cm_obj.in_code_no.color if (cm_obj and cm_obj.in_code_no and cm_obj.in_code_no.color) else "---"
+
+        f_info = formula_map.get(str(cm_obj.cm_no)) if cm_obj else None
+        customer = f_info.customer.upper() if f_info and f_info.customer else "---"
+        raw_dosage = f_info.dosage if f_info else None
+        dosage_display = f"{float(raw_dosage):g}%" if raw_dosage is not None else "NA"
 
         combined_results.append({
-            "id": f.dc_no, "type": "DC", "date": f.date,
-            "cmf_no": f.cm_no.cm_no if f.cm_no else (f.rs_no.rs_no if f.rs_no else "N/A"),
-            "record_type": record_type, "record_no": record_no,
+            "id": f.dc_no,
+            "type": "DC",
+            "date": f.date,
+            "cmf_no": cmf_no,
+            "record_type": "cmf",
+            "record_no": cmf_no if cmf_no != "N/A" else "",
+            "customer": customer,
             "product_code": f.code.product_code if f.code else "---",
-            "color": color, "mixing": f.mixing_time or "---",
-            "matched_by": f.matched_by or "---", "lot_no": "N/A",
-            "html": f.html or "#ffffff"
+            "lot_no": "N/A",
+            "color": color,
+            "dosage": float(raw_dosage) if raw_dosage is not None else None,
+            "dosage_display": dosage_display,
+            "html": (f.html or "").strip(),   # empty = no swatch ("N/A" is shown in the table)
+            "is_final": bool(getattr(f, 'is_final', False))
         })
-    return combined_results
 
-# Maps a DataTables column index to the dict key to sort/filter by.
-# Index 8 (swatch/html) is intentionally not sortable in the JS config,
-# so it's omitted here too.
-SORTABLE_COLUMNS = {
-    1: 'date',           # sort by the raw date object, not date_display string
-    2: 'cmf_no',
-    3: 'product_code',
-    4: 'color',
-    5: 'mixing',
-    6: 'matched_by',
-    7: 'lot_no',
-    9: 'type',
-}
+    return combined_results
 
 
 def formula_records_data(request):
@@ -299,8 +305,11 @@ def formula_records_data(request):
     start = int(request.GET.get('start', 0))
     length = int(request.GET.get('length', 100))
     global_search = request.GET.get('search[value]', '').strip()
+    only_final = request.GET.get('only_final') == '1'
 
     all_records = get_all_formula_records()
+    if only_final:
+        all_records = [item for item in all_records if item.get('is_final')]
     total_unfiltered = len(all_records)
 
     for item in all_records:
@@ -333,18 +342,37 @@ def formula_records_data(request):
 
     sort_field = None
     if order_col_index is not None:
-        sort_field = SORTABLE_COLUMNS.get(int(order_col_index))
+        try:
+            sort_field = SORTABLE_COLUMNS.get(int(order_col_index))
+        except (ValueError, TypeError):
+            sort_field = None
 
     if sort_field:
-        filtered.sort(
-            key=lambda item: (item.get(sort_field) is None, item.get(sort_field) or ''),
-            reverse=(order_dir == 'desc')
-        )
+        # ✅ TYPE-SAFE COMPARATOR (Never mixes floats, dates, or strings)
+        def get_sort_key(item):
+            val = item.get(sort_field)
+
+            if sort_field == 'dosage':
+                try:
+                    num = float(val) if val is not None else None
+                except (ValueError, TypeError):
+                    num = None
+                # None values sorted to the bottom (1), valid numbers first (0)
+                return (1 if num is None else 0, num if num is not None else -1.0)
+
+            elif sort_field == 'date':
+                return (1 if val is None else 0, val if val is not None else date.min)
+
+            else:
+                # Text fields: case-insensitive string comparison
+                s = str(val or '').strip().lower()
+                return (1 if not s else 0, s)
+
+        filtered.sort(key=get_sort_key, reverse=(order_dir == 'desc'))
     else:
-        # Fallback: original default (date desc), for the very first
-        # load or if an unmapped column index somehow comes through.
+        # Fallback default: date desc
         filtered.sort(
-            key=lambda x: x['date'] if x['date'] else datetime.min.date(),
+            key=lambda x: x['date'] if x.get('date') else date.min,
             reverse=True
         )
 
@@ -367,29 +395,264 @@ def get_formula_materials(request, formula_type, formula_id):
     results = []
 
     if formula_type.upper() == 'MB':
-        # MB still uses the old flat structure
-        results = list(tbl_mb_extruder_formula02.objects.filter(mb_id=formula_id).values('material', 'value', 'weight'))
+        # MB formula items
+        results = list(
+            tbl_mb_extruder_formula02.objects
+            .filter(mb_id=formula_id)
+            .values('material', 'value', 'weight')
+        )
     
     else:
-        # NEW DC LOGIC: Find latest trial/version
-        # 1. Identify the highest version number recorded for this formula
+        # DC LOGIC: Find latest trial/version
+        # 1. Identify the highest version number for this DC formula
         max_v = tbl_dc_extruder_version.objects.filter(
             material__dc_id=formula_id
         ).aggregate(Max('version_no'))['version_no__max']
 
-        if max_v:
-            # 2. Get materials and values for that specific version
-            # select_related('material') avoids multiple DB hits for the material name
+        if max_v is not None:
+            # 2. Pull materials and values for that latest version
             version_data = tbl_dc_extruder_version.objects.filter(
                 material__dc_id=formula_id, 
                 version_no=max_v
-            ).select_related('material')
+            ).select_related('material').order_by('id')
 
             for v in version_data:
+                val = float(v.value or 0)
                 results.append({
-                    'material': v.material.material,
-                    'value': float(v.value or 0),
-                    'weight': 0 # Weight was removed from DC database, returning 0 to keep JS happy
+                    'material': v.material.material if v.material else '---',
+                    'value': val,
+                    'weight': val  # Pass val to weight so JS parseFloat(m.weight) displays the true value
                 })
 
     return JsonResponse({'materials': results})
+
+
+#
+# new cmf records
+
+# DataTables sends the column POSITION it's ordering/searching by (0-based,
+# left to right as drawn in <thead>). These lists are indexed by that
+# position and must stay in the same order as the <th> elements in the
+# template.
+# Updated to match the new 18 column positions (0-based)
+ORDER_COLUMNS = [
+    'cm_no__cm_no',                # 0 - id (hidden)
+    'cm_no__cm_no',                # 1 - CMF No.
+    'customer',                    # 2 - Customer
+    'cm_no__in_code_no__color',    # 3 - Primary Color
+    'cm_no__color_desc',           # 4 - Color Description
+    'finished_product',            # 5 - Finished Product
+    'date_required',               # 6 - Required Date
+    'due_date_lab',                # 7 - Target Date
+    'cm_no__matching_type',        # 8 - Matching Type
+    'cm_no__colorant_type',        # 9 - Colorant
+    'code__product_code',          # 10 - Product Code
+    'is_completed',                # 11 - Status
+    'date_submitted',              # 12 - Submitted Date
+    'ar_no',                       # 13 - AR No.
+    'cm_no__cm_no',                # 14 - Submitted Option (fallback order)
+    'cm_no__cm_no',                # 15 - Qty (fallback order)
+    'cm_no__cm_no',                # 16 - Set (fallback order)
+    'reason',                      # 17 - Reason
+]
+ 
+# Maps the search-field dropdown's <option value="..."> (unchanged from
+# the template) to the ORM path(s) to search when that option is picked.
+SEARCH_FIELDS = {
+    '0': ['cm_no__cm_no'],
+    '1': ['customer'],
+    '2': ['cm_no__in_code_no__color'],
+    '3': ['cm_no__color_desc'],
+    '4': ['finished_product'],
+    '5': ['date_required'],
+    '6': ['due_date_lab'],
+    '7': ['cm_no__matching_type'],
+    '8': ['code__product_code'],
+    '10': ['date_submitted'],
+    '11': ['ar_no'],
+    '12': ['reason'],
+    '13': ['cm_no__colorant_type'],
+    # '9' (Status) is deliberately absent — status is a boolean driven by
+    # the Completed/Pending checkboxes, not free text. See special-case
+    # handling below.
+}
+ALL_SEARCH_FIELDS = sorted({f for fields in SEARCH_FIELDS.values() for f in fields})
+ 
+ 
+def _base_queryset():
+    """The efficient replacement for the old per-row .first() lookups."""
+    formula_sub = tbl_cmf_formula.objects.filter(cm_no=OuterRef('cm_no__cm_no'))
+    dates_sub = tbl_cmf_dates.objects.filter(cm_no=OuterRef('cm_no__cm_no'))
+ 
+    return tbl_cmf_pending_completed.objects.filter(
+        cm_no__isnull=False
+    ).select_related('cm_no', 'code', 'cm_no__in_code_no').annotate(
+        customer=Subquery(formula_sub.values('customer')[:1]),
+        finished_product=Subquery(formula_sub.values('finished_product')[:1]),
+        date_required=Subquery(dates_sub.values('date_required')[:1]),
+        due_date_lab=Subquery(dates_sub.values('due_date_lab')[:1]),
+    )
+ 
+ 
+def get_cmf_records_page(*, show_completed, show_pending, search_col,
+                          search_term, order_col, order_dir, start, length):
+    """
+    Returns (total_count, filtered_count, page) where `page` is a list of
+    dicts in the same shape the old get_cmf_records() produced (minus the
+    'mode' key, since this is CMF-only now).
+    """
+    qs = _base_queryset()
+    total_count = qs.count()
+ 
+    # --- Status filter (Completed / Pending checkboxes) ---
+    if show_completed and not show_pending:
+        qs = qs.filter(is_completed=True)
+    elif show_pending and not show_completed:
+        qs = qs.filter(is_completed=False)
+    elif not show_completed and not show_pending:
+        qs = qs.none()
+ 
+    # --- Free-text search ---
+    search_term = (search_term or '').strip()
+    if search_term:
+        if search_col == '9':
+            # Status column: match against the word, not a boolean icontains.
+            lowered = search_term.lower()
+            if 'complet' in lowered:
+                qs = qs.filter(is_completed=True)
+            elif 'pend' in lowered:
+                qs = qs.filter(is_completed=False)
+            else:
+                qs = qs.none()
+        else:
+            fields = ALL_SEARCH_FIELDS if search_col == 'all' else SEARCH_FIELDS.get(search_col, [])
+            if fields:
+                q = Q()
+                for f in fields:
+                    q |= Q(**{f'{f}__icontains': search_term})
+                qs = qs.filter(q)
+ 
+    filtered_count = qs.count()
+ 
+    # --- Ordering ---
+    if 0 <= order_col < len(ORDER_COLUMNS):
+        order_field = ORDER_COLUMNS[order_col]
+    else:
+        order_field = 'cm_no__cm_no'
+    if order_dir == 'desc':
+        order_field = f'-{order_field}'
+    qs = qs.order_by(order_field)
+ 
+    page_qs = qs[start:start + length]
+
+     # --- BATCH PRE-FETCH FOR PERFORMANCE (2 queries for the whole page) ---
+    cm_nos = [entry.cm_no_id for entry in page_qs if entry.cm_no_id]
+    completed_ids = [entry.completed_id for entry in page_qs if entry.completed_id]
+
+    # 1. Batch Feedback (for Qty & Set)
+    feedback_map = {}
+    if cm_nos:
+        for fb in tbl_feedback_details.objects.filter(cm_no__in=cm_nos).values('cm_no', 'quantity_given', 'pieces'):
+            feedback_map[fb['cm_no']] = fb
+
+    # 2. Batch Submitted Selections
+    submitted_map = {}
+    if completed_ids:
+        for sub in tbl_submitted_selected.objects.filter(completed_id__in=completed_ids).select_related('option_id'):
+            c_id = sub.completed_id_id
+            if c_id not in submitted_map:
+                submitted_map[c_id] = []
+            if sub.option_id and sub.option_id.name:
+                submitted_map[c_id].append(sub.option_id.name.strip())
+
+    STANDARD_CANONICAL = {'sample', 'chips', 'price'}
+ 
+    page = []
+    for entry in page_qs:
+        cmf = entry.cm_no
+
+        # 1. Submitted Option resolution
+        opt_names = submitted_map.get(entry.completed_id, [])
+        if not opt_names:
+            submitted_option_display = "---"
+        else:
+            display_opts = []
+            for name in opt_names:
+                if name.lower() in STANDARD_CANONICAL:
+                    display_opts.append(name.capitalize())
+                else:
+                    # Non-standard remark -> display "None"
+                    display_opts.append("None")
+            submitted_option_display = ", ".join(dict.fromkeys(display_opts))
+
+        # 2. Qty Resolution
+        fb_item = feedback_map.get(entry.cm_no_id)
+        qty_val = fb_item.get('quantity_given') if fb_item else None
+        if qty_val is not None and str(qty_val).strip() != '':
+            try:
+                qty_display = f"{float(qty_val):g} KG"
+            except (ValueError, TypeError):
+                qty_display = f"{qty_val} KG"
+        else:
+            qty_display = "---"
+
+        # 3. Set Resolution
+        set_val = fb_item.get('pieces') if fb_item else None
+        if set_val is not None and str(set_val).strip() != '':
+            set_display = str(set_val)
+        else:
+            set_display = "---"
+
+        page.append({
+            "id": cmf.cm_no,
+            "no": cmf.cm_no,
+            "customer": entry.customer.upper() if entry.customer else "---",
+            "primary_color": cmf.in_code_no.color if cmf.in_code_no else "---",
+            "description": cmf.color_desc.upper() if cmf.color_desc else "---",
+            "product": entry.finished_product.upper() if entry.finished_product else "---",
+            "required_date": entry.date_required or "---",
+            "target_date": entry.due_date_lab.strftime('%m/%d/%y') if entry.due_date_lab else "---",
+            "type": cmf.matching_type.upper() if cmf.matching_type else "---",
+            "colorant_type": cmf.colorant_type or "---",
+            "code": entry.code.product_code if entry.code else "---",
+            "status": "Completed" if entry.is_completed else "Pending",
+            "submitted_date": entry.date_submitted.strftime('%m/%d/%y') if entry.date_submitted else "",
+            "ar_no": entry.ar_no or "",
+            "submitted_option": submitted_option_display,  
+            "qty": qty_display,                            
+            "set": set_display,
+            "reason": entry.reason or "",
+        })
+ 
+    return total_count, filtered_count, page
+
+
+def cmf_records_data(request):
+    draw = int(request.GET.get('draw', 1))
+    start = int(request.GET.get('start', 0))
+    length = int(request.GET.get('length', 25))
+    order_col = int(request.GET.get('order[0][column]', 1))
+    order_dir = request.GET.get('order[0][dir]', 'desc')
+ 
+    show_completed = request.GET.get('status_completed', 'true') == 'true'
+    show_pending = request.GET.get('status_pending', 'true') == 'true'
+    search_col = request.GET.get('search_col', 'all')
+    search_term = request.GET.get('search_term', '')
+ 
+    total_count, filtered_count, page = get_cmf_records_page(
+        show_completed=show_completed,
+        show_pending=show_pending,
+        search_col=search_col,
+        search_term=search_term,
+        order_col=order_col,
+        order_dir=order_dir,
+        start=start,
+        length=length,
+    )
+ 
+    return JsonResponse({
+        "draw": draw,
+        "recordsTotal": total_count,
+        "recordsFiltered": filtered_count,
+        "data": page,
+    })

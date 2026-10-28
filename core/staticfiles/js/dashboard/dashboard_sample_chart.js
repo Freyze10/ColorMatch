@@ -34,15 +34,31 @@ am5.ready(function() {
     }
 
     // === DATA ===
-    let data = [{
-        category: "Samples",
-        value: 325,
-        color: am5.color(0x14b8a6) 
-    }, {
-        category: "Orders",
-        value: 175,
-        color: am5.color(0x1e293b) 
-    }];
+    // let data = [{
+    //     category: "Samples/Chips",
+    //     value: 325,
+    //     color: am5.color(0x14b8a6) 
+    // }, {
+    //     category: "Orders",
+    //     value: 175,
+    //     color: am5.color(0x1e293b) 
+    // }];
+    // === DATA ===
+    let dataEl = document.getElementById("sample-order-chart-data");
+    let rawData = dataEl ? JSON.parse(dataEl.textContent) : [];
+
+    let categoryColors = {
+        "Samples/Chips": am5.color(0x14b8a6),
+        "Orders": am5.color(0x1e293b)
+    };
+
+    let data = rawData.map(function(d) {
+        return {
+            category: d.category,
+            value: d.value,
+            color: categoryColors[d.category] || am5.color(0x8c8a89)
+        };
+    });
 
     // Create Series
     let series = chart.series.push(am5percent.PieSeries.new(root, {
@@ -86,7 +102,7 @@ am5.ready(function() {
         let colors = getThemeColors();
         let hexColor = colors.labelMain.toCSSHex(); // Converts am5 color to #FFFFFF etc.
 
-        let samplesItem = series.dataItems.find(d => d.dataContext.category === "Samples");
+        let samplesItem = series.dataItems.find(d => d.dataContext.category === "Samples/Chips");
         let ordersItem  = series.dataItems.find(d => d.dataContext.category === "Orders");
 
         let samplesVisible = samplesItem.get("visible");
@@ -103,7 +119,7 @@ am5.ready(function() {
         } else if (samplesVisible) {
             label.set("html",
                 `<div style='text-align:center; color: ${hexColor};'>` +
-                "<div style='font-size:14px;'>Samples</div>" +
+                "<div style='font-size:14px;'>Samples/Chips</div>" +
                 "<div style='font-size:30px;font-weight:bold;'>" +
                 samplesItem.get("value") +
                 "</div></div>"

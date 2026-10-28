@@ -34,7 +34,74 @@ const Preline = {
         }, 4000);
     },
 
-    // 2. CONFIRMATION MODAL
+    // 2. ALERT (ONLY 1 OK BUTTON & NO STUCK GRAY BACKDROP)
+    alert: function(title, message, type = 'info', onOk) {
+        const modalEl = document.getElementById('dynamicModal');
+        if (!modalEl) return;
+
+        // Use getOrCreateInstance to prevent multiple backdrop duplication
+        const modal = bootstrap.Modal.getOrCreateInstance(modalEl);
+
+        document.getElementById('modalTitle').innerText = title;
+        document.getElementById('modalMessage').innerText = message;
+
+        const iconContainer = document.getElementById('modalIconContainer');
+        const icon = document.getElementById('modalIcon');
+        const cleanType = (type === 'error') ? 'danger' : (type || 'info');
+
+        iconContainer.className = 'modal-icon-circle icon-' + cleanType;
+        if (cleanType === 'danger') icon.className = 'bi bi-exclamation-triangle';
+        else if (cleanType === 'warning') icon.className = 'bi bi-exclamation-circle';
+        else if (cleanType === 'info') icon.className = 'bi bi-info-circle';
+        else icon.className = 'bi bi-check-lg';
+
+        const confirmBtn = document.getElementById('modalConfirmBtn');
+        const newConfirmBtn = confirmBtn.cloneNode(true);
+        confirmBtn.parentNode.replaceChild(newConfirmBtn, confirmBtn);
+
+        // Hide ALL other buttons in the footer (guarantees "Cancel" is hidden)
+        modalEl.querySelectorAll('.modal-footer button, button[data-bs-dismiss="modal"]').forEach(btn => {
+            if (btn !== newConfirmBtn && !btn.classList.contains('btn-close')) {
+                btn.style.setProperty('display', 'none', 'important');
+            }
+        });
+
+        newConfirmBtn.innerText = 'OK';
+
+        let handled = false;
+        const triggerCallback = () => {
+            if (!handled) {
+                handled = true;
+                if (typeof onOk === 'function') onOk();
+            }
+        };
+
+        newConfirmBtn.onclick = () => {
+            triggerCallback();
+            modal.hide();
+        };
+
+        modalEl.addEventListener('hidden.bs.modal', function handler() {
+            triggerCallback();
+
+            // Restore all hidden buttons for future confirm dialogs
+            modalEl.querySelectorAll('.modal-footer button').forEach(btn => {
+                btn.style.removeProperty('display');
+            });
+
+            // 🛑 FORCE REMOVE ANY STUCK GRAY BACKDROP
+            document.querySelectorAll('.modal-backdrop').forEach(b => b.remove());
+            document.body.classList.remove('modal-open');
+            document.body.style.removeProperty('overflow');
+            document.body.style.removeProperty('padding-right');
+
+            modalEl.removeEventListener('hidden.bs.modal', handler);
+        });
+
+        modal.show();
+    },
+    
+    // 3. CONFIRMATION MODAL
     confirm: function(title, message, type, onConfirm, onCancel) {
         const modalEl = document.getElementById('dynamicModal');
         const modal = new bootstrap.Modal(modalEl);

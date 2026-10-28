@@ -118,6 +118,35 @@ select.uniform-input {
     background-color: var(--sidebar-header-bg) !important;
     border-color: var(--sidebar-header-bg) !important;
 }
+/* Custom Cross/Check Toggle variant */
+.cross-check {
+    position: relative;
+    text-align: center;
+    line-height: 1;
+}
+
+/* Unchecked state: display X */
+.cross-check:not(:checked):before {
+    content: "✕";
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    font-size: 0.75rem;
+    font-weight: 900;
+    color: #ef4444; /* Red color for X */
+}
+
+/* Checked state: display Check (overrides X) */
+.cross-check:checked:before {
+    content: "✓";
+    color: #ffffff; /* White check mark */
+}
+
+/* Dark mode adjustment for the red X if needed */
+body.dark-mode .cross-check:not(:checked):before {
+    color: #f87171; 
+}
 
 /* Global Button Overrides */
 .btn-teal { background-color: var(--btn-teal); border: none; border-radius: 0.4rem; }
@@ -317,8 +346,50 @@ body.dark-mode .ts-dropdown .active {
 .navbar { background: var(--navbar-bg); border-bottom: 1px solid var(--sidebar-border); height: 64px; display: flex; align-items: center; padding: 0 1.5rem; position: sticky; top: 0; z-index: 1030; transition: transform 0.3s ease-in-out; width: 100%; }
 .nav-hidden { transform: translateY(-100%); }
 
+.ts-dropdown,
+.ts-dropdown .ts-dropdown-content,
+.ts-control,
+.ts-wrapper {
+    transition: none !important;
+    animation: none !important;
+}
 /* ===================================
    7. RESPONSIVE
 =================================== */
-@media (max-width: 991.98px) { .sidebar { transform: translateX(-100%); } .sidebar.show { transform: translateX(0); } .main { margin-left: 0 !important; } .sidebar-overlay.show { display: block; } .content { padding-top: 1rem !important; } }
-@media (min-width: 992px) { .sidebar.collapsed { width: 80px; } .sidebar.collapsed ~ .main { margin-left: 80px; } .sidebar.collapsed .logo-text, .sidebar.collapsed span, .sidebar.collapsed .user-info, .sidebar.collapsed .arrow-icon, .sidebar.collapsed .user-name, .sidebar.collapsed .user-role { display: none !important; } .sidebar.collapsed .nav-link { justify-content: center; } .sidebar.collapsed .sidebar-footer .dropdown-toggle::after { display: none !important; } }
+@media (max-width: 991.98px) {
+    .sidebar {
+        transform: translateX(-100%);
+    }
+
+    .sidebar.show {
+        transform: translateX(0);
+    }
+
+    .main {
+        margin-left: 0 !important;
+    }
+
+    .sidebar-overlay.show {
+        display: block;
+    }
+
+    .content {
+        padding-top: 1rem !important;
+    }
+    #globalBackBtn { display: none !important; }
+}
+
+@media (min-width: 992px) {
+    .sidebar.collapsed {
+        width: 80px;
+    }
+
+    .sidebar.collapsed~.main {
+        margin-left: 80px;
+    }
+
+    .sidebar.collapsed .logo-text,
+    .sidebar.collapsed span,
+    .sidebar.collapsed .user-info,
+    .sidebar.collapsed .arrow-icon,
+    .sidebar.collapsed .user-name, .sidebar.collapsed .user-role { display: none !important; } .sidebar.collapsed .nav-link { justify-content: center; } .sidebar.collapsed .sidebar-footer .dropdown-toggle::after { display: none !important; } }

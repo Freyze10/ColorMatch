@@ -7,6 +7,11 @@ document.addEventListener('DOMContentLoaded', function() {
     const newBtn = document.querySelector('.btn-new');
     const printBtn = document.querySelector('.btn-cmf-print');
     const refreshBtn = document.getElementById('refreshBtn');
+    const toggleForRs = document.getElementById('toggleForRs');
+    const inputWrapper = document.getElementById('product_code_input_wrapper');
+    const selectWrapper = document.getElementById('product_code_select_wrapper');
+    const productCodeInput = document.getElementById('id_product_code_input');
+    const productCodeSelect = document.getElementById('id_product_code_select');
 
     // Works on any page — CMF Entry, RS Entry, or anywhere else these
     // buttons appear — since it finds whichever <form> actually wraps
@@ -19,6 +24,61 @@ document.addEventListener('DOMContentLoaded', function() {
     const searchInput = document.getElementById('recordSearchInput');
     const searchFieldSelect = document.getElementById('searchFieldSelect');
     const recordsTbody = document.getElementById('recordsTbody');
+    const originalCmfInput = document.querySelector('input[name="original_cmf_no"]');
+    const isNewInput = document.querySelector('input[name="is_new"]');
+
+     // --- TOGGLE "FOR RS" LOGIC ---
+    const updateForRsState = (triggerValidation = false) => {
+        const isForRs = toggleForRs && toggleForRs.checked;
+
+        if (isForRs) {
+            // 1. Hide the readonly input, show the TomSelect dropdown
+            if (inputWrapper) inputWrapper.style.display = 'none';
+            if (selectWrapper) selectWrapper.style.display = 'block';
+
+            // 2. Disable input so it won't submit; Enable TomSelect
+            if (productCodeInput) productCodeInput.disabled = true;
+
+            if (productCodeSelect) {
+                productCodeSelect.disabled = false;
+                if (productCodeSelect.tomselect) {
+                    productCodeSelect.tomselect.enable();
+                }
+            }
+        } else {
+            // 1. Show the readonly input, hide the TomSelect dropdown
+            if (inputWrapper) inputWrapper.style.display = 'block';
+            if (selectWrapper) selectWrapper.style.display = 'none';
+
+            // 2. Enable input; Disable TomSelect so it won't submit
+            if (productCodeInput) productCodeInput.disabled = false;
+
+            if (productCodeSelect) {
+                productCodeSelect.disabled = true;
+                if (productCodeSelect.tomselect) {
+                    productCodeSelect.tomselect.disable();
+                }
+            }
+        }
+
+        // Reset Save button in case regular validation disabled it
+        if (saveBtn) saveBtn.disabled = false;
+
+        // ONLY re-validate if it was manually toggled, NEVER on page load
+        if (triggerValidation && cmfInput && cmfInput.value.trim().length >= 3) {
+            if (isForRs) {
+                validateRsCmf(true);
+            } else {
+                validateCmf(true);
+            }
+        }
+    };
+
+    if (toggleForRs) {
+        // ✅ CORRECT: waits for user to click the toggle
+        toggleForRs.addEventListener('change', () => updateForRsState(true));
+        setTimeout(() => updateForRsState(false), 100);
+    }
 
     // --- 3. NUMERIC INPUT FORMATTING LOGIC ---
     const restrictToNumbers = (e) => {
@@ -28,9 +88,67 @@ document.addEventListener('DOMContentLoaded', function() {
         return true;
     };
 
-    document.querySelectorAll('.qty-resin-input, .dosage-input, .est-qty-input').forEach(input => {
+    document.querySelectorAll('.qty-resin-input').forEach(input => {
         input.addEventListener('keypress', restrictToNumbers);
     });
+
+    // Allow numbers, decimal point, and 'N', 'A', '/' for Dosage
+    const restrictDosageInput = (e) => {
+        const char = e.key;
+        if (e.ctrlKey || e.altKey || char.length > 1) return true;
+
+        // Accepts 0-9, '.', and 'N', 'A', '/', 'n', 'a'
+        if (/^[0-9.naNA/]$/.test(char)) {
+            if (char === '.' && e.target.value.includes('.')) {
+                e.preventDefault();
+                return false;
+            }
+            return true;
+        }
+        e.preventDefault();
+        return false;
+    };
+    document.querySelectorAll('.dosage-input').forEach(input => {
+        input.addEventListener('keypress', restrictDosageInput);
+        
+        // Auto-uppercase "na" or "n/a" on blur
+        input.addEventListener('blur', function() {
+            const val = this.value.trim().toUpperCase();
+            if (val === 'NA' || val === 'N/A') {
+                this.value = val;
+            }
+        });
+    });
+
+    // --- DOSAGE & DOSAGE NOTE SYNC LOGIC ---
+    const dosageInput = document.querySelector('input[name="dosage"]');
+    const dosageNoteInput = document.querySelector('input[name="dosage_note"]');
+
+    if (dosageInput && dosageNoteInput) {
+        // If the form loaded with an existing note that is different from dosage, treat as already edited
+        let isDosageNoteUserEdited = Boolean(
+            dosageNoteInput.value.trim() !== '' &&
+            dosageNoteInput.value.trim() !== dosageInput.value.trim()
+        );
+
+        // 1. Sync value from dosage to dosage note while not manually edited
+        dosageInput.addEventListener('input', function() {
+            if (!isDosageNoteUserEdited) {
+                dosageNoteInput.value = this.value;
+            }
+        });
+
+        // 2. Detect when user manually changes the dosage note
+        dosageNoteInput.addEventListener('input', function() {
+            // User typed something custom: stop auto-syncing
+            isDosageNoteUserEdited = true;
+
+            // (Optional): If the user clears the note completely, resume auto-syncing
+            if (this.value.trim() === '') {
+                isDosageNoteUserEdited = false;
+            }
+        });
+    }
 
     // --- POPULATE QTY RESIN ON LOAD ---
     const hiddenField = document.getElementById('id_qty_resin_test_hidden');
@@ -50,11 +168,50 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     }
 
+    // other specification checkboxes, pagka click ng not specified, cleared out yung other checkboox
+    const notSpecifiedCb = document.getElementById('spec_not_specified');
+    const otherSpecCheckboxes = document.querySelectorAll('.spec-item');
+    const otherSpecInput = document.getElementById('specificationOtherInput');
+
+    if (notSpecifiedCb) {
+        // If "Not Specified" is checked -> uncheck other specs and clear "Others" input
+        notSpecifiedCb.addEventListener('change', function () {
+            if (this.checked) {
+                otherSpecCheckboxes.forEach(cb => cb.checked = false);
+                if (otherSpecInput) otherSpecInput.value = '';
+            }
+        });
+
+        // If any specific specification is checked -> uncheck "Not Specified"
+        otherSpecCheckboxes.forEach(cb => {
+            cb.addEventListener('change', function () {
+                if (this.checked) {
+                    notSpecifiedCb.checked = false;
+                }
+            });
+        });
+    }
+
     // --- 4. BUTTON LISTENERS ---
 
     if (saveBtn && entryForm) {
     saveBtn.addEventListener('click', function() {
         if (entryForm.reportValidity()) {
+
+            // 🛑 Final guard before confirm modal:
+                const cmfVal = cmfInput ? cmfInput.value.trim() : '';
+                const formatCheck = checkCmfFormat(cmfVal);
+                if (!formatCheck.valid) {
+                    if (typeof Preline.toast === 'function') {
+                        Preline.toast(formatCheck.message, 'error');
+                    } else {
+                        alert(formatCheck.message);
+                    }
+                    if (cmfInput) cmfInput.focus();
+                    return;
+                }
+
+            // Combine Qty Resin for Test
             const numInput = document.getElementById('id_qty_resin_num');
             const unitSelect = document.getElementById('id_qty_resin_unit');
             const hiddenField = document.getElementById('id_qty_resin_test_hidden');
@@ -62,10 +219,9 @@ document.addEventListener('DOMContentLoaded', function() {
                 hiddenField.value = `${numInput.value.trim()} ${unitSelect.value}`;
             }
 
-            const hiddenInput = entryForm.querySelector(
-                '[name="original_cmf_no"], [name="original_rs_no"], [name="record_no"]'
-            );
-            const isUpdate = hiddenInput && hiddenInput.value.trim() !== '';
+            const hiddenInput = entryForm.querySelector('[name="original_cmf_no"]');
+            const isNew = isNewInput ? isNewInput.value === '1' : true;
+            const isUpdate = !isNew && hiddenInput && hiddenInput.value.trim() !== '';
 
             Preline.confirm(
                 isUpdate ? 'Update Entry?' : 'Save Entry?',
@@ -108,64 +264,6 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     }
 
-    // function openPrintPreview(cmNo) {
-    //     // 1. Show the global loader immediately
-    //     showLoader();
-
-    //     const previewUrl = `/cmf/print/${encodeURIComponent(cmNo)}/preview`;
-
-    //     const dialog = document.createElement('dialog');
-    //     // Added z-index in style to ensure it doesn't overlap the loader if the loader's z-index is lower
-    //     dialog.className = 'p-0 border-0 rounded-3 shadow-lg';
-    //     dialog.style.width = '90vw';
-    //     dialog.style.height = '90vh';
-    //     dialog.style.maxWidth = '1200px';
-    //     dialog.style.zIndex = '1050'; // Standard Bootstrap Modal z-index
-
-    //     dialog.innerHTML = `
-    //         <div class="d-flex flex-column w-100 h-100">
-    //             <div class="d-flex justify-content-end gap-2 p-2 bg-dark">
-    //                 <button id="cmfPreviewPrintBtn" class="btn btn-primary btn-sm">
-    //                     <i class="bi bi-printer"></i> Print
-    //                 </button>
-    //                 <button id="cmfPreviewCloseBtn" class="btn btn-secondary btn-sm">
-    //                     Close
-    //                 </button>
-    //             </div>
-    //             <iframe id="cmfPreviewFrame" src="${previewUrl}" class="flex-grow-1 w-100 border-0"></iframe>
-    //         </div>
-    //     `;
-    //     document.body.appendChild(dialog);
-
-    //     const iframe = dialog.querySelector('#cmfPreviewFrame');
-
-    //     // 2. Hide loader only when the IFRAME has finished loading the content
-    //     iframe.addEventListener('load', function() {
-    //         hideLoader();
-    //         // Optional: Show the dialog only after it's loaded to prevent a "white flash"
-    //         dialog.showModal();
-    //     });
-
-    //     // Handle Print Button
-    //     dialog.querySelector('#cmfPreviewPrintBtn').addEventListener('click', function() {
-    //         iframe.contentWindow.print();
-
-    //         fetch(`/cmf/log-print/${encodeURIComponent(cmNo)}/`)
-    //         .then(response => {
-    //             if (!response.ok) console.error('Audit logging failed');
-    //         })
-    //         .catch(err => console.error('Error logging CMF print:', err));
-    //     });
-
-    //     // Handle Close Button
-    //     dialog.querySelector('#cmfPreviewCloseBtn').addEventListener('click', function() {
-    //         dialog.close();
-    //     });
-
-    //     dialog.addEventListener('close', function() {
-    //         dialog.remove();
-    //     });
-    // }
 
     if (printBtn) {
         printBtn.addEventListener('click', function() {
@@ -194,6 +292,17 @@ document.addEventListener('DOMContentLoaded', function() {
             iframe.src = `/cmf/print/${encodeURIComponent(cmNo)}/`;
 
             iframe.onload = function () {
+                // Reverse the Django URL pattern using a placeholder
+                const logUrl = "{% url 'log_cmf_print' '0' %}".replace('0', encodeURIComponent(cmNo));
+
+                // Call the audit log view when the preview opens
+                fetch(logUrl, {
+                    method: 'GET',
+                    headers: {
+                        'X-Requested-With': 'XMLHttpRequest'
+                    }
+                }).catch(err => console.error('Audit trail logging failed:', err));
+
                 // Small delay to ensure styles are loaded
                 setTimeout(() => {
                     iframe.contentWindow.focus();
@@ -237,6 +346,23 @@ document.addEventListener('DOMContentLoaded', function() {
         updateOtherInputState(trigger, input);
     });
 
+    // --- 5.1 REQUIRE AT LEAST ONE CHECKBOX ---
+    function setupRequiredCheckboxGroup(groupName, errorMessage = "Please select at least one option.") {
+        const checkboxes = document.querySelectorAll(`input[type="checkbox"][name="${groupName}"]`);
+        if (checkboxes.length === 0) return;
+
+        const updateGroupValidity = () => {
+            const isAnyChecked = Array.from(checkboxes).some(cb => cb.checked);
+            checkboxes[0].setCustomValidity(isAnyChecked ? '' : errorMessage);
+        };
+
+        checkboxes.forEach(cb => cb.addEventListener('change', updateGroupValidity));
+        updateGroupValidity();
+    }
+
+    setupRequiredCheckboxGroup('process', 'Please select at least one Process.');
+    setupRequiredCheckboxGroup('specification', 'Please select at least one Specification.');
+
     // --- 6. TABLE FILTERING LOGIC (Records View) ---
     function applyFilters() {
         if (!recordsTbody) return; // Only run if on the records page
@@ -263,11 +389,147 @@ document.addEventListener('DOMContentLoaded', function() {
     // Initial run
     applyFilters();
 
+    // --- CMF CAPITAL AT START & SMALL AT END VALIDATION ---
+    function checkCmfFormat(val) {
+        if (!val || val.length < 2) {
+            return { valid: false, message: 'CMF No. must be at least 2 characters long.' };
+        }
+        const startsWithCapital = /^[A-Z]/.test(val[0]);
+        const endsWithSmall = /[a-z]/.test(val[val.length - 1]);
+
+        if (!startsWithCapital && !endsWithSmall) {
+            return { 
+                valid: false, 
+                message: 'CMF No. must start with a CAPITAL letter and end with a small letter (e.g. A1234a).' 
+            };
+        }
+        if (!startsWithCapital) {
+            return { 
+                valid: false, 
+                message: 'CMF No. must start with a CAPITAL letter at index 0 (e.g. A...).' 
+            };
+        }
+        if (!endsWithSmall) {
+            return { 
+                valid: false, 
+                message: 'CMF No. must end with a small letter at the last index (e.g. ...a).' 
+            };
+        }
+        return { valid: true, message: '' };
+    }
+
     // The function that checks the database
     async function validateCmf(isBlur = false) {
         const query = cmfInput.value.trim();
         if (query.length < 3) return;
 
+        // 🛑 Check index 0 and last index for letters
+        const formatCheck = checkCmfFormat(query);
+        if (!formatCheck.valid) {
+            if (saveBtn) saveBtn.disabled = true;
+            if (isBlur) {
+                if (typeof Preline.toast === 'function') {
+                    Preline.toast(formatCheck.message, 'error');
+                } else {
+                    alert(formatCheck.message);
+                }
+                setTimeout(() => cmfInput.focus(), 10);
+            }
+            return; // Stop here, do not call backend
+        }
+
+        const originalNo = originalCmfInput ? originalCmfInput.value.trim() : '';
+        const isNew = isNewInput ? isNewInput.value === '1' : !originalNo;
+        if (!isNew && query.toLowerCase() === originalNo.toLowerCase()) {
+            if (saveBtn) saveBtn.disabled = false
+            return;
+        }
+        try {
+            const response = await fetch(`/check-previous-matching/?cm_no=${query}`);
+            const data = await response.json();
+
+            let hasError = false;
+            let errorMessage = "";
+
+            // Check for exact duplicate
+            if (data.exists_exact) {
+                saveBtn.disabled = true;
+                Preline.alert(
+                    'Duplicate CMF Detected',
+                    `CMF No. ${query} already exists! Please enter a different number.`,
+                    'danger',
+                    () => {
+                        setTimeout(() => cmfInput.focus(), 10);
+                    }
+                );
+                return; // 🛑 MUST ADD THIS: Stop execution so saveBtn stays disabled!
+            } 
+            // Check for sequential gap (e.g., missing 'b' when typing 'c')
+            else if (data.sequential_error) {
+                errorMessage = data.sequential_error;
+                hasError = true;
+            }
+
+            if (hasError) {
+                // 1. Show Toast
+                if (typeof Preline.toast === 'function') {
+                    Preline.toast(errorMessage, 'error');
+                } 
+
+                // 2. Visual Feedback
+                saveBtn.disabled = true;
+
+                // 3. Force Focus back
+                setTimeout(() => {
+                    cmfInput.focus();
+                }, 10);
+                return; // STOP HERE
+            } else {
+                saveBtn.disabled = false;
+            }
+
+            // 4. SUGGESTION: Only show if we aren't in a blur event
+            if (!isBlur && data.match) {
+                Preline.confirm(
+                    'Previous Matching Found',
+                    `A previous record (${data.latest_cm_no}) exists. Do you want to auto-fill?`,
+                    'info',
+                    () => {
+                        window.location.href = `/cmf/entry/?no=${data.latest_cm_no}&new_no=${query}`;
+                    }
+                );
+            }
+        } catch (error) {
+            console.error("Error fetching matching data:", error);
+        }
+    }
+
+    // --- 8. RS-SPECIFIC CMF VALIDATION (Prepared Placeholder) ---
+    async function validateRsCmf(isBlur = false) {
+        const query = cmfInput.value.trim();
+        if (query.length < 3) return;
+
+        // 🛑 Check index 0 and last index for letters
+        const formatCheck = checkCmfFormat(query);
+        if (!formatCheck.valid) {
+            if (saveBtn) saveBtn.disabled = true;
+            if (isBlur) {
+                if (typeof Preline.toast === 'function') {
+                    Preline.toast(formatCheck.message, 'error');
+                } else {
+                    alert(formatCheck.message);
+                }
+                setTimeout(() => cmfInput.focus(), 10);
+            }
+            return; // Stop here, do not call backend
+        }
+
+        const originalNo = originalCmfInput ? originalCmfInput.value.trim() : '';
+        const isNew = isNewInput ? isNewInput.value === '1' : !originalNo;
+        if (!isNew && query.toLowerCase() === originalNo.toLowerCase()) {
+            if (saveBtn) saveBtn.disabled = false;
+            return;
+        }
         try {
             const response = await fetch(`/check-previous-matching/?cm_no=${query}`);
             const data = await response.json();
@@ -306,33 +568,82 @@ document.addEventListener('DOMContentLoaded', function() {
                 saveBtn.disabled = false;
             }
 
-            // 4. SUGGESTION: Only show if we aren't in a blur event
-            if (!isBlur && data.match) {
-                Preline.confirm(
-                    'Previous Matching Found',
-                    `A previous record (${data.latest_cm_no}) exists. Do you want to auto-fill?`,
-                    'info',
-                    () => {
-                        window.location.href = `/cmf/entry/?no=${data.latest_cm_no}&new_no=${query}`;
-                    }
-                );
-            }
         } catch (error) {
             console.error("Error fetching matching data:", error);
         }
     }
 
-
-    // Debounced version for the 'input' event (real-time typing)
+    // Debounced input handler (dispatches based on "For RS" toggle)
     const handleCmfInput = debounce(() => {
-        validateCmf(false);
+        if (toggleForRs && toggleForRs.checked) {
+            validateRsCmf(false);
+        } else {
+            validateCmf(false);
+        }
     }, 800);
 
-    // Attach to the input event
+    // Attach listeners to cmfInput
     if (cmfInput) {
         cmfInput.addEventListener('input', handleCmfInput);
         cmfInput.addEventListener('blur', () => {
-            validateCmf(true);
+            if (toggleForRs && toggleForRs.checked) {
+                validateRsCmf(true);
+            } else {
+                validateCmf(true);
+            }
         });
     }
+
+    // --- PRODUCT CODE AUTO-FILL LISTENER (For RS) ---
+    const initProductCodeListener = () => {
+        let attempts = 0;
+        const checkTS = setInterval(() => {
+            attempts++;
+            if (productCodeSelect && productCodeSelect.tomselect) {
+                clearInterval(checkTS);
+
+                productCodeSelect.tomselect.on('change', async function(codeNo) {
+                    if (!codeNo) return;
+
+                    const currentCmf = cmfInput ? cmfInput.value.trim() : '';
+
+                    // 1. Enforce Color Matching No. first
+                    if (!currentCmf) {
+                        if (typeof Preline.toast === 'function') {
+                            Preline.toast('Please enter the Color Matching No. first.', 'error');
+                        } else {
+                            alert('Please enter the Color Matching No. first.');
+                        }
+                        // Reset dropdown selection (true = silent, doesn't re-trigger change)
+                        this.setValue('', true);
+                        if (cmfInput) cmfInput.focus();
+                        return;
+                    }
+
+                    // 2. Fetch matching record
+                    try {
+                        const response = await fetch(`/check-prod-cmf/?code_no=${encodeURIComponent(codeNo)}`);
+                        const data = await response.json();
+
+                        if (data.match && data.cm_no) {
+                            Preline.confirm(
+                                'Previous CMF Record Found',
+                                `A CMF for this product code is found (${data.cm_no}), do you want to auto fill?`,
+                                'info',
+                                () => {
+                                    window.location.href = `/cmf/entry/?no=${encodeURIComponent(data.cm_no)}&new_no=${encodeURIComponent(currentCmf)}&is_for_rs=1&product_code=${encodeURIComponent(codeNo)}`;
+                                }
+                            );
+                        }
+                    } catch (err) {
+                        console.error('Error checking matching for product code:', err);
+                    }
+                });
+            } else if (attempts > 50) {
+                clearInterval(checkTS);
+            }
+        }, 100);
+    };
+
+    initProductCodeListener()
 });

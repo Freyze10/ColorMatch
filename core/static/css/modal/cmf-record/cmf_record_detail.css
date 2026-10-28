@@ -1,5 +1,5 @@
-.text-teal {
-    color: var(--sidebar-header-bg) !important;
+.cmf-details-code {
+    color: rgb(179, 81, 81);
 }
 
 /* Formula Container indentation and style */

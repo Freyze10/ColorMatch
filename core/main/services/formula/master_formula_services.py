@@ -114,7 +114,9 @@ def get_master_formula_context(form_id=None, request=None):
     )
     allowed_departments = ['Laboratory', 'Information Technology', 'Sales']
     is_allowed = request.user.role.department in allowed_departments or request.user.is_superuser
-        
+
+    user_fullname = f"{request.user.first_name} {request.user.last_name}".strip() if (request and request.user.is_authenticated) else ''
+
     return {
         'form_data': form_data,
         'matching_numbers': get_all_matching_numbers(),
@@ -122,6 +124,7 @@ def get_master_formula_context(form_id=None, request=None):
         'materials': cmf_records_services.get_raw_material_codes(),
         'customers': cmf_records_services.get_customer_list(),
         'is_allowed': is_allowed,
+        'user_fullname': user_fullname,
     }
 
 # --- 2. DATA TABLES ---

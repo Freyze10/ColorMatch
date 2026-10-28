@@ -1,5 +1,7 @@
 from django.urls import path
 
+from .services.cmf_records import rs_records_services
+
 from .services.save import feedback_save
 
 from .services.settings import settings_services
@@ -24,6 +26,7 @@ urlpatterns = [
     path('homepage/', views.homepage, name='homepage'),
     path('dashboard/', views.dashboard, name='dashboard'),
     path('cmf/records/', views.cmf_records, name='cmf_records'),
+    path('cmf/rs-records/', views.rs_records, name='rs_records'),
     path('cmf/formula-records/', views.formula_records, name='formula_records'),
     path('cmf/entry/', views.cmf_entry, name='cmf_entry'),
     path('cmf/rs-entry/', views.cmf_rs_entry, name='rs_entry'),
@@ -40,19 +43,26 @@ urlpatterns = [
     path('settings/logout-all/', settings_services.logout_all_devices, name='logout_all_devices'),
     path('forgot-password/', settings_services.forgot_password, name='forgot_password'),
     path('settings/password-requests/', views.admin_password_requests, name='admin_password_requests'),
+    path('settings/color-codes/', views.manage_color_codes, name='manage_color_codes'),
     path('permission-access/', views.permission_access, name='permission_access'),
 
 
     # export
     path('cmf/records/export/', views.cmf_records_export_preview, name='cmf_records_export_preview'),
     # ajax
+    path('cmf/rs-records/data/', rs_records_services.rs_records_data, name='rs_records_data'),
+    path('cmf/rs/get-final-code/', rs_records_services.get_cmf_final_code, name='get_cmf_final_code'),
+    path('cmf/records/data/', cmf_records_services.cmf_records_data, name='cmf_records_data'),
     path('cmf/mb-dc-formula/', mb_dc_formulation_services.get_formulation_details, name='mb_dc_lookup_details'),
+    path('cmf/mb-dc-formula/check-lot-number/', mb_dc_formulation_services.check_lot_number, name='check_lot_number'),
+    path('cmf/mb-dc-formula/lookup-code/', mb_dc_formulation_services.ajax_lookup_formula_by_code, name='ajax_lookup_formula_by_code'),
     path('cmf/formula-records/data/', cmf_records_services.formula_records_data, name='formula_records_data'),
     path('cmf/formula-records/price-first/', formula_price_first.get_price_first_data, name='get_price_first_data'),
     path('cmf/formula-records/price-first/download/', formula_price_first.download_price_first_excel, name='download_price_first_excel'),
     path('formula-records/export-all/', formula_price_first.export_formula_by_date, name='export_formula_all'),
     path('master-formula/lookup/', master_formula_services.master_formula_lookup, name='master_formula_lookup'),
     path('check-previous-matching/', previous_cmf_record.check_previous_matching, name='check_previous_matching'),
+    path('check-prod-cmf/', previous_cmf_record.check_prod_code_cmf, name='check_prod_code_cmf'),
     path('formulation/data/', formulation_services.get_formulation_records_json, name='formulation_data'),
     path('master-formula/data/', master_formula_services.get_master_formula_records_json, name='master_formula_data'),
     path('audit-trail/data/', audit_services.get_audit_trail_data, name='audit_trail_data'),
@@ -69,6 +79,7 @@ urlpatterns = [
     path('cmf/attachment/<int:attachment_id>/download/', cmf_entry_save.download_cmf_attachment, name='download_cmf_attachment'),
     path('cmf/formula-records/materials/<str:formula_type>/<int:formula_id>/', cmf_records_services.get_formula_materials, name='get_formula_materials'),
     path('cmf/formula/<str:formula_type>/<int:formula_id>/toggle-final/', cmf_records_services.toggle_final_formula, name='toggle_final_formula'),
+    path('cmf/formula/check-product-code/', mb_dc_formulation_services.check_product_code_formula, name='check_product_code_formula'),
     path('cmf/rs-records/<int:rs_id>/', views.rs_record_detail, name='rs_record_detail'),
     path('cmf/print/<str:cm_no>/', print_cmf.print_cmf, name='print_cmf'), # for flexible print (uses html css for print)
     # path('cmf/print/<str:cm_no>/preview', print_cmf.print_cmf_preview, name='cmf_print_preview'),

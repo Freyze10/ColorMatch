@@ -23,23 +23,35 @@
 
     if (hexInput && swatch) {
         const isValidHex = (value) => /^#([0-9A-Fa-f]{3}){1,2}$/.test(value);
+        const naLabel = swatch.querySelector('.swatch-na');
+
+        // Show the color, or "N/A" in the box when there is no (valid) hex value
+        const showSwatch = (color) => {
+            swatch.style.backgroundColor = color || 'transparent';
+            if (naLabel) naLabel.classList.toggle('d-none', !!color);
+        };
+        const withHash = (v) => (v && !v.startsWith('#')) ? '#' + v : v;
+
+        // starting state: saved hex, or N/A
+        const startValue = withHash(hexInput.value.trim());
+        showSwatch(isValidHex(startValue) ? startValue : null);
 
         hexInput.addEventListener('input', function () {
-            let value = hexInput.value.trim();
-            if (value && !value.startsWith('#')) value = '#' + value;
-            if (isValidHex(value)) swatch.style.backgroundColor = value;
+            const value = withHash(hexInput.value.trim());
+            if (!value) showSwatch(null);
+            else if (isValidHex(value)) showSwatch(value);
         });
 
         hexInput.addEventListener('blur', function () {
-            let value = hexInput.value.trim();
-            if (value === "") { swatch.style.backgroundColor = "#FFFFFF"; return; }
-            if (!value.startsWith('#')) value = '#' + value;
+            const value = withHash(hexInput.value.trim());
+            if (value === "") { showSwatch(null); return; }
 
             if (!isValidHex(value)) {
                 hexInput.value = "";
-                swatch.style.backgroundColor = "#FFFFFF";
+                showSwatch(null);
             } else {
                 hexInput.value = value;
+                showSwatch(value);
             }
         });
     }
@@ -76,10 +88,10 @@
             const totalWeightDisplay = table.querySelector('.js-total-weight-summary');
 
             if (totalPercentDisplay) {
-                totalPercentDisplay.value = totalPercent.toFixed(4);
+                totalPercentDisplay.value = totalPercent.toFixed(8);
                 totalPercentDisplay.style.color = totalPercent > 100.0001 ? 'red' : '';
             }
-            if (totalWeightDisplay) totalWeightDisplay.value = totalWeight.toFixed(4);
+            if (totalWeightDisplay) totalWeightDisplay.value = totalWeight.toFixed(8);
         }
 
         if (isDC) {
@@ -92,7 +104,7 @@
 
             table.querySelectorAll('.js-version-total').forEach(totalInput => {
                 const v = totalInput.dataset.version;
-                totalInput.value = (totals[v] || 0).toFixed(6);
+                totalInput.value = (totals[v] || 0).toFixed(8);
             });
         }
     }
@@ -126,7 +138,7 @@
             // Lock columns that are beyond the current allowed trial
             if (v > activeVersion) {
                 input.readOnly = true;
-                input.style.backgroundColor = "#f8f9fa";
+                input.style.backgroundColor = "#a3a3a3";
                 input.style.cursor = "not-allowed";
                 input.tabIndex = "-1";
             } else {
@@ -191,6 +203,85 @@
         });
     }
 
+    // --- CHECK EXISTING LOT NUMBER ---
+    const lotNumberInput = document.getElementById('id_lot_number');
+
+    // Lot numbers that are allowed to repeat
+    const LOT_EXEMPT = ['NA', 'NONE'];
+    const isExemptLot = (v) => LOT_EXEMPT.includes(v.trim().toUpperCase());
+
+    async function checkExistingLotNumber() {
+        if (!lotNumberInput) return;
+        const lotNo = lotNumberInput.value.trim();
+        if (!lotNo) return;
+
+        if (isExemptLot(lotNo)) {
+            // Important: re-enable Save in case an earlier duplicate disabled it
+            if (saveBtn) saveBtn.disabled = false;
+            return;
+        }
+
+        // Pass formula_id so editing an existing record won't flag its own lot number
+        const formulaId = document.querySelector('input[name="formula_id"]')?.value || '';
+
+        try {
+            let url = `/cmf/mb-dc-formula/check-lot-number/?lot_no=${encodeURIComponent(lotNo)}`;
+            if (formulaId) url += `&formula_id=${encodeURIComponent(formulaId)}`;
+
+            const response = await fetch(url);
+            if (!response.ok) return;
+            const data = await response.json();
+
+            if (data.exists) {
+                if (saveBtn) saveBtn.disabled = true;
+
+                if (typeof Preline !== 'undefined' && typeof Preline.alert === 'function') {
+                    Preline.alert(
+                        'Duplicate Lot Number',
+                        `Lot Number "${lotNo}" already exists! Please use a unique lot number.`,
+                        'danger',
+                        () => { setTimeout(() => lotNumberInput.focus(), 10); }
+                    );
+                } else if (typeof Preline !== 'undefined' && typeof Preline.toast === 'function') {
+                    Preline.toast(`Lot Number "${lotNo}" already exists!`, 'error');
+                    setTimeout(() => lotNumberInput.focus(), 10);
+                }
+            } else {
+                if (saveBtn) saveBtn.disabled = false;
+            }
+        } catch (err) {
+            console.error('Error checking lot number:', err);
+        }
+    }
+
+    if (lotNumberInput) {
+        // Real-time check as the user types (600ms debounce)
+        const handleLotInput = debounce(() => {
+            checkExistingLotNumber();
+        }, 600);
+
+        lotNumberInput.addEventListener('input', handleLotInput);
+        lotNumberInput.addEventListener('blur', checkExistingLotNumber);
+    }
+
+    // --- FORMAT TOTAL WEIGHT TO 8 DECIMALS ---
+    // MB handles its own total weight field (numbers or "NONE") in formula_mb.js
+    const totalWeightInput = document.querySelector('.total-weight-input');
+    if (totalWeightInput && !document.querySelector('.js-mb-formula')) {
+        // 1. Restrict typing to numbers and a single decimal point
+        totalWeightInput.addEventListener('keypress', restrictToNumbers);
+
+        // 2. Format to 4 decimal places when user leaves the field
+        totalWeightInput.addEventListener('blur', function () {
+            const val = parseFloat(this.value);
+            if (!isNaN(val)) {
+                this.value = val.toFixed(8);
+            } else {
+                this.value = '';
+            }
+        });
+    }
+
     // --- 4. SAVE / NEW / PRINT BUTTONS ---
     const saveBtn = document.querySelector('.btn-save-formula');
     const newBtn = document.querySelector('.btn-new');
@@ -201,6 +292,20 @@
         saveBtn.addEventListener('click', function () {
             if (!form.reportValidity()) return;
 
+            // --- DOSAGE NUMERIC / NA VALIDATION ---
+            const dosageInput = form.querySelector('[name="dosage"]');
+            if (dosageInput) {
+                const dosageVal = dosageInput.value.trim().toUpperCase();
+                const isNA = (dosageVal === 'NA' || dosageVal === 'N/A');
+                const isNumeric = /^\d+(\.\d+)?$/.test(dosageVal) && parseFloat(dosageVal) > 0;
+
+                if (!isNA && !isNumeric) {
+                    Preline.toast('Dosage must be a valid number (e.g., 1 or 1.5) or "NA". Please remove any "%" signs.', 'error');
+                    dosageInput.focus();
+                    return;
+                }
+            }
+
             // --- CONCATENATE MIXING TIME BEFORE VALIDATION/SAVE ---
             const mixHidden = form.querySelector('.js-mixing-time-hidden');
             const mixVisible = form.querySelector('.js-mixing-time-input');
@@ -210,17 +315,20 @@
 
             const isMB = form.classList.contains('js-mb-formula');
             const isDC = form.classList.contains('js-dc-formula');
+            const masterRaw = (document.querySelector('.total-weight-display')?.value || '').trim();
+            const isNoneWeight = masterRaw.toUpperCase() === 'NONE';
             const masterWgt = parseFloat(document.querySelector('.total-weight-display')?.value) || 0;
 
             if (isMB) {
                 const totalPct = parseFloat(document.querySelector('.js-total-percent-summary')?.value) || 0;
                 const totalWgt = parseFloat(document.querySelector('.js-total-weight-summary')?.value) || 0;
                 
-                if (totalPct.toFixed(2) !== "100.00") {
+                if (totalPct.toFixed(8) !== "100.00000000") {
                     Preline.toast(`MB Error: Total percentage must be 100%. Current: ${totalPct}%`, 'error');
                     return;
                 }
-                if (totalWgt.toFixed(2) !== masterWgt.toFixed(2)) {
+                // Weight check only applies when a numeric total weight was entered
+                if (!isNoneWeight && totalWgt.toFixed(8) !== masterWgt.toFixed(8)) {
                     Preline.toast(`MB Error: Summary weight mismatch.`, 'error');
                     return;
                 }
@@ -243,19 +351,104 @@
                 const versionTotalInput = document.querySelector(`.js-version-total[data-version="${activeV}"]`);
                 const versionTotal = parseFloat(versionTotalInput?.value) || 0;
 
-                if (versionTotal.toFixed(2) !== masterWgt.toFixed(2)) {
-                    Preline.toast(`DC Error: Trial #${activeV} total (${versionTotal.toFixed(4)}) must match Total Weight (${masterWgt.toFixed(4)}).`, 'error');
+                if (versionTotal.toFixed(8) !== masterWgt.toFixed(8)) {
+                    Preline.toast(`DC Error: Trial #${activeV} total (${versionTotal.toFixed(8)}) must match Total Weight (${masterWgt.toFixed(8)}).`, 'error');
                     return;
                 }
             }
 
             const isUpdate = form.querySelector('[name="formula_id"]')?.value.trim() !== '';
-            Preline.confirm(
-                isUpdate ? 'Update Formula?' : 'Save Formula?',
-                'Please verify all technical specs before confirming.',
-                'success',
-                () => { form.submit(); }
-            );
+            // If updating an existing formula record, proceed with standard confirmation
+            if (isUpdate) {
+                Preline.confirm(
+                    'Update Formula?',
+                    'Please verify all technical specs before confirming.',
+                    'success',
+                    () => { form.submit(); }
+                );
+                return;
+            }
+            // --- NEW FORMULA PRODUCT CODE CONFLICT VALIDATION ---
+            const productCode = (form.querySelector('[name="product"]') || form.querySelector('[name="product_code"]'))?.value.trim() || '';
+            const materials = [];
+
+            if (isMB) {
+                for (let i = 1; i <= 10; i++) {
+                    const mat = form.querySelector(`[name="material_${i}"]`)?.value.trim();
+                    const val = form.querySelector(`[name="percentage_${i}"]`)?.value.trim();
+                    if (mat && val && parseFloat(val) > 0) {
+                        materials.push({ material: mat, value: parseFloat(val) });
+                    }
+                }
+            } else if (isDC) {
+                for (let r = 1; r <= 10; r++) {
+                    const mat = form.querySelector(`[name="material_${r}"]`)?.value.trim();
+                    if (!mat) continue;
+                    for (let v = 1; v <= 10; v++) {
+                        const val = form.querySelector(`[name="value_${r}_${v}"]`)?.value.trim();
+                        if (val && parseFloat(val) > 0) {
+                            materials.push({ material: mat, version_no: v, value: parseFloat(val) });
+                        }
+                    }
+                }
+            }
+
+            // Helper to get CSRF token
+            const csrfToken = form.querySelector('[name="csrfmiddlewaretoken"]')?.value || '';
+
+            // Call pre-save validation API
+            fetch('/cmf/formula/check-product-code/', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': csrfToken
+                },
+                body: JSON.stringify({
+                    product_code: productCode,
+                    formula_type: isDC ? 'DC' : 'MB',
+                    materials: materials
+                })
+            })
+            .then(res => res.json())
+            .then(data => {
+                if (data.exists) {
+                    if (data.is_same) {
+                        // Scenario: Same Product Code & Same Formula
+                        Preline.confirm(
+                            'Duplicate Formula',
+                            `This product code (${productCode}) already exists with the SAME formula. Do you want to continue?`,
+                            'warning',
+                            () => { form.submit(); }
+                        );
+                    } else {
+                        // Scenario: Same Product Code & Different Formula (Error/Danger Modal)
+                        Preline.confirm(
+                            'Formula Conflict',
+                            `This product code (${productCode}) already exists with a DIFFERENT formula. Do you still want to continue?`,
+                            'danger',
+                            () => { form.submit(); }
+                        );
+                    }
+                } else {
+                    // New unique product code -> Standard Save
+                    Preline.confirm(
+                        'Save Formula?',
+                        'Please verify all technical specs before confirming.',
+                        'success',
+                        () => { form.submit(); }
+                    );
+                }
+            })
+            .catch(err => {
+                console.error('Pre-save validation check failed:', err);
+                // Fallback in case of network issue
+                Preline.confirm(
+                    'Save Formula?',
+                    'Please verify all technical specs before confirming.',
+                    'success',
+                    () => { form.submit(); }
+                );
+            });
         });
     }
 
@@ -365,11 +558,8 @@
         isDC ? 'id_dc_customer' : 'id_customer',
         isDC ? 'id_dc_resin' : 'id_resin_used',
         isDC ? 'id_dc_color' : 'id_color',
-        isDC ? 'id_dc_product_code' : 'id_product',
-        isDC ? 'id_dc_dosage' : 'id_dosage',
         isDC ? 'id_dc_application' : 'id_application',
-        isDC ? 'id_dc_finished_product' : 'id_finished_product',
-        'id_lot_number'
+        isDC ? 'id_dc_product_used' : 'id_finished_product',
     ];
 
     /**
@@ -405,20 +595,59 @@
     }
 
     async function fetchCmfDetails(cmfNo, matId = null) {
+        
         const fields = {
             customer: isDC ? 'id_dc_customer' : 'id_customer',
-            resin: isDC ? 'id_dc_resin' : 'id_resin_used',
+            resin: isDC ? 'id_dc_resin' : 'id_resin_used', // remove this when using the other resin field
             color: isDC ? 'id_dc_color' : 'id_color',
+            color_desc: isDC ? 'id_dc_color_desc' : 'id_color_desc',
             product: isDC ? 'id_dc_product_code' : 'id_product',
             dosage: isDC ? 'id_dc_dosage' : 'id_dosage',
             application: isDC ? 'id_dc_application' : 'id_application',
-            finished_product: isDC ? 'id_dc_finished_product' : 'id_finished_product',
+            finished_product: isDC ? 'id_dc_product_used' : 'id_finished_product',
             lot_no: 'id_lot_number' 
         };
         const setVal = (id, val) => {
             const el = document.getElementById(id);
             if (el) el.value = val || '';
         };
+
+        // Helper to update the dropdown's placeholder dynamically
+        const updateResinPlaceholder = (placeholderText) => {
+            const resinSelectId = isDC ? 'id_dc_formula_resin' : 'id_formula_resin';
+            const el = document.getElementById(resinSelectId);
+            if (!el) return;
+
+            const text = (placeholderText && placeholderText.trim()) ? placeholderText.trim() : 'Select resin...';
+
+            // 1. Update native HTML placeholder option & attribute
+            el.setAttribute('placeholder', text);
+
+            // 2. Update TomSelect instance if initialized
+            if (el.tomselect) {
+                const ts = el.tomselect;
+
+                // 1. Clear any selected value
+                ts.clear(true);
+
+                // 2. Update placeholder in settings & control input
+                ts.settings.placeholder = text;
+                if (ts.control_input) {
+                    ts.control_input.placeholder = text;
+                    ts.control_input.setAttribute('placeholder', text);
+                    ts.control_input.style.width = '100%';
+                }
+
+                // 3. Remove .has-items class so single-select displays the placeholder input
+                ts.wrapper.classList.remove('has-items');
+
+                // 4. Force TomSelect to recalculate input visibility
+                if (typeof ts.inputState === 'function') {
+                    ts.inputState();
+                }
+            }
+        };
+
         try {
             // Pass matId as an extra parameter
             let url = `/cmf/mb-dc-formula/?cm_no=${encodeURIComponent(cmfNo)}`;
@@ -429,13 +658,30 @@
             const data = await response.json();
 
             setVal(fields.customer, data.customer);
-            setVal(fields.resin, data.resin_used || data.resin);
-            setVal(fields.color, data.color);
+            
+            // setVal(fields.color, data.color);
+            setVal(fields.color_desc, data.color_desc);
             setVal(fields.application, data.application);
             setVal(fields.finished_product, data.finished_product);
             setVal(fields.product, data.product_code); // Priority to generated code
             setVal(fields.dosage, data.dosage);
             setVal(fields.lot_no, data.lot_no);
+            setVal(fields.resin, data.resin_used || data.resin);
+
+            // Update TomSelect for Color Dropdown if primary_color ID is provided
+            const colorSelect = document.getElementById(fields.color);
+            if (colorSelect) {
+                if (colorSelect.tomselect) {
+                    colorSelect.tomselect.setValue(data.primary_color_id || '', true);
+                } else {
+                    colorSelect.value = data.primary_color_id || '';
+                }
+            }
+
+
+            // Update the resin dropdown placeholder with the CMF's original resin
+            updateResinPlaceholder(data.resin_used || data.resin);
+            
 
             if (data.product_code === "(Select Material)") {
                 Preline.toast("CMF details loaded. Please select a Material Code to generate the Product Code.", "info");
@@ -445,6 +691,7 @@
             
         } catch (error) {
             Object.values(fields).forEach(id => setVal(id, ''));
+            updateResinPlaceholder('Select resin...');
             Preline.toast('Error fetching details.', 'danger');
         }
     }
@@ -538,3 +785,196 @@
     // Run when page is ready
     window.addEventListener('load', init);
 })();
+
+document.addEventListener('DOMContentLoaded', function () {
+    const isMB = document.body.contains(document.querySelector('.js-mb-formula'));
+    const isDC = document.body.contains(document.querySelector('.js-dc-formula'));
+    const formulaType = isMB ? 'MB' : (isDC ? 'DC' : null);
+
+    if (!formulaType) return;
+
+    // Target the product code input field for MB ('id_product') or DC ('id_dc_product_code')
+    const productCodeField = document.getElementById(isMB ? 'id_product' : 'id_dc_product_code');
+    if (!productCodeField) return;
+
+    let cachedFormulaData = null;
+
+    // Trigger autofill injection based on formula type
+    function autofillCompositionTable(payload) {
+        // --- POPULATE EXTRA FIELDS (Index Ref No, Dosage, Mixing Time, Notes, Matcher, Date) ---
+        if (payload.index_no !== undefined && payload.index_no !== '') {
+            const indexField = document.getElementById('id_mb_index_no') || document.getElementById('id_dc_index_no');
+            if (indexField) indexField.value = payload.index_no;
+        }
+        if (payload.dosage !== undefined && payload.dosage !== '') {
+            const dosageField = document.getElementById('id_dosage') || document.getElementById('id_dc_dosage');
+            if (dosageField) dosageField.value = payload.dosage;
+        }
+        if (payload.mix_time !== undefined && payload.mix_time !== '') {
+            const mixField = document.querySelector('.js-mixing-time-input');
+            const mixHidden = document.querySelector('.js-mixing-time-hidden');
+            if (mixField) mixField.value = payload.mix_time;
+            if (mixHidden) mixHidden.value = `${payload.mix_time} MIN`;
+        }
+        if (payload.notes !== undefined && payload.notes !== '') {
+            const noteField = document.getElementById('id_note') || document.getElementById('id_dc_note');
+            if (noteField) {
+                noteField.value = payload.notes;
+                noteField.dispatchEvent(new Event('input', { bubbles: true }));
+            }
+        }
+        if (payload.matcher_id) {
+            const matcherField = document.getElementById('id_dc_matched_by') || document.getElementById('id_mb_matched_by');
+            if (matcherField) {
+                if (matcherField.tomselect) matcherField.tomselect.setValue(payload.matcher_id, true);
+                else matcherField.value = payload.matcher_id;
+            }
+        }
+        // Populate Colormatch Date (id_date for MB, id_dc_date_matched for DC)
+        if (payload.colormatch_date) {
+            const dateField = document.getElementById('id_date') || document.getElementById('id_dc_date_matched');
+            if (dateField) {
+                dateField.value = payload.colormatch_date;
+                if (dateField._flatpickr) dateField._flatpickr.setDate(payload.colormatch_date, true);
+            }
+        }
+
+        // --- Populate Total Weight / Total Concentration ---
+        if (payload.total_concentration !== undefined && payload.total_concentration !== '') {
+            const totalWeightDisplay = document.querySelector('.total-weight-display');
+            if (totalWeightDisplay) {
+                totalWeightDisplay.value = payload.total_concentration;
+                totalWeightDisplay.dispatchEvent(new Event('input', { bubbles: true }));
+            }
+        }
+
+        // --- 2. POPULATE HTML Hex & CMYK ---
+        if (payload.html_code_hex) {
+            const hexField = document.querySelector('.hex-input');
+            if (hexField) {
+                hexField.value = payload.html_code_hex;
+                hexField.dispatchEvent(new Event('input', { bubbles: true }));
+            }
+        }
+        
+        const cField = document.getElementById('id_mf_cyan') || document.getElementById('id_cmyk_c');
+        const mField = document.getElementById('id_mf_magenta') || document.getElementById('id_cmyk_m');
+        const yField = document.getElementById('id_mf_yellow') || document.getElementById('id_cmyk_y');
+        const kField = document.getElementById('id_mf_black') || document.getElementById('id_cmyk_k');
+
+        if (cField && payload.cyan !== '') cField.value = payload.cyan;
+        if (mField && payload.magenta !== '') mField.value = payload.magenta;
+        if (yField && payload.yellow !== '') yField.value = payload.yellow;
+        if (kField && payload.black !== '') kField.value = payload.black;
+
+        // --- 3. HANDLE TABLE COMPOSITION ROWS (MB vs DC) ---
+        if (payload.formula_type === 'MB' && payload.ingredients) {
+            payload.ingredients.forEach((ing, index) => {
+                const rowIndex = index + 1;
+                if (rowIndex > 10) return;
+
+                const matSelect = document.querySelector(`[name="material_${rowIndex}"]`);
+                if (matSelect) {
+                    if (matSelect.tomselect) matSelect.tomselect.setValue(ing.material, true);
+                    else matSelect.value = ing.material;
+                }
+
+                const pctInput = document.querySelector(`[name="percentage_${rowIndex}"]`);
+                if (pctInput) pctInput.value = ing.value;
+
+                const wgtInput = document.querySelector(`[name="weight_${rowIndex}"]`);
+                if (wgtInput) wgtInput.value = ing.weight;
+            });
+
+            const table = document.querySelector('.js-formula-table');
+            if (table) {
+                const firstPct = table.querySelector('.js-percent-input');
+                if (firstPct) firstPct.dispatchEvent(new Event('input', { bubbles: true }));
+            }
+        } else if (payload.formula_type === 'DC' && payload.material_rows) {
+            payload.material_rows.forEach((row, rIndex) => {
+                const rowIndex = rIndex + 1;
+                if (rowIndex > 10) return;
+
+                const matSelect = document.querySelector(`[name="material_${rowIndex}"]`);
+                if (matSelect) {
+                    if (matSelect.tomselect) matSelect.tomselect.setValue(row.material, true);
+                    else matSelect.value = row.material;
+                }
+
+                // FOR DC MASTER FORMULA: ONLY write values into Version 1 (V1), leave others blank/untouched
+                const valInput = document.querySelector(`[name="value_${rowIndex}_1"]`);
+                if (valInput) {
+                    valInput.value = row.versions[0] || 0;
+                }
+            });
+
+            // Recalculate DC column totals
+            document.querySelectorAll('.js-version-value').forEach(input => {
+                input.dispatchEvent(new Event('input', { bubbles: true }));
+            });
+        }
+
+        if (typeof Preline !== 'undefined' && typeof Preline.toast === 'function') {
+            Preline.toast("Formula composition & details successfully loaded.", "success");
+        }
+    }
+
+    // Async lookup check
+    async function lookupProductCode(codeVal) {
+        if (!codeVal || codeVal.length < 2) return;
+
+        const cmfInput = document.getElementById(isMB ? 'id_mb_cmf_number' : 'id_dc_cmf_number');
+        let cmNoVal = '';
+        if (cmfInput) {
+            cmNoVal = cmfInput.value || (cmfInput.tomselect ? cmfInput.tomselect.getValue() : '');
+        }
+
+        try {
+            const response = await fetch(`/cmf/mb-dc-formula/lookup-code/?product_code=${encodeURIComponent(codeVal)}&formula_type=${formulaType}&cm_no=${encodeURIComponent(cmNoVal)}`);
+            if (!response.ok) return;
+            const res = await response.json();
+
+            if (res.found && res.data) {
+                cachedFormulaData = res.data;
+
+                if (res.data.source === 'master') {
+                    // Confirmation message for Master Formula fallback
+                    Preline.confirm(
+                        'Existing OLD (Master) Formula',
+                        `A previous master formula record exists for product code "${codeVal}" and CMF "${cmNoVal}". Do you want to load its material composition and other formula details?`,
+                        'info',
+                        () => {
+                            autofillCompositionTable(cachedFormulaData);
+                        },
+                        () => {
+                            cachedFormulaData = null;
+                        }
+                    );
+                } else {
+                    // Confirmation message for standard Extruder history
+                    Preline.confirm(
+                        'Existing Formula Found',
+                        `A matching formula record exists for product code "${codeVal}". Do you want to load its data and material composition into the form?`,
+                        'info',
+                        () => {
+                            autofillCompositionTable(cachedFormulaData);
+                        },
+                        () => {
+                            cachedFormulaData = null;
+                        }
+                    );
+                }
+            }
+        } catch (err) {
+            console.error('Error looking up formula by product code:', err);
+        }
+    }
+
+    // Wrap with debounce utility (assuming 'debounce' is globally available, or define a local standard one)
+    const debouncedLookup = debounce((e) => {
+        lookupProductCode(e.target.value.trim());
+    }, 750);
+
+    productCodeField.addEventListener('input', debouncedLookup);
+});

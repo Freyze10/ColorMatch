@@ -13,6 +13,7 @@
                 <option value="Color Description">Color Description</option>
                 <option value="Finished Product">Finished Product</option>
                 <option value="Type">Type</option>
+                <option value="AR No.">AR No.</option>
                 <option value="Status">Status</option>
             </select>
         </div>
@@ -40,12 +41,13 @@
                     <th>Product Code</th>
                     <th>Color Description</th>
                     <th>Finished Product</th>
+                    <th>Type</th>
                     <th>Required</th>
                     <th>Due Date</th>
-                    <th>Type</th>
+                    <th>Date Submitted</th>
+                    <th>AR No.</th>
                     <th>Status</th>
-                    <th>Details</th>
-                    <th class="pe-3">Package Details</th>
+                    <th class="pe-3">Details</th>
                 </tr>
             </thead>
             <tbody class="extra-small"></tbody>
@@ -94,7 +96,6 @@
 
 <script src="{% static 'js/feedback/feedback_records.js' %}"></script>
 <script>
-    // Export panel toggle + trigger (unchanged from before)
     const filterBtn = document.getElementById('feedbackExportFilterBtn');
     const panel = document.getElementById('feedbackExportPanel');
     const exportBtn = document.getElementById('btnExportFeedback');

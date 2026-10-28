@@ -46,3 +46,13 @@ function hideLoader() {
 
 // Initial page load listener
 window.addEventListener('load', hideLoader);
+window.addEventListener('pageshow', function (event) {
+    // Runs when navigating back or forward through browser history
+    if (typeof hideLoader === 'function') {
+        hideLoader();
+    }
+    const overlay = document.getElementById('loadingOverlay');
+    if (overlay) {
+        overlay.style.display = 'none';
+    }
+});

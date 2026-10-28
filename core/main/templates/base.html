@@ -45,6 +45,9 @@
                 <button class="btn btn-outline-secondary d-lg-none me-2" id="mobileToggle">
                     <i class="bi bi-list"></i>
                 </button>
+                <button class="btn btn-outline-secondary me-2" id="globalBackBtn" type="button" title="Go back">
+                    <i class="bi bi-arrow-left"></i>
+                </button>
                 <span class="fw-bold navbar-page-title" style="color: var(--text-main);"> {% block navigation %}{% endblock %}</span>
                
             </nav>
@@ -77,6 +80,7 @@
     <script src="{% static 'js/modal/uploadfile-handler.js' %}"></script>
     <script src="{% static 'js/cmf/cmf-entry.js' %}"></script>
     <script src="{% static 'js/util/debounce.js' %}"></script>
+    <script src="{% static 'js/util/intercept_inspect.js' %}"></script>
     
     <script src="{% static 'js/loader/global_loader.js' %}"></script>
     {% block scripts %}{% endblock %}

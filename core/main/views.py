@@ -15,6 +15,9 @@ from datetime import date, datetime, timedelta, time
 from django.urls import reverse
 from django.utils import timezone
 
+from main.services.settings import color_code_services
+from main.services.cmf_records import pending_completed_services
+from main.services.cmf_records import rs_records_services
 from main.services.settings import settings_services
 from main.services.save import feedback_save
 from main.services.dashboard.dashboard_services import get_dashboard_context
@@ -25,7 +28,7 @@ from main.decorators import access_required, role_required
 from main.models import (
     tbl_access_point, tbl_audit_trail, tbl_cmf, tbl_cmf_dates, tbl_cmf_formula, tbl_cmf_pending_completed, 
     tbl_cmf_process02, tbl_cmf_process02, tbl_cmf_scanned, tbl_cmf_specification02, tbl_coding_materials, tbl_dc_extruder_formula, 
-    tbl_dc_extruder_materials, tbl_feedback_details, tbl_generated_prod_code, tbl_internal_color_code, tbl_master_formula, tbl_master_formula_encode, tbl_master_formula_info, tbl_mb_extruder_formula, 
+    tbl_dc_extruder_materials, tbl_feedback_details, tbl_field_note, tbl_formula_resin, tbl_formula_resin_selected, tbl_generated_prod_code, tbl_internal_color_code, tbl_master_formula, tbl_master_formula_encode, tbl_master_formula_info, tbl_mb_extruder_formula, 
     tbl_mb_extruder_formula02, tbl_resin, tbl_cmf_salesman, tbl_resins_selected, 
     tbl_cmf_color_req, tbl_cmf_specification, tbl_cmf_process, tbl_role, tbl_role_permissions, tbl_rs, tbl_submitted_option, tbl_submitted_selected
 )
@@ -116,6 +119,16 @@ def signup(request):
             last_name=last_name,
         )
         login(request, user)
+        # Create a new session specifically after successful login
+        request.session.cycle_key() 
+        
+        # Expire the session at 11:59:59 PM of the login day
+        now = timezone.localtime()
+        end_of_day = datetime.combine(now.date(), time(23, 59, 59))
+        end_of_day = timezone.make_aware(end_of_day, timezone.get_current_timezone())
+        seconds_until_midnight = (end_of_day - now).total_seconds()
+        request.session.set_expiry(seconds_until_midnight)
+    
         return redirect('dashboard')
 
     return render(request, 'login/signup.html')
@@ -142,10 +155,12 @@ def maintenance(request):
 
 @access_required('CMF Records')
 def cmf_records(request):
-    all_records = cmf_records_services.get_all_records_combined()
-    return render(request, "sidemenu/cmf/cmf_records.html", {
-        "records": all_records,
-    })
+    # all_records = cmf_records_services.get_all_records_combined()
+    return render(request, "sidemenu/cmf/cmf_records.html")
+
+@access_required('RS Records')
+def rs_records(request):
+    return render(request, "sidemenu/cmf/rs_records.html")
 
 @access_required('Formula Records')
 def formula_records(request):
@@ -168,6 +183,7 @@ def formula_records(request):
 def cmf_entry(request):
     form_data = {}
     attachments = []
+    ar_no = ""
     if request.method == "POST":
         original_cmf_no = request.POST.get('original_cmf_no', '').strip()
         is_new = request.POST.get('is_new', '1')
@@ -175,12 +191,15 @@ def cmf_entry(request):
             if original_cmf_no and is_new == '0':
                 saved_record = cmf_entry_save.update_cmf_complete_entry(request, original_cmf_no)
                 messages.success(request, f"Successfully updated CMF No. {saved_record.cm_no}")
+                cache.delete('cmf_records_list')
+                return redirect('cmf_records')
             else:
                 saved_record = cmf_entry_save.save_cmf_complete_entry(request)
                 messages.success(request, f"Successfully saved CMF No. {saved_record.cm_no}")
+                cache.delete('cmf_records_list')
+                return redirect('cmf_entry')
 
-            cache.delete('cmf_records_list')
-            return redirect('cmf_entry')
+            
         except Exception as e:
             messages.error(request, str(e))
             form_data = request.POST
@@ -188,13 +207,59 @@ def cmf_entry(request):
     else:
         cm_no = request.GET.get('no')
         cm_no_override = request.GET.get('new_no')
+
+        # 1. Capture query parameters from auto-fill redirect
+        url_is_for_rs = request.GET.get('is_for_rs') == '1'
+        url_product_code = request.GET.get('product_code')
+
+        # If a numeric code_no was passed, resolve its code string for the template
+        if url_product_code and url_product_code.isdigit():
+            code_obj = tbl_generated_prod_code.objects.filter(code_no=url_product_code).first()
+            selected_code_display = code_obj.product_code if code_obj else url_product_code
+        else:
+            selected_code_display = url_product_code
+
         if cm_no:
             cmf = tbl_cmf.objects.filter(cm_no=cm_no).first()
             if cmf:
                 dates = tbl_cmf_dates.objects.filter(cm_no=cmf).first()
                 formula_info = tbl_cmf_formula.objects.filter(cm_no=cmf).first()
                 color_req = tbl_cmf_color_req.objects.filter(cm_no=cmf).first()
-        
+                # Fetch notes for this formula
+                dosage_note_obj = tbl_field_note.objects.filter(cmf_formula_no=formula_info, field='dosage').first() if formula_info else None
+                resin_note_obj = tbl_field_note.objects.filter(cmf_formula_no=formula_info, field='resin').first() if formula_info else None
+
+                # 🛑 Check if any extruder formulas are attached to this CMF
+                has_formula = (
+                    tbl_mb_extruder_formula.objects.filter(cm_no=cmf).exists() or
+                    tbl_dc_extruder_formula.objects.filter(cm_no=cmf).exists()
+                )
+
+                # --- CHECK IF COMPLETED & GET AR_NO ---
+                pending_obj = None
+                if not cm_no_override:
+                    pending_obj = tbl_cmf_pending_completed.objects.filter(cm_no=cmf).select_related('code').first()
+                    if pending_obj and pending_obj.is_completed:
+                        ar_no = pending_obj.ar_no or ""
+
+                final_prod_code = ""
+                if pending_obj and pending_obj.code:
+                    final_prod_code = pending_obj.code.product_code
+
+                # Base product code resolution
+                resolved_prod_code = selected_code_display if selected_code_display else ("" if cm_no_override else final_prod_code)
+
+                # 🛑 NEW FALLBACK LOGIC:
+                # If product code is None/empty AND AR No is None/empty:
+                # Check tbl_submitted_selected for any custom value (not Sample, Chips, or Price)
+                if not resolved_prod_code and not ar_no and pending_obj:
+                    STANDARD_SUBMITTED = {'sample', 'chips', 'price'}
+                    for sub in tbl_submitted_selected.objects.filter(completed_id=pending_obj).select_related('option_id'):
+                        opt_name = (sub.option_id.name or '').strip() if sub.option_id else ''
+                        if opt_name and opt_name.lower() not in STANDARD_SUBMITTED:
+                            resolved_prod_code = opt_name
+                            break
+
                 resin_ids = list(
                     tbl_resins_selected.objects.filter(cm_no=cmf).values_list('resin_no_id', flat=True)
                 )
@@ -202,27 +267,42 @@ def cmf_entry(request):
                     tbl_cmf_process02.objects.filter(cmf_formula_no=formula_info)
                     .values_list('process_no__name', flat=True)
                 ) if formula_info else []
-                spec_names = list(
+                STANDARD_PROCESSES = {'injection', 'blow-molding', 'film', 'pipe-extrusion'}
+                selected_processes = []
+                other_process_val = ""
+
+                for p in process_names:
+                    p_clean = p.strip().lower()
+                    if p_clean in STANDARD_PROCESSES:
+                        selected_processes.append(p_clean)
+                    else:
+                        selected_processes.append('others')
+                        other_process_val = p.strip()
+
+                spec_names_raw = list(
                     tbl_cmf_specification02.objects.filter(cm_no=cmf)
                     .values_list('spec_no__name', flat=True)
                 )
+                STANDARD_SPECS = {'food contact', 'sunlight exposure', 'not specified'}
+                selected_specs = []
+                other_spec_val = ""
 
-                final_formula = tbl_mb_extruder_formula.objects.filter(
-                    cm_no=cmf, is_final=True
-                ).select_related('code').first()
-
-                if not final_formula:
-                    final_formula = tbl_dc_extruder_formula.objects.filter(
-                        cm_no=cmf, is_final=True
-                    ).select_related('code').first()
-
-                final_prod_code = ""
-                if final_formula and final_formula.code:
-                    final_prod_code = final_formula.code.product_code
-
+                for s in spec_names_raw:
+                    s_clean = s.strip()
+                    if s_clean.lower() in STANDARD_SPECS:
+                        if s_clean.lower() == 'food contact': selected_specs.append('Food Contact')
+                        elif s_clean.lower() == 'sunlight exposure': selected_specs.append('Sunlight Exposure')
+                        elif s_clean.lower() == 'not specified': selected_specs.append('Not Specified')
+                    else:
+                        selected_specs.append('Others')
+                        other_spec_val = s_clean
+                
                 form_data = {
                     'is_new': '1' if cm_no_override else '0',
                     'cmf_no': cm_no_override if cm_no_override else cmf.cm_no,
+                    # 2. Keep "For RS" toggled ON
+                    'is_for_rs': url_is_for_rs,
+                    'has_formula': has_formula,
                     'customer': formula_info.customer if formula_info else "",
 
                     # DateField — needs strftime
@@ -235,7 +315,7 @@ def cmf_entry(request):
                     'date_received': dates.date_received_lab if dates else "",
                     'submit_to_lab': dates.submit_to_lab if dates else "",
 
-                    'matchType': 'rematch' if cm_no_override else cmf.matching_type,
+                    'matchType': 'new' if url_is_for_rs else ('rematch' if cm_no_override else cmf.matching_type),
                     'product_status': cmf.product_status,
                     'est_qty_order': cmf.est_qty_order,
                     'salesman': cmf.sm.name if cmf.sm else "",
@@ -254,12 +334,17 @@ def cmf_entry(request):
                     'color_guide_return': 'Y' if cmf.is_guide_to_return else ('N' if cmf.is_guide_to_return is False else ''),
                     'is_low_cost': 'Y' if cmf.is_low_cost else ('N' if cmf.is_low_cost is False else ''),
                     'remarks': cmf.remarks,
-                    'product_code': "" if cm_no_override else final_prod_code,
-
+                    'product_code': resolved_prod_code,
+                    "ar_no": ar_no,
+                    'dosage_note': dosage_note_obj.note if dosage_note_obj else "",
+                    'resin_note': resin_note_obj.note if resin_note_obj else "",
+                    
                     # plain lists — NOT a QueryDict, template must use "in form_data.resin" (not .getlist.resin)
                     'resin': [str(rid) for rid in resin_ids],
-                    'process': process_names,
-                    'specification': spec_names,
+                    'process': selected_processes,
+                    'otherProcess': other_process_val,
+                    'specification': selected_specs,
+                    'specificationOther': other_spec_val,
                 }
                 # show the "View Files" button, and to populate its modal.
                 attachments = list(
@@ -274,6 +359,7 @@ def cmf_entry(request):
         "salesman": cmf_records_services.get_salesman_list(),
         "primary_color": cmf_records_services.get_color_list(),
         "resin": cmf_records_services.get_resin_list(),
+        "codes": cmf_records_services.get_color_code_list(),
         "form_data": form_data,
         "attachments": attachments,
         'is_allowed': is_allowed,
@@ -303,21 +389,40 @@ def cmf_rs_entry(request):
     else:
         record_id = request.GET.get('no')
         if record_id:
-            rs_instance = tbl_rs.objects.filter(id=record_id).first()
+            rs_instance = tbl_rs.objects.filter(id=record_id).select_related('cm_no', 'sm_no', 'approved_by').first()
             if rs_instance:
                 form_data = rs_entry_save.build_form_data(rs_instance)
             else:
                 messages.error(request, f"RS record with ID {record_id} not found.")
+
     allowed_departments = ['Laboratory', 'Information Technology', 'Sales']
-    is_allowed = request.user.role.department in allowed_departments or request.user.is_superuser
+    user_dept = request.user.role.department if getattr(request.user, 'role', None) else ""
+    is_allowed = user_dept in allowed_departments or request.user.is_superuser
+
+    # Active lab personnel / users for the "Approved By" dropdown
+    lab_personnel = (
+        User.objects.filter(is_active=True, role__department__in=['Laboratory', 'CEO'])
+        .annotate(full_name=Concat('first_name', Value(' '), 'last_name'))
+        .values('id', 'full_name', 'username')
+        .order_by('first_name')
+    )
+
+    # CMF list for linking
+    cmf_list = (
+        tbl_cmf.objects.exclude(cm_no__isnull=True)
+        .exclude(cm_no='')
+        .values('cm_no')
+        .order_by('-cm_no')
+    )
 
     context = {
         "customers": cmf_records_services.get_customer_list(), 
         "salesman": cmf_records_services.get_salesman_list(),
-        "primary_color": cmf_records_services.get_color_list(),
-        "resin": cmf_records_services.get_resin_list(),
+        "cmf_list": cmf_list,
+        "lab_personnel": lab_personnel,
         "form_data": form_data,
-        'is_allowed': is_allowed,
+        "is_allowed": is_allowed,
+        "is_edit": bool(form_data.get('original_rs_id')),
     }
     return redirect(f"{reverse('maintenance')}?feature=RS Entry")
     # return render(request, "sidemenu/cmf/rs_entry.html", context)
@@ -433,7 +538,7 @@ def cmf_mb_formula(request):
     if request.method == "POST":
         try:
             saved_record = mb_formula_save.save_mb_complete_formula(request)
-            parent_display = saved_record.cm_no.cm_no if saved_record.cm_no else saved_record.rs_no.rs_no
+            parent_display = saved_record.cm_no.cm_no if saved_record.cm_no else f"MB #{saved_record.mb_no}"
             messages.success(request, f"Successfully saved MB Formula for {parent_display}")
             cache.delete('cmf_records_list')
             return redirect('mb_formula')
@@ -443,19 +548,26 @@ def cmf_mb_formula(request):
 
     else:
         record_no = request.GET.get('no')
-        record_type = request.GET.get('type', 'cmf')
         formula_id = request.GET.get('formula_id')
 
-        cmf = None  # only set when record_type == 'cmf'
-        rs = None   # only set when record_type == 'rs'
-
-        if record_no and record_type == 'cmf':
+        cmf = None
+        formula_info = None
+        
+        # 1. Load details from CMF if provided
+        if record_no:
             cmf = tbl_cmf.objects.filter(cm_no=record_no).first()
             if cmf:
                 colorant_mismatch = cmf.colorant_type != "MB"
 
                 formula_info = tbl_cmf_formula.objects.filter(cm_no=record_no).first()
 
+                # Fetch dosage note from CMF entry
+                dosage_note_obj = tbl_field_note.objects.filter(
+                    cmf_formula_no=formula_info, 
+                    field='dosage'
+                ).first() if formula_info else None
+                dosage_note_val = dosage_note_obj.note if dosage_note_obj and dosage_note_obj.note else ""
+                
                 resins_list = tbl_resins_selected.objects.filter(
                     cm_no=record_no
                 ).values_list('resin_no__abbreviation', flat=True)
@@ -466,71 +578,67 @@ def cmf_mb_formula(request):
                 ).values_list('process_no__name', flat=True)
                 application_str = ", ".join(processes)
 
+                # For new matching: prioritize dosage_note, fallback to formula dosage
+                initial_dosage = dosage_note_val or (formula_info.dosage if formula_info else "")
+                
                 form_data = {
                     'cm_form_no': record_no,
                     'record_id': record_no,
                     'customer': formula_info.customer if formula_info else "",
                     'resin_used': resin_used_str,
-                    'dosage': formula_info.dosage if formula_info else "",
+                    'dosage': initial_dosage,
                     'finished_product': formula_info.finished_product if formula_info else "",
-                    'notes': formula_info.finished_product if formula_info else "",
+                    'note': formula_info.finished_product if formula_info else "",
                     'color': cmf.in_code_no.color if cmf.in_code_no else "",
+                    'color_desc': cmf.color_desc.upper() or (cmf.in_code_no.color or ""),
                     'product': cmf.in_code_no.code if cmf.in_code_no else "",
-                    'application': application_str,
+                    'application': application_str.upper() or "",
                     'record_type': 'cmf',
                 }
             else:
                 messages.error(request, f"CMF No. {record_no} not found.")
 
-        if record_no and record_type == 'rs':
-            rs = tbl_rs.objects.filter(id=record_no).first()
-            if rs:
-                colorant_mismatch = rs.colorant_type != "MB"
-
-                # Resin — same pattern as CMF, filtered via the rs_no FK on tbl_resins_selected
-                resins_list = tbl_resins_selected.objects.filter(
-                    rs_no=rs
-                ).values_list('resin_no__abbreviation', flat=True)
-                resin_used_str = ", ".join(resins_list)
-
-                # Process — same pattern as CMF, but tbl_cmf_process02 links directly via rs_no
-                # here rather than through a formula record (RS has no tbl_cmf_formula row)
-                processes = tbl_cmf_process02.objects.filter(
-                    rs_no=rs
-                ).values_list('process_no__name', flat=True)
-                application_str = ", ".join(processes)
-
-                # Product code lives on tbl_cmf_pending_completed for RS records
-                pending = tbl_cmf_pending_completed.objects.filter(rs_no=rs).select_related('code').first()
-
-                form_data = {
-                    'cm_form_no': rs.rs_no,
-                    'record_id': rs.pk,
-                    'customer': rs.customer or "",
-                    'resin_used': resin_used_str,
-                    'dosage': rs.dosage or getattr(rs, 'dosage', '') or '',
-                    'finished_product': rs.finished_product or "",
-                    'color': rs.primary_color or "",
-                    'product': pending.code.product_code if pending else "",
-                    'application': application_str,
-                    'record_type': 'rs',
-                }
-            else:
-                messages.error(request, f"RS record with ID {record_no} not found.")
-
-        # --- Load a SPECIFIC historical MB formula, if one was clicked ---
-        # tbl_mb_extruder_formula has both cm_no and rs_no FKs, so the filter
-        # needs to match whichever side actually resolved above.
+        # 2. Load a SPECIFIC historical MB formula, if formula_id is clicked
         if formula_id:
-            header = None
+            # Query directly by pk (and cm_no if cmf exists)
+            filter_kwargs = {'pk': formula_id}
             if cmf:
-                header = tbl_mb_extruder_formula.objects.filter(pk=formula_id, cm_no=cmf).first()
-            elif rs:
-                header = tbl_mb_extruder_formula.objects.filter(pk=formula_id, rs_no=rs).first()
+                filter_kwargs['cm_no'] = cmf
+                
+            header = tbl_mb_extruder_formula.objects.filter(**filter_kwargs).first()
 
             if header:
+                # If loaded directly by formula_id without record_no in URL
+                if not cmf and header.cm_no:
+                    cmf = header.cm_no
+                    formula_info = tbl_cmf_formula.objects.filter(cm_no=cmf).first()
+                    form_data['cm_form_no'] = cmf.cm_no
+                    form_data['record_id'] = cmf.cm_no
+
+                # Existing record: display actual dosage
+                existing_dosage = getattr(header, 'dosage', None) or (formula_info.dosage if formula_info else "")
+
+                 # ---> 1. GET THE SAVED RESIN IDS FOR THIS FORMULA <---
+                saved_resin_ids = list(
+                    tbl_formula_resin_selected.objects.filter(mb_no=header)
+                    .values_list('formula_resin_id_id', flat=True)
+                )
+
+                ingredients = list(
+                    tbl_mb_extruder_formula02.objects.filter(mb=header)
+                    .values('material', 'value', 'weight')
+                )
+
+                # NONE = no total weight AND every saved weight is NULL
+                weights_none = header.total_weight is None and all(
+                    ing['weight'] is None for ing in ingredients
+                )
+
                 form_data.update({
                     'formula_id': header.pk,
+                    'index_no': header.index_no or "",
+                    'selected_resins': saved_resin_ids,
+                    'dosage': existing_dosage,
                     'date': header.date.strftime('%m/%d/%Y') if header.date else "",
                     'product': header.code.product_code if header.code else "",
                     'lot_number': header.lot_no or "",
@@ -539,7 +647,7 @@ def cmf_mb_formula(request):
                     'matched_by': header.matched_by or "",
                     'weighed_by': header.weighted_by or "",
                     'encoded_by': header.encoded_by or "",
-                    'total_weight': header.total_weight,
+                    'total_weight': 'NONE' if weights_none else header.total_weight,
                     'spectro_l': header.L,
                     'spectro_a': header.A,
                     'spectro_b': header.B,
@@ -553,18 +661,22 @@ def cmf_mb_formula(request):
                     'matcher_id': header.matcher.id if header.matcher else "",
                     'is_final': True if header.is_final else False,
                 })
+                # Show the internal color saved on THIS formula, not the CMF's color.
+                # Older formulas that have none yet fall back to the product code's color,
+                # and finally to the CMF color set above.
+                saved_color_id = header.internal_color_id or (header.code.in_code_id if header.code else None)
+                if saved_color_id:
+                    form_data['color'] = saved_color_id
 
-                ingredients = list(
-                    tbl_mb_extruder_formula02.objects.filter(mb=header)
-                    .values('material', 'value', 'weight')
-                )
                 ingredients = ingredients + [{'material': '', 'value': '', 'weight': ''}] * (10 - len(ingredients))
                 ingredients = ingredients[:10]
             else:
                 messages.error(request, f"Formula record not found for ID {formula_id}.")
-    
+
+    # Fill default rows if empty
     if not ingredients:
         ingredients = [{'material': '', 'value': '', 'weight': ''}] * 10
+
     # Filter only active users from the Laboratory department
     # 1. Define the specific lab personnel
     allowed_personnel = [
@@ -588,32 +700,32 @@ def cmf_mb_formula(request):
         .order_by('first_name')
     )
 
-    # 1. Get CMF numbers
+    # Purely CMF numbers (no RS)
     cmf_nos = list(
         tbl_cmf.objects.filter(colorant_type='MB')
         .exclude(cm_no__isnull=True)
         .exclude(cm_no='')
         .values_list('cm_no', flat=True)
+        .distinct()
     )
-    
-    # 2. Get RS numbers where colorant_type is MB
-    rs_nos = list(
-        tbl_rs.objects.filter(colorant_type='MB')
-        .exclude(rs_no__isnull=True)
-        .exclude(rs_no='')
-        .values_list('rs_no', flat=True)
-    )
-    
-    # 3. Combine, unique (set), and sort descending
-    combined_list = sorted(list(set(cmf_nos + rs_nos)), reverse=True)
+    combined_list = sorted(cmf_nos, reverse=True)
 
+    # Query all formula resins for the dropdown
+    formula_resins = list(
+        tbl_formula_resin.objects
+        .values('formula_resin_id', 'resin')
+        .order_by('resin')
+    )
+    
     context = {
         "form_data": form_data,
         "materials": cmf_records_services.get_raw_material_codes(),
         "users": list(user_list),
+        "primary_color": cmf_records_services.get_color_list(formula=True),
         "colorant_mismatch": colorant_mismatch,
         "ingredients": ingredients,
         "cmf_list": combined_list,
+        "formula_resins": formula_resins,
     }
     return render(request, "sidemenu/cmf/formula_mb.html", context)
 
@@ -626,7 +738,7 @@ def cmf_dc_formula(request):
     if request.method == "POST":
         try:
             saved_record = dc_formula_save.save_dc_complete_formula(request)
-            parent_display = saved_record.cm_no.cm_no if saved_record.cm_no else saved_record.rs_no.rs_no
+            parent_display = saved_record.cm_no.cm_no if saved_record.cm_no else f"DC #{saved_record.dc_no}"
             messages.success(request, f"Successfully saved DC Formula for {parent_display}")
             cache.delete('cmf_records_list')
             return redirect('dc_formula')
@@ -636,83 +748,75 @@ def cmf_dc_formula(request):
 
     else:
         record_no = request.GET.get('no')
-        record_type = request.GET.get('type', 'cmf')
         formula_id = request.GET.get('formula_id')
 
-        cmf = None  # only set when record_type == 'cmf'
-        rs = None   # only set when record_type == 'rs'
+        cmf = None
+        formula_info = None
 
-        if record_no and record_type == 'cmf':
+        # 1. Load details from CMF if provided
+        if record_no:
             cmf = tbl_cmf.objects.filter(cm_no=record_no).first()
             if cmf:
                 colorant_mismatch = cmf.colorant_type != "DC"
 
                 formula_info = tbl_cmf_formula.objects.filter(cm_no=record_no).first()
 
-                resins_list = tbl_resins_selected.objects.filter(cm_no=record_no).values_list('resin_no__abbreviation', flat=True)
+                # Fetch dosage note from CMF entry
+                dosage_note_obj = tbl_field_note.objects.filter(
+                    cmf_formula_no=formula_info, 
+                    field='dosage'
+                ).first() if formula_info else None
+                dosage_note_val = dosage_note_obj.note if dosage_note_obj and dosage_note_obj.note else ""
+
+                                
+                resins_list = tbl_resins_selected.objects.filter(
+                    cm_no=record_no
+                ).values_list('resin_no__abbreviation', flat=True)
                 resin_str = ", ".join(resins_list)
 
-                processes = tbl_cmf_process02.objects.filter(cmf_formula_no__cm_no=record_no).values_list('process_no__name', flat=True)
+                processes = tbl_cmf_process02.objects.filter(
+                    cmf_formula_no__cm_no=record_no
+                ).values_list('process_no__name', flat=True)
                 app_str = ", ".join(processes)
 
+                # For new matching: prioritize dosage_note, fallback to formula dosage
+                initial_dosage = dosage_note_val or (formula_info.dosage if formula_info else "")
+                                
                 form_data = {
                     'cm_form_no': record_no,
                     'record_id': record_no,
                     'customer': formula_info.customer if formula_info else "",
                     'resin': resin_str,
-                    'dosage': formula_info.dosage if formula_info else "",
+                    'dosage': initial_dosage,
                     'finished_product': formula_info.finished_product if formula_info else "",
                     'color': cmf.in_code_no.color if cmf.in_code_no else "",
-                    'application': app_str,
+                    'color_desc': cmf.color_desc.upper() or (cmf.in_code_no.color or ""),
+                    'application': app_str.upper() if app_str else "",
                     'record_type': 'cmf',
                 }
             else:
                 messages.error(request, f"CMF No. {record_no} not found.")
 
-        elif record_no and record_type == 'rs':
-            rs = tbl_rs.objects.filter(pk=record_no).first()
-            if rs:
-                colorant_mismatch = rs.colorant_type != "DC"
-
-                # Resin — same pattern as CMF, filtered via the rs_no FK on tbl_resins_selected
-                resins_list = tbl_resins_selected.objects.filter(rs_no=rs).values_list('resin_no__abbreviation', flat=True)
-                resin_str = ", ".join(resins_list)
-
-                # Process — tbl_cmf_process02 links directly via rs_no for RS records
-                # (no tbl_cmf_formula row to go through, unlike CMF)
-                processes = tbl_cmf_process02.objects.filter(rs_no=rs).values_list('process_no__name', flat=True)
-                app_str = ", ".join(processes)
-                # Product code lives on tbl_cmf_pending_completed for RS records
-                pending = tbl_cmf_pending_completed.objects.filter(rs_no=rs).select_related('code').first()
-
-                form_data = {
-                    'cm_form_no': rs.rs_no,
-                    'record_id': rs.pk,
-                    'customer': rs.customer or "",
-                    'resin': resin_str,
-                    'dosage': getattr(rs, 'dosage', '') or '',
-                    'finished_product': rs.finished_product or "",
-                    'color': rs.primary_color or "",
-                    'product_code': pending.code.product_code if pending else "",
-                    'application': app_str,
-                    'record_type': 'rs',
-                }
-            else:
-                messages.error(request, f"RS record with ID {record_no} not found.")
-
-        # --- Load a SPECIFIC historical DC formula, if one was clicked ---
-        # tbl_dc_extruder_formula has both cm_no and rs_no FKs, so the filter
-        # needs to match whichever side actually resolved above.
+        # 2. Load a SPECIFIC historical DC formula, if formula_id is clicked
         if formula_id:
-            header = None
+            filter_kwargs = {'pk': formula_id}
             if cmf:
-                header = tbl_dc_extruder_formula.objects.filter(pk=formula_id, cm_no=cmf).first()
-            elif rs:
-                header = tbl_dc_extruder_formula.objects.filter(pk=formula_id, rs_no=rs).first()
+                filter_kwargs['cm_no'] = cmf
 
+            header = tbl_dc_extruder_formula.objects.filter(**filter_kwargs).first()
+            # Existing record: display actual dosage
+            existing_dosage = getattr(header, 'dosage', None) or (formula_info.dosage if formula_info else "")
+
+            saved_resin_ids = list(
+                tbl_formula_resin_selected.objects.filter(dc_no=header)
+                .values_list('formula_resin_id_id', flat=True)
+            )
             if header:
                 form_data.update({
                     'formula_id': header.pk,
+                    'index_no': header.index_no or "",
+                    'selected_resins': saved_resin_ids,
+                    'dosage': existing_dosage,
                     'date_matched': header.date.strftime('%m/%d/%Y') if header.date else "",
                     'product_code': header.code.product_code if header.code else "",
                     'material_code_id': header.material_code_id or "",
@@ -736,9 +840,14 @@ def cmf_dc_formula(request):
                     'matcher_id': header.matcher.id if header.matcher else "",
                 })
 
-                # Build the material_rows grid: one row per material, each
-                # holding a 10-slot list of version values (None where
-                # that material has no entry for that particular version).
+                # Show the internal color saved on THIS formula, not the CMF's color.
+                # Older formulas that have none yet fall back to the product code's color,
+                # and finally to the CMF color set above.
+                saved_color_id = header.internal_color_id or (header.code.in_code_id if header.code else None)
+                if saved_color_id:
+                    form_data['color'] = saved_color_id
+
+                # Build the material_rows grid: one row per material with 10 version slots
                 dc_materials = list(
                     tbl_dc_extruder_materials.objects.filter(dc=header).order_by('material_id')
                 )
@@ -755,13 +864,14 @@ def cmf_dc_formula(request):
                         'versions': [version_map.get(v) for v in range(1, 11)],
                     })
 
-                # Pad to 10 rows for the fixed-size grid.
+                # Pad to 10 rows for the fixed grid
                 while len(material_rows) < 10:
                     material_rows.append({'material': '', 'versions': [None] * 10})
                 material_rows = material_rows[:10]
             else:
                 messages.error(request, f"Formula record not found for ID {formula_id}.")
 
+    # Fallback to default 10 empty rows
     if not material_rows:
         material_rows = [{'material': '', 'versions': [None] * 10} for _ in range(10)]
 
@@ -788,189 +898,78 @@ def cmf_dc_formula(request):
         .order_by('first_name')
     )
 
-    # 1. Get CMF numbers
+    # Get purely DC CMF numbers
     cmf_nos = list(
         tbl_cmf.objects.filter(colorant_type='DC')
         .exclude(cm_no__isnull=True)
         .exclude(cm_no='')
         .values_list('cm_no', flat=True)
+        .distinct()
     )
-    
-    # 2. Get RS numbers where colorant_type is DC
-    rs_nos = list(
-        tbl_rs.objects.filter(colorant_type='DC')
-        .exclude(rs_no__isnull=True)
-        .exclude(rs_no='')
-        .values_list('rs_no', flat=True)
-    )
-    
-    # 3. Combine, unique (set), and sort descending
-    combined_list = sorted(list(set(cmf_nos + rs_nos)), reverse=True)
+    combined_list = sorted(cmf_nos, reverse=True)
+
     coding_materials = tbl_coding_materials.objects.filter(is_deleted=False).order_by('name')
+
+    # Query all formula resins for the dropdown
+    formula_resins = list(
+        tbl_formula_resin.objects
+        .values('formula_resin_id', 'resin')
+        .order_by('resin')
+    )
+
     context = {
         "form_data": form_data,
         "materials": cmf_records_services.get_raw_material_codes(),
         "users": list(user_list),
+        "primary_color": cmf_records_services.get_color_list(formula=True),
         "colorant_mismatch": colorant_mismatch,
         "material_rows": material_rows,
         "cmf_list": combined_list,
         "coding_materials": coding_materials,
+        "formula_resins": formula_resins,
     }
     return render(request, "sidemenu/cmf/formula_dc.html", context)
 
 @access_required('Pending Completed')
-def cmf_pending_completed(request):
+def cmf_pending_completed(request): 
     form_data = {}
     record_no = request.POST.get('record_no') or request.GET.get('no')
     record_type = request.POST.get('record_type') or request.GET.get('type', 'cmf')
 
-    # --- HELPERS ---
-    def format_val(val):
-        """Standardizes values for audit comparison."""
-        if val is True: return "Completed"
-        if val is False: return "Pending"
-        if val is None or val == "" or val == "None": return "---"
-        if isinstance(val, (date, datetime)):
-            return val.strftime('%m/%d/%Y')
-        if isinstance(val, (Decimal, float)):
-            return format(float(val), ".2f")
-        return str(val).strip()
-    def parse_date(d_str):
-        if not d_str: return None
-        try: return datetime.strptime(d_str.strip(), '%m/%d/%Y').date()
-        except ValueError: return None
-
-    def get_prod_code_obj(code_str):
-        if not code_str or not code_str.strip(): return None
-        obj, _ = tbl_generated_prod_code.objects.get_or_create(product_code=code_str.strip())
-        return obj
-
+    
+    # --- POST HANDLING (Delegated to service) ---
     if request.method == "POST":
-        try:
-            data = request.POST
-            diff_logs = []
-            tracking_instance = None
-            feedback_instance = None
-            parent_display = ""
+        pending_completed_services.save_pending_completed_entry(request, log_audit)
+        return redirect(f"{request.path}?no={record_no}&type={record_type}")
 
-            # 1. Identify Parent and Get/Create Instances
-            if record_type == 'cmf':
-                cmf_obj = tbl_cmf.objects.filter(cm_no=record_no).first()
-                if not cmf_obj: raise Exception(f"CMF {record_no} not found.")
-                tracking_instance, _ = tbl_cmf_pending_completed.objects.get_or_create(cm_no=cmf_obj)
-                feedback_instance, _ = tbl_feedback_details.objects.get_or_create(cm_no=cmf_obj)
-                parent_display = f"CMF: {record_no}"
+     # --- HELPER TO RESOLVE SUBMITTED OPTIONS & NONE REMARKS ---
+    CANONICAL_NAMES = {'sample', 'chips', 'price'}
+
+    def resolve_submitted_options(tracking_obj, is_rs=False):
+        # 1. Canonical list for the checkboxes (RS only uses Sample & Chips)
+        valid_names = ['Sample', 'Chips'] if is_rs else ['Sample', 'Chips', 'Price']
+        canonical_opts = list(
+            tbl_submitted_option.objects.filter(name__in=valid_names).order_by('option_id')
+        )
+
+        selected_records = list(
+            tbl_submitted_selected.objects.filter(completed_id=tracking_obj).select_related('option_id')
+        ) if tracking_obj else []
+
+        selected_opt_ids = []
+        has_none = False
+        remarks_text = ""
+
+        for item in selected_records:
+            opt_name = item.option_id.name.strip()
+            if opt_name.lower() in CANONICAL_NAMES:
+                selected_opt_ids.append(item.option_id_id)
             else:
-                rs_obj = tbl_rs.objects.filter(pk=record_no).first()
-                if not rs_obj: raise Exception(f"RS record not found.")
-                tracking_instance, _ = tbl_cmf_pending_completed.objects.get_or_create(rs_no=rs_obj)
-                feedback_instance, _ = tbl_feedback_details.objects.get_or_create(rs_no=rs_obj)
-                parent_display = f"RS: {rs_obj.rs_no}"
+                # Any option NOT in Sample/Chips/Price is treated as a "None" remark!
+                has_none = True
+                remarks_text = opt_name
 
-            # 2. Update Map for Tracking Table
-            update_map = {
-                'status': (tracking_instance, 'is_completed', 'Status', lambda x: x == 'Completed'),
-                'pending_reason': (tracking_instance, 'reason', 'Reason', str),
-                'product_code': (tracking_instance, 'code', 'Product Code', get_prod_code_obj),
-                'lot_no': (tracking_instance, 'lot_no', 'Lot Number', str),
-                'code_description': (tracking_instance, 'code_details', 'Code Details', str),
-                'date_submitted': (tracking_instance, 'date_submitted', 'Date Submitted', parse_date),
-                'ar_no': (tracking_instance, 'ar_no', 'AR No.', str),
-                'ar_date': (tracking_instance, 'ar_date', 'AR Date', parse_date),
-            }
-
-            # 3. Update Map for Feedback Table
-            feedback_map = {
-                'qty_given': (feedback_instance, 'quantity_given', 'Qty Given', lambda x: Decimal(x) if x else None),
-                'set_pc': (feedback_instance, 'pieces', 'Sets/Pcs', lambda x: int(x) if x else None),
-            }
-
-            with transaction.atomic():
-                # Process Tracking Diffs
-                for post_key, (inst, attr, label, transform) in update_map.items():
-                    current_val = getattr(inst, attr)
-                    new_val = transform(data.get(post_key, ''))
-                    
-                    curr_str = format_val(current_val.product_code if attr == 'code' and current_val else current_val)
-                    new_str = format_val(new_val.product_code if attr == 'code' and new_val else new_val)
-
-                    if curr_str != new_str:
-                        diff_logs.append(f"{label} ({curr_str} -> {new_str})")
-                        setattr(inst, attr, new_val)
-
-                # Process Feedback Diffs
-                for post_key, (inst, attr, label, transform) in feedback_map.items():
-                    current_val = getattr(inst, attr)
-                    new_val = transform(data.get(post_key, ''))
-                    
-                    curr_str, new_str = format_val(current_val), format_val(new_val)
-                    if curr_str != new_str:
-                        diff_logs.append(f"{label} ({curr_str} -> {new_str})")
-                        setattr(inst, attr, new_val)
-
-                # Sync Code FK to Feedback
-                if feedback_instance.code != tracking_instance.code:
-                    feedback_instance.code = tracking_instance.code
-
-                if diff_logs:
-                    tracking_instance.save()
-                    feedback_instance.save()
-
-                # --- 4. Sync Submitted Options (Sample/Chips/Price) ---
-                # tracking_instance needs a pk before we can attach selections to it.
-                if tracking_instance.pk is None:
-                    tracking_instance.save()
-
-                submitted_ids = set(int(i) for i in data.getlist('submitted_options') if i.isdigit())
-                existing_ids = set(
-                    tbl_submitted_selected.objects
-                    .filter(completed_id=tracking_instance)
-                    .values_list('option_id', flat=True)
-                )
-
-                if submitted_ids != existing_ids:
-                    to_add = submitted_ids - existing_ids
-                    to_remove = existing_ids - submitted_ids
-
-                    if to_remove:
-                        tbl_submitted_selected.objects.filter(
-                            completed_id=tracking_instance, option_id__in=to_remove
-                        ).delete()
-
-                    if to_add:
-                        # option_id is a literal field name ending in "_id", so Django
-                        # requires an actual related object here — a raw pk int is rejected.
-                        option_objs = tbl_submitted_option.objects.filter(option_id__in=to_add)
-                        for option_obj in option_objs:
-                            tbl_submitted_selected.objects.get_or_create(
-                                completed_id=tracking_instance, option_id=option_obj
-                            )
-
-                    old_names = list(
-                        tbl_submitted_option.objects.filter(option_id__in=existing_ids).values_list('name', flat=True)
-                    )
-                    new_names = list(
-                        tbl_submitted_option.objects.filter(option_id__in=submitted_ids).values_list('name', flat=True)
-                    )
-                    diff_logs.append(
-                        f"Submitted ({', '.join(old_names) or '---'} -> {', '.join(new_names) or '---'})"
-                    )
-
-                if diff_logs:
-                    log_audit(request, "Updated", f"Updated Status for {parent_display}. Changes: {', '.join(diff_logs)}")
-                    messages.success(request, f"Successfully updated tracking for {parent_display}")
-                    cache.delete('cmf_records_list')
-                    cache.delete('rs_records_list')
-                else:
-                    messages.info(request, "No changes detected.")
-
-                return redirect(f"{request.path}?no={record_no}&type={record_type}")
-
-        except Exception as e:
-            messages.error(request, f"Error updating record: {str(e)}")
-
-    # --- GET LOGIC ---
-    all_options = list(tbl_submitted_option.objects.all())
+        return canonical_opts, selected_opt_ids, has_none, remarks_text
 
     if record_no:
         if record_type == 'cmf':
@@ -995,15 +994,13 @@ def cmf_pending_completed(request):
                     mb_lots = tbl_mb_extruder_formula.objects.filter(cm_no=cmf, code=final_formula.code).values_list('lot_no', flat=True)
                     lot_options = sorted(list(set(filter(None, mb_lots))), reverse=True)
 
-                selected_option_ids = list(
-                    tbl_submitted_selected.objects.filter(completed_id=tracking).values_list('option_id', flat=True)
-                ) if tracking else []
+                canonical_opts, selected_opt_ids, has_none, none_remarks = resolve_submitted_options(tracking, is_rs=False)
 
                 form_data = {
                     'cmf_no': cmf.cm_no,
                     'customer': formula_info.customer if formula_info else "",
-                    'date_created': format_val(dates.form_made) if dates else "",
-                    'due_date': format_val(dates.due_date_lab) if dates else "",
+                    'date_created': pending_completed_services.format_val(dates.form_made) if dates else "",
+                    'due_date': pending_completed_services.format_val(dates.due_date_lab) if dates else "",
                     'required_date': dates.date_required if dates else "",
                     'date_received': dates.date_received_lab if dates else "",
                     'finished_product': formula_info.finished_product if formula_info else "",
@@ -1020,53 +1017,67 @@ def cmf_pending_completed(request):
                     'qty_given': feedback.quantity_given if feedback else "",
                     'set_pc': feedback.pieces if feedback else "",
                     'code_description': tracking.code_details if tracking else "",
-                    'date_submitted': format_val(tracking.date_submitted) if tracking else "",
+                    'date_submitted': pending_completed_services.format_val(tracking.date_submitted) if tracking else "",
                     'ar_no': tracking.ar_no if tracking else "",
-                    'ar_date': format_val(tracking.ar_date) if tracking else "",
-                    'submitted_options': all_options,
-                    'selected_option_ids': selected_option_ids,
+                    'ar_date': pending_completed_services.format_val(tracking.ar_date) if tracking else "",
+                    # --- Options context for template ---
+                    'canonical_options': canonical_opts,
+                    'submitted_options': canonical_opts,
+                    'selected_option_ids': selected_opt_ids,
+                    'has_none_selected': has_none,
+                    'none_remarks': none_remarks,
+
                     'record_no': cmf.cm_no,
                     'record_type': 'cmf',
                 }
 
         elif record_type == 'rs':
-            rs = tbl_rs.objects.filter(id=record_no).first()
+            rs = tbl_rs.objects.filter(pk=record_no).first() if str(record_no).isdigit() else tbl_rs.objects.filter(rs_no=record_no).first()
             if rs:
                 tracking = tbl_cmf_pending_completed.objects.filter(rs_no=rs).select_related('code').first()
                 feedback = tbl_feedback_details.objects.filter(rs_no=rs).first()
                 dates = tbl_cmf_dates.objects.filter(rs_no=rs).first()
-                resins_list = tbl_resins_selected.objects.filter(rs_no=rs).values_list('resin_no__abbreviation', flat=True)
-                processes = tbl_cmf_process02.objects.filter(rs_no=rs).values_list('process_no__name', flat=True)
+                cmf = rs.cm_no
 
-                is_dc = (rs.colorant_type or "").upper() == 'DC'
                 final_prod_code = tracking.code.product_code if tracking and tracking.code else ""
+                if not final_prod_code and cmf:
+                    cmf_tracking = tbl_cmf_pending_completed.objects.filter(cm_no=cmf).select_related('code').first()
+                    if cmf_tracking and cmf_tracking.code:
+                        final_prod_code = cmf_tracking.code.product_code
 
-                selected_lot = "N/A" if is_dc else (tracking.lot_no if tracking else "")
+                is_dc = (getattr(cmf, 'colorant_type', '') or '').upper() == 'DC' if cmf else False
+                selected_lot = "N/A" if is_dc else (tracking.lot_no if tracking and tracking.lot_no else "")
                 lot_options = ["N/A"] if is_dc else []
-                if not is_dc and tracking and tracking.code:
-                    mb_lots = tbl_mb_extruder_formula.objects.filter(rs_no=rs, code=tracking.code).values_list('lot_no', flat=True)
+                if not is_dc and cmf:
+                    mb_lots = tbl_mb_extruder_formula.objects.filter(cm_no=cmf).values_list('lot_no', flat=True)
                     lot_options = sorted(list(set(filter(None, mb_lots))), reverse=True)
+                    if not selected_lot and lot_options:
+                        selected_lot = lot_options[0]
 
-                selected_option_ids = list(
-                    tbl_submitted_selected.objects.filter(completed_id=tracking).values_list('option_id', flat=True)
-                ) if tracking else []
-                
+                approved_by_name = ""
+                if rs.approved_by:
+                    approved_by_name = (
+                        rs.approved_by.get_full_name() 
+                        if hasattr(rs.approved_by, 'get_full_name') and rs.approved_by.get_full_name() 
+                        else f"{rs.approved_by.first_name} {rs.approved_by.last_name}".strip() or rs.approved_by.username
+                    )
+
+                salesman_name = rs.sm_no.name if getattr(rs, 'sm_no', None) else (getattr(rs, 'salesman', '') or '')
+
+                canonical_opts, selected_opt_ids, has_none, none_remarks = resolve_submitted_options(tracking, is_rs=True)
+
                 form_data = {
                     'rs_no': rs.rs_no,
+                    'cm_no': cmf.cm_no if cmf else "",
                     'customer': rs.customer or "",
+                    'salesman': salesman_name,
+                    'approved_by': approved_by_name,
                     'quantity_kg': rs.quantity_required or "",
-                    'date_created': format_val(dates.form_made) if dates else "",
-                    'due_date': format_val(dates.due_date_lab) if dates else "",
-                    'required_date': dates.date_required if dates else "",
-                    'date_received': dates.date_received_lab if dates else "",
-                    'finished_product': rs.finished_product or "",
-                    'color_description': rs.color_desc or "",
-                    'matchType': rs.matching_type.upper() if rs.matching_type else "",
-                    'colorantType': rs.colorant_type.upper() if rs.colorant_type else "",
-                    'salesman': rs.sm_no.name if rs.sm_no else "",
+                    'date_created': pending_completed_services.format_val(dates.form_made) if dates and dates.form_made else pending_completed_services.format_val(getattr(rs, 'date_created', None)),
+                    'due_date': pending_completed_services.format_val(dates.due_date_lab) if dates and dates.due_date_lab else pending_completed_services.format_val(getattr(rs, 'due_date', None)),
+                    'required_date': dates.date_required if dates and dates.date_required else getattr(rs, 'required_date', ''),
+                    'date_received': dates.date_received_lab if dates and dates.date_received_lab else getattr(rs, 'date_received', ''),
                     'status': 'Completed' if (tracking and tracking.is_completed) else 'Pending',
-                    'resin': ", ".join(resins_list),
-                    'application': ", ".join(processes),
                     'pending_reason': tracking.reason if tracking else "",
                     'product_code': final_prod_code,
                     'lot_no': selected_lot,
@@ -1075,17 +1086,29 @@ def cmf_pending_completed(request):
                     'qty_given': feedback.quantity_given if feedback else "",
                     'set_pc': feedback.pieces if feedback else "",
                     'code_description': tracking.code_details if tracking else "",
-                    'date_submitted': format_val(tracking.date_submitted) if tracking else "",
+                    'date_submitted': pending_completed_services.format_val(tracking.date_submitted) if tracking else "",
                     'ar_no': tracking.ar_no if tracking else "",
-                    'ar_date': format_val(tracking.ar_date) if tracking else "",
-                    'submitted_options': all_options,
-                    'selected_option_ids': selected_option_ids,
+                    'ar_date': pending_completed_services.format_val(tracking.ar_date) if tracking else "",
+                    # --- Options context for template ---
+                    'canonical_options': canonical_opts,
+                    'submitted_options': canonical_opts,
+                    'selected_option_ids': selected_opt_ids,
+                    'has_none_selected': has_none,
+                    'none_remarks': none_remarks,
+
                     'record_no': rs.id,
                     'record_type': 'rs',
                 }
     else:
-        form_data['submitted_options'] = all_options
-        form_data['selected_option_ids'] = []
+        # Default fresh state
+        canonical_opts = list(tbl_submitted_option.objects.filter(name__in=['Sample', 'Chips', 'Price']).order_by('option_id'))
+        form_data = {
+            'canonical_options': canonical_opts,
+            'submitted_options': canonical_opts,
+            'selected_option_ids': [],
+            'has_none_selected': False,
+            'none_remarks': "",
+        }
 
     return render(request, "sidemenu/cmf/pending_completed.html", {"form_data": form_data})
 
@@ -1225,6 +1248,40 @@ def admin_password_requests(request):
         'recent_requests': settings_services.get_recent_decided_requests(),
     }
     return render(request, "settings/account/admin_password_requests.html", context)
+
+@role_required
+def manage_color_codes(request):
+    if request.method == "POST":
+        action = request.POST.get('action')
+        
+        if action == 'create':
+            success, message = color_code_services.create_color_code(request)
+        elif action == 'update': # <--- Added update action
+            code_id = request.POST.get('code_id')
+            success, message = color_code_services.update_color_code(request, code_id)
+        elif action in ['approve', 'reject']:
+            code_id = request.POST.get('code_id')
+            new_status = 'approved' if action == 'approve' else 'rejected'
+            success, message = color_code_services.update_color_code_status(request, code_id, new_status)
+        elif action == 'delete':
+            code_id = request.POST.get('code_id')
+            success, message = color_code_services.soft_delete_color_code(request, code_id)
+        else:
+            success, message = False, "Invalid action."
+
+        if success:
+            messages.success(request, message)
+        else:
+            messages.error(request, message)
+        return redirect('manage_color_codes')
+
+    codes = color_code_services.get_color_codes_for_user(request.user)
+    context = {
+        "codes": codes,
+        "primary_colors": color_code_services.get_primary_colors(),
+        "is_admin": request.user.is_superuser or getattr(request.user.role, 'role', '') == 'Admin'
+    }
+    return render(request, "settings/color/color_codes.html", context)
 
 @access_required(access_name='Permission Access', allowed_roles=['ADMIN'])
 def permission_access(request):

@@ -17,28 +17,33 @@ jQuery(document).ready(function($) {
             {
                 data: "matching_no",
                 className: "ps-3 fw-bold",
-                render: function(data, type, row) {
-                    const colorClass = row.mode === 'rs' ? 'text-primary' : 'text-teal';
-                    return `<span class="${colorClass}">${data}</span>`;
+                render: function(data) {
+                    return `<span class="text-teal">${data}</span>`;
                 }
             },
             { data: "customer" },
-            { data: "prod_code", render: data => `<code>${data}</code>` },
+            { data: "prod_code", render: data => data && data !== '---' ? `<code>${data}</code>` : '---' },
             { data: "color_desc" },
             { data: "finished_prod" },
+            { data: "type" },
             { data: "required_date" },
             { data: "due_date" },
-            { data: "type" },
+            { data: "date_submitted" },
+            { 
+                data: "ar_no",
+                render: data => data === '---' ? '<span class="text-muted">---</span>' : `<strong>${data}</strong>`
+            },
             {
                 data: "status",
                 render: function(data) {
                     const statusLower = (data || '').toLowerCase();
                     let cls = "bg-light text-dark border-secondary";
 
-                    if (statusLower === 'pending') cls = "bg-warning-subtle text-warning border-warning";
+                    if (statusLower === 'pending' || statusLower === 'waiting for result') cls = "bg-warning-subtle text-warning border-warning";
                     else if (statusLower === 'rematch') cls = "bg-primary-subtle text-primary border-primary";
                     else if (statusLower === 'abandoned') cls = "bg-danger-subtle text-danger border-danger";
                     else if (statusLower === 'ordered') cls = "bg-dark-subtle text-dark border-dark";
+                    else if (statusLower === 'rejected') cls = "bg-danger-subtle text-danger border-danger";
                     else if (statusLower.includes('approved')) cls = "bg-success-subtle text-success border-success";
                     else if (statusLower.includes('request')) cls = "bg-info-subtle text-info border-info";
 
@@ -51,8 +56,7 @@ jQuery(document).ready(function($) {
                 render: function(data) {
                     return `<div class="text-truncate" style="max-width: 150px;" title="${data || ''}">${data || '---'}</div>`;
                 }
-            },
-            { data: "package_details", className: "pe-3" }
+            }
         ],
         dom: 'rtp',
         pageLength: 100,
