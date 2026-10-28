@@ -57,8 +57,9 @@
             padding: 0 0 0 15px;
             margin: 2px 0;
         }
-        .field-label { width: 155px; flex-shrink: 0; text-transform: uppercase; }
+        .field-label { width: 170px; flex-shrink: 0; text-transform: uppercase; }
         .field-row:nth-child(12) .field-label { width: 170px; }
+        .field-row:nth-child(16) .field-label, .field-row:nth-child(17) .field-label { text-align:right; padding-right: 8px; }
         .field-colon { width: 8px; flex-shrink: 0; }
         .field-value {
             border-bottom: 1px solid #000;
@@ -379,7 +380,7 @@
             </div>
 
             <div class="field-row">
-                <span class="field-label">Processing Temperature</span>
+                <span class="field-label">Max Processing Temperature(°C)</span>
                 <span class="field-colon">:</span>
                 <span class="field-value">{{ temperature }}</span>
             </div>
