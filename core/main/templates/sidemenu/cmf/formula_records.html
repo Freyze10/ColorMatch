@@ -171,7 +171,13 @@ $(document).ready(function() {
                 className: "no-wrap text-center",
                 orderable: false,
                 searchable: false,
-                render: function(data) { 
+                render: function(data) {
+                    // No swatch color saved: write N/A in the box so it is not mistaken for a white swatch
+                    if (!data) {
+                        return `<div class="color-swatch-rect position-relative" style="background-color: transparent;">
+                                    <span class="position-absolute top-50 start-50 translate-middle fw-bold text-muted" style="font-size: 0.65rem; line-height: 1;">N/A</span>
+                                </div>`;
+                    }
                     return `<div class="color-swatch-rect" style="background-color: ${data}"></div>`; 
                 }
             },
@@ -366,7 +372,7 @@ $(document).ready(function() {
             <span class="fw-bold extra-small">${rowData.customer}</span>
             <span class="text-muted">|</span>
             <span class="extra-small fw-bold text-uppercase">HTML:</span>
-            <span class="text-teal fw-bold">${rowData.html === '#ffffff' ? 'N/A' : rowData.html}</span>
+            <span class="text-teal fw-bold">${rowData.html ? rowData.html : 'N/A'}</span>
         `);
 
         $('#materialDetailBody').html('<tr><td colspan="2" class="text-center py-5"><div class="spinner-border spinner-border-sm text-teal"></div></td></tr>');

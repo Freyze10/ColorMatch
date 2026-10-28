@@ -84,6 +84,14 @@
             return Number.isFinite(v) ? v : null;
         };
 
+        const naLabel = swatch.querySelector('.swatch-na');
+
+        // Show the color, or transparent + "N/A" when there's nothing to show
+        function showSwatch(color) {
+            swatch.style.backgroundColor = color || 'transparent';
+            if (naLabel) naLabel.classList.toggle('d-none', !!color);
+        }
+
         function updateSwatch() {
             const L = num(lIn);
             let a = num(aIn), b = num(bIn);
@@ -91,13 +99,13 @@
             // No a*/b*? Fall back to chroma + hue angle
             if (a === null || b === null) {
                 const C = num(cIn), H = num(hIn);
-                if (C === null || H === null) { swatch.style.backgroundColor = '#FFFFFF'; return; }
+                if (C === null || H === null) { showSwatch(null); return; }
                 a = C * Math.cos(H * Math.PI / 180);
                 b = C * Math.sin(H * Math.PI / 180);
             }
-            if (L === null) { swatch.style.backgroundColor = '#FFFFFF'; return; }
+            if (L === null) { showSwatch(null); return; }
 
-            swatch.style.backgroundColor = labToHex(Math.min(100, Math.max(0, L)), a, b);
+            showSwatch(labToHex(Math.min(100, Math.max(0, L)), a, b));
         }
 
         // Runs when a field is left. Only checks once ALL five fields have a value,

@@ -23,23 +23,35 @@
 
     if (hexInput && swatch) {
         const isValidHex = (value) => /^#([0-9A-Fa-f]{3}){1,2}$/.test(value);
+        const naLabel = swatch.querySelector('.swatch-na');
+
+        // Show the color, or "N/A" in the box when there is no (valid) hex value
+        const showSwatch = (color) => {
+            swatch.style.backgroundColor = color || 'transparent';
+            if (naLabel) naLabel.classList.toggle('d-none', !!color);
+        };
+        const withHash = (v) => (v && !v.startsWith('#')) ? '#' + v : v;
+
+        // starting state: saved hex, or N/A
+        const startValue = withHash(hexInput.value.trim());
+        showSwatch(isValidHex(startValue) ? startValue : null);
 
         hexInput.addEventListener('input', function () {
-            let value = hexInput.value.trim();
-            if (value && !value.startsWith('#')) value = '#' + value;
-            if (isValidHex(value)) swatch.style.backgroundColor = value;
+            const value = withHash(hexInput.value.trim());
+            if (!value) showSwatch(null);
+            else if (isValidHex(value)) showSwatch(value);
         });
 
         hexInput.addEventListener('blur', function () {
-            let value = hexInput.value.trim();
-            if (value === "") { swatch.style.backgroundColor = "#FFFFFF"; return; }
-            if (!value.startsWith('#')) value = '#' + value;
+            const value = withHash(hexInput.value.trim());
+            if (value === "") { showSwatch(null); return; }
 
             if (!isValidHex(value)) {
                 hexInput.value = "";
-                swatch.style.backgroundColor = "#FFFFFF";
+                showSwatch(null);
             } else {
                 hexInput.value = value;
+                showSwatch(value);
             }
         });
     }

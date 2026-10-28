@@ -226,8 +226,9 @@ def get_all_formula_records():
         if f.cm_no_id:
             formula_map[str(f.cm_no_id)] = f
 
-    mb_qs = tbl_mb_extruder_formula.objects.select_related('code', 'cm_no')
-    dc_qs = tbl_dc_extruder_formula.objects.select_related('code', 'cm_no')
+    # select_related pulls the colors in the same query (no extra query per row)
+    mb_qs = tbl_mb_extruder_formula.objects.select_related('code', 'cm_no', 'cm_no__in_code_no', 'internal_color')
+    dc_qs = tbl_dc_extruder_formula.objects.select_related('code', 'cm_no', 'cm_no__in_code_no')
 
     combined_results = []
 
@@ -236,12 +237,15 @@ def get_all_formula_records():
         cm_obj = f.cm_no
         cmf_no = cm_obj.cm_no if cm_obj else "N/A"
         # color = cm_obj.color_desc if (cm_obj and cm_obj.color_desc) else "---" COLOR DESC
-        color = cm_obj.in_code_no.color if (cm_obj and cm_obj.in_code_no and cm_obj.in_code_no.color) else "---"
         # Show the internal color saved on THIS formula, not the CMF's color.
-        # fallback to cmf primary color if internal color is not set on the formula. If neither exists, fallback to "---".
-        saved_color_id = f.internal_color.color if f.internal_color else (cm_obj.in_code_no.color if cm_obj.in_code_no else "---")
-        if saved_color_id:
-           color = saved_color_id
+        # Fall back to the CMF's primary color if the formula has none, then to "---".
+        if f.internal_color and f.internal_color.color:
+            color = f.internal_color.color
+        elif cm_obj and cm_obj.in_code_no and cm_obj.in_code_no.color:
+            color = cm_obj.in_code_no.color
+        else:
+            color = "---"
+
         f_info = formula_map.get(str(cm_obj.cm_no)) if cm_obj else None
         customer = f_info.customer.upper() if f_info and f_info.customer else "---"
         raw_dosage = f_info.dosage if f_info else None
@@ -260,7 +264,7 @@ def get_all_formula_records():
             "color": color,
             "dosage": float(raw_dosage) if raw_dosage is not None else None,
             "dosage_display": dosage_display,
-            "html": f.html or "#ffffff",
+            "html": (f.html or "").strip(),   # empty = no swatch ("N/A" is shown in the table)
             "is_final": bool(getattr(f, 'is_final', False))
         })
 
@@ -289,7 +293,7 @@ def get_all_formula_records():
             "color": color,
             "dosage": float(raw_dosage) if raw_dosage is not None else None,
             "dosage_display": dosage_display,
-            "html": f.html or "#ffffff",
+            "html": (f.html or "").strip(),   # empty = no swatch ("N/A" is shown in the table)
             "is_final": bool(getattr(f, 'is_final', False))
         })
 

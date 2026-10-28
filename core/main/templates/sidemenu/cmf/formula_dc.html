@@ -392,13 +392,17 @@ Formula DC
 
                         <div class="d-flex align-items-start gap-2 flex-shrink-0">
                             <div class="text-center">
-                                <div class="rounded shadow-sm spectro-swatch"
-                                    style="width: clamp(90px, 12vw, 150px); height: clamp(60px, 10vw, 110px); border: 1px solid rgba(0,0,0,0.15); background-color: #FFFFFF;"></div>
+                                <div class="rounded shadow-sm spectro-swatch position-relative"
+                                    style="width: clamp(90px, 12vw, 150px); height: clamp(60px, 10vw, 110px); border: 1px solid rgba(0,0,0,0.15); background-color: transparent;">
+                                    <span class="swatch-na position-absolute top-50 start-50 translate-middle fw-bold text-muted" style="font-size: 0.8rem;">N/A</span>
+                                </div>
                                 <div class="extra-small fw-bold mt-1">Spectro</div>
                             </div>
                             <div class="text-center">
-                                <div class="rounded shadow-sm color-swatch"
-                                    style="width: clamp(90px, 12vw, 150px); height: clamp(60px, 10vw, 110px); border: 1px solid rgba(0,0,0,0.15); background-color: {{ form_data.srgb_hex|default:'#FFFFFF' }};"></div>
+                                <div class="rounded shadow-sm color-swatch position-relative"
+                                    style="width: clamp(90px, 12vw, 150px); height: clamp(60px, 10vw, 110px); border: 1px solid rgba(0,0,0,0.15); background-color: {{ form_data.srgb_hex|default:'transparent' }};">
+                                    <span class="swatch-na position-absolute top-50 start-50 translate-middle fw-bold text-muted{% if form_data.srgb_hex %} d-none{% endif %}" style="font-size: 0.8rem;">N/A</span>
+                                </div>
                                 <div class="extra-small fw-bold mt-1">sRGB Hex</div>
                             </div>
                         </div>
