@@ -1277,6 +1277,7 @@ def manage_color_codes(request):
     codes = color_code_services.get_color_codes_for_user(request.user)
     context = {
         "codes": codes,
+        "primary_colors": color_code_services.get_primary_colors(),
         "is_admin": request.user.is_superuser or getattr(request.user.role, 'role', '') == 'Admin'
     }
     return render(request, "settings/color/color_codes.html", context)
