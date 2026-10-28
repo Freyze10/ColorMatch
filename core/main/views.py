@@ -424,7 +424,8 @@ def cmf_rs_entry(request):
         "is_allowed": is_allowed,
         "is_edit": bool(form_data.get('original_rs_id')),
     }
-    return render(request, "sidemenu/cmf/rs_entry.html", context)
+    return redirect(f"{reverse('maintenance')}?feature=RS Entry")
+    # return render(request, "sidemenu/cmf/rs_entry.html", context)
 
 def _build_dc_formula_list(dc_qs):
     """
