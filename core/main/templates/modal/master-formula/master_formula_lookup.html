@@ -28,7 +28,7 @@
                 <table class="table table-sm mb-0">
                     <tbody class="small">
                         {% for item in mb_formulas %}
-                        <tr class="fw-bold mf-lookup-header-row formula-row-hover {% if item.header.in_master_formula %}row-already-in-mf{% endif %}" 
+                        <tr class="fw-bold mf-lookup-header-row formula-row-hover {% if item.header.in_production_formula %}row-already-in-mf{% endif %}" 
                             style="cursor:pointer;"
                             data-pk="{{ item.pk }}" 
                             data-formula-type="MB"
@@ -54,8 +54,8 @@
                             </td>
                             <td>
                                 {{ item.header.date|date:"m/d/Y" }}
-                                {% if item.header.in_master_formula %}
-                                    <div class="text-in-mf"><i class="bi bi-check-circle-fill"></i> In Master Formula</div>
+                                {% if item.header.in_production_formula %}
+                                    <div class="text-in-mf"><i class="bi bi-check-circle-fill"></i> In Production Formula</div>
                                 {% endif %}
                             </td>
                             <td>{{ item.header.code.product_code|default:"---" }}</td>
@@ -64,7 +64,7 @@
                         </tr>
                         
                         <!-- INGREDIENT NESTED TABLE -->
-                        <tr class="ingredient-sub-row d-none {% if item.header.in_master_formula %}row-already-in-mf{% endif %}">
+                        <tr class="ingredient-sub-row d-none {% if item.header.in_production_formula %}row-already-in-mf{% endif %}">
                             <td colspan="5" class="p-0 border-0">
                                 <table class="table table-sm mb-2 table-borderless table-nested">
                                     <tbody class="text-muted extra-small">
@@ -96,7 +96,7 @@
                 <table class="table table-sm mb-0">
                     <tbody class="small">
                         {% for item in dc_formulas %}
-                        <tr class="fw-bold mf-lookup-header-row formula-row-hover {% if item.header.in_master_formula %}row-already-in-mf{% endif %}" 
+                        <tr class="fw-bold mf-lookup-header-row formula-row-hover {% if item.header.in_production_formula %}row-already-in-mf{% endif %}" 
                             style="cursor:pointer;"
                             data-pk="{{ item.pk }}"
                             data-formula-type="DC"
@@ -123,8 +123,8 @@
                             </td>
                             <td>
                                 {{ item.header.date|date:"m/d/Y" }}
-                                {% if item.header.in_master_formula %}
-                                    <div class="text-in-mf"><i class="bi bi-check-circle-fill"></i> In Master Formula</div>
+                                {% if item.header.in_production_formula %}
+                                    <div class="text-in-mf"><i class="bi bi-check-circle-fill"></i> In Production Formula</div>
                                 {% endif %}
                             </td>
                             <td>{{ item.header.code.product_code|default:"---" }}</td>
@@ -134,7 +134,7 @@
                             </td>
                             <td>{{ item.header.matched_by|default:"---" }}</td>
                         </tr>
-                        <tr class="ingredient-sub-row d-none {% if item.header.in_master_formula %}row-already-in-mf{% endif %}">
+                        <tr class="ingredient-sub-row d-none {% if item.header.in_production_formula %}row-already-in-mf{% endif %}">
                             <td colspan="5" class="p-0 border-0">
                                 <table class="table table-sm mb-2 table-borderless table-nested">
                                     <tbody class="text-muted extra-small">

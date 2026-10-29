@@ -139,7 +139,7 @@ select.uniform-input {
 
 /* Checked state: display Check (overrides X) */
 .cross-check:checked:before {
-    content: "✓";
+    content: "";
     color: #ffffff; /* White check mark */
 }
 

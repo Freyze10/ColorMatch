@@ -533,7 +533,7 @@ class tbl_mb_extruder_formula(models.Model):
     encoded_by = models.CharField(max_length=100, blank=True, null=True)
     total_weight = models.DecimalField(max_digits=12, decimal_places=4, null=True, blank=True)
     is_final = models.BooleanField(default=False)
-    in_master_formula = models.BooleanField(default=False)
+    in_production_formula = models.BooleanField(default=False)
     cm_no = models.ForeignKey(tbl_cmf, to_field="cm_no", on_delete=models.SET_NULL, null=True, blank=True, db_column="cm_no")
     # rs_no removed
     L = models.DecimalField(max_digits=10, decimal_places=5, blank=True, null=True)
@@ -582,7 +582,7 @@ class tbl_dc_extruder_formula(models.Model):
     total_weight = models.DecimalField(max_digits=12, decimal_places=4, null=True, blank=True)
     cm_no = models.ForeignKey(tbl_cmf, to_field="cm_no", on_delete=models.SET_NULL, null=True, blank=True, db_column="cm_no")
     is_final = models.BooleanField(default=False)
-    in_master_formula = models.BooleanField(default=False)
+    in_production_formula = models.BooleanField(default=False)
     # rs_no removed
     material_code = models.ForeignKey(tbl_coding_materials, on_delete=models.SET_NULL, null=True, blank=True, db_column="lab_material_no")
     L = models.DecimalField(max_digits=10, decimal_places=5, blank=True, null=True)

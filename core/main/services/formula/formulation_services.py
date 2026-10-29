@@ -272,7 +272,7 @@ def save_formulation(request):
             source_pk, source_type = data.get('source_formula_pk'), data.get('source_formula_type')
             if source_pk and source_type:
                 model = tbl_mb_extruder_formula if source_type == 'MB' else tbl_dc_extruder_formula
-                model.objects.filter(pk=source_pk).update(in_master_formula=True)
+                model.objects.filter(pk=source_pk).update(in_production_formula=True)
 
             # 6. AUDIT TRAIL
             if is_new:
