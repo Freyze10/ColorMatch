@@ -525,6 +525,7 @@ class tbl_mb_extruder_formula(models.Model):
     internal_color = models.ForeignKey(
         tbl_internal_color_code, on_delete=models.SET_NULL, null=True, blank=True,
         db_column="in_code_no", related_name="mb_formulas")
+    customer_color = models.CharField(max_length=150, blank=True, null=True)
     lot_no = models.CharField(max_length=100, blank=True, null=True)
     mixing_time = models.CharField(max_length=50, blank=True, null=True)
     notes = models.TextField(blank=True, null=True) 
@@ -572,6 +573,7 @@ class tbl_dc_extruder_formula(models.Model):
     internal_color = models.ForeignKey(
         tbl_internal_color_code, on_delete=models.SET_NULL, null=True, blank=True,
         db_column="in_code_no", related_name="dc_formulas")
+    customer_color = models.CharField(max_length=150, blank=True, null=True)
     date = models.DateField(blank=True, null=True)
     sample_size = models.CharField(max_length=100, blank=True, null=True)
     mixing_time = models.CharField(max_length=50, blank=True, null=True)
@@ -667,6 +669,60 @@ class tbl_formula_resin_selected(models.Model):
     def __str__(self):
         parent = f"MB #{self.mb_no_id}" if self.mb_no_id else f"DC #{self.dc_no_id}"
         return f"{self.formula_resin_id.resin} ({parent})"
+
+class tbl_standalone_formula(models.Model):
+    standalone_id = models.AutoField(primary_key=True)
+    customer = models.CharField(max_length=150, blank=True, null=True)
+    dosage = models.DecimalField(max_digits=12, decimal_places=6, null=True, blank=True)
+    finished_product = models.CharField(max_length=150, blank=True, null=True)
+    process = models.CharField(max_length=100, blank=True, null=True)
+    
+    # Foreign Keys matching your schema graphic
+    mb_no = models.ForeignKey(
+        'tbl_mb_extruder_formula', 
+        on_delete=models.SET_NULL, 
+        null=True, 
+        blank=True, 
+        db_column="mb_no"
+    )
+    dc_no = models.ForeignKey(
+        'tbl_dc_extruder_formula', 
+        on_delete=models.SET_NULL, 
+        null=True, 
+        blank=True, 
+        db_column="dc_no"
+    )
+
+    class Meta:
+        db_table = "tbl_standalone_formula"
+
+    def __str__(self):
+        return f"Standalone Formula #{self.standalone_id} - {self.customer or 'N/A'}"
+
+
+class tbl_standalone_formula_resins(models.Model):
+    selected_resin_no = models.AutoField(primary_key=True)
+    standalone = models.ForeignKey(
+        tbl_standalone_formula, 
+        on_delete=models.CASCADE, 
+        db_column="standalone_id", 
+        null=True, 
+        blank=True,
+        related_name="selected_resins"
+    )
+    resin_no = models.ForeignKey(
+        'tbl_resin', 
+        on_delete=models.CASCADE, 
+        db_column="resin_no"
+    )
+
+    class Meta:
+        db_table = "tbl_standalone_formula_resins"
+
+    def __str__(self):
+        parent_id = self.standalone_id or "Unlinked"
+        resin_name = self.resin_no.resin if self.resin_no else "Unknown Resin"
+        return f"Standalone #{parent_id} - Resin: {resin_name}"
 
 # ==========================================
 # 6. MASTER & DAILY FORMULAS
