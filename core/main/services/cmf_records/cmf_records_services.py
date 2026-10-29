@@ -196,26 +196,26 @@ def toggle_final_formula(request, formula_type, formula_id):
 
 
 # Formula Records Retrieval for CMF and RS
-
 # Mapped 1-to-1 with DataTables column indices
+# (0 = checkbox, 1 = in-production dot, then the data columns)
 SEARCHABLE_COLUMNS = {
-    1: 'date_display',
-    2: 'cmf_no',
-    3: 'customer',
-    4: 'product_code',
-    5: 'lot_no',
-    6: 'color',
-    7: 'dosage_display',
+    2: 'date_display',
+    3: 'cmf_no',
+    4: 'customer',
+    5: 'product_code',
+    6: 'lot_no',
+    7: 'color',
+    8: 'dosage_display',
 }
 
 SORTABLE_COLUMNS = {
-    1: 'date',
-    2: 'cmf_no',
-    3: 'customer',
-    4: 'product_code',
-    5: 'lot_no',
-    6: 'color',
-    7: 'dosage',
+    2: 'date',
+    3: 'cmf_no',
+    4: 'customer',
+    5: 'product_code',
+    6: 'lot_no',
+    7: 'color',
+    8: 'dosage',
 }
 
 
@@ -265,7 +265,8 @@ def get_all_formula_records():
             "dosage": float(raw_dosage) if raw_dosage is not None else None,
             "dosage_display": dosage_display,
             "html": (f.html or "").strip(),   # empty = no swatch ("N/A" is shown in the table)
-            "is_final": bool(getattr(f, 'is_final', False))
+            "is_final": bool(getattr(f, 'is_final', False)),
+            "in_production": bool(getattr(f, 'in_production_formula', False))   # red dot in the table
         })
 
     # DC Formulas
@@ -294,7 +295,8 @@ def get_all_formula_records():
             "dosage": float(raw_dosage) if raw_dosage is not None else None,
             "dosage_display": dosage_display,
             "html": (f.html or "").strip(),   # empty = no swatch ("N/A" is shown in the table)
-            "is_final": bool(getattr(f, 'is_final', False))
+            "is_final": bool(getattr(f, 'is_final', False)),
+            "in_production": bool(getattr(f, 'in_production_formula', False))   # red dot in the table
         })
 
     return combined_results
@@ -306,10 +308,13 @@ def formula_records_data(request):
     length = int(request.GET.get('length', 100))
     global_search = request.GET.get('search[value]', '').strip()
     only_final = request.GET.get('only_final') == '1'
+    only_production = request.GET.get('only_production') == '1'
 
     all_records = get_all_formula_records()
     if only_final:
         all_records = [item for item in all_records if item.get('is_final')]
+    if only_production:
+        all_records = [item for item in all_records if item.get('in_production')]
     total_unfiltered = len(all_records)
 
     for item in all_records:

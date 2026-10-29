@@ -7,6 +7,14 @@ Formula Records
 {% endblock %}
 {% endblock navigation %}
 {% block content %}
+<style>
+    /* "In production formula" indicator: a small red dot in its own narrow column */
+    .in-prod-slot { display: inline-flex; align-items: center; justify-content: center; width: 14px; vertical-align: middle; cursor: help; }
+    .in-prod-dot  { width: 8px; height: 8px; border-radius: 50%; background-color: #ef4444; box-shadow: 0 0 0 2px rgba(239, 68, 68, 0.25); }
+
+    /* Checkbox column: only as wide as the checkbox itself */
+    .col-check { width: 1%; white-space: nowrap; }
+</style>
 <div class="container-fluid h-100 d-flex flex-column p-3 bg-light">
     <!-- HEADER -->
     <div class="row g-2 mb-3 align-items-center flex-shrink-0">
@@ -20,13 +28,13 @@ Formula Records
             <div class="input-group input-group-sm shadow-sm">
                 <select id="searchColumnFilter" class="form-select form-select-sm uniform-input" style="max-width: 180px;">
                     <option value="-1" selected>All Columns</option>
-                    <option value="1">Date</option>
-                    <option value="2">CMF No</option>
-                    <option value="3">Customer</option>
-                    <option value="4">Product Code</option>
-                    <option value="5">Lot No</option>
-                    <option value="6">Internal Color</option>
-                    <option value="7">Dosage</option>
+                    <option value="2">Date</option>
+                    <option value="3">CMF No</option>
+                    <option value="4">Customer</option>
+                    <option value="5">Product Code</option>
+                    <option value="6">Lot No</option>
+                    <option value="7">Internal Color</option>
+                    <option value="8">Dosage</option>
                 </select>
                 <input type="text" id="recordSearchInput" class="form-control uniform-input" placeholder="Search CMF, Code, Customer, Color, or Lot...">
                 <span class="input-group-text uniform-input bg-white"><i class="bi bi-search"></i></span>
@@ -50,8 +58,14 @@ Formula Records
                     <table class="table table-hover align-middle mb-0" id="formulaRecordsTable" style="width: 100%;">
                         <thead class="sticky-top border-bottom">
                             <tr class="extra-small text-uppercase text-muted">
-                                <th class="ps-3" style="width: 40px;">
+                                <th class="ps-2 pe-1 col-check" style="width: 1%;">
                                     <input type="checkbox" id="selectAllRows" class="form-check-input">
+                                </th>
+                                <th class="no-wrap text-center user-select-none px-1 col-prod"
+                                    id="thProdFilter"
+                                    style="cursor: pointer; width: 1%; position: relative;"
+                                    title="Click to filter formulas in production only">
+                                    <i class="bi bi-circle text-muted" id="iconProdFilter" style="font-size: 0.75rem; padding-left: 100%;"></i>
                                 </th>
                                 <th class="no-wrap">Date</th>
                                 <th class="no-wrap">CMF No</th>
@@ -132,6 +146,7 @@ $(document).ready(function() {
     let selectionMode = false;
     let selectedIds = new Set();
     let onlyFinalFilter = false;
+    let onlyProductionFilter = false;
 
     const CHECKBOX_COL_INDEX = 0;
 
@@ -144,12 +159,14 @@ $(document).ready(function() {
             data: function(d) {
                 d.length = $('#tableLength').val();
                 d.only_final = onlyFinalFilter ? 1 : 0;
+                d.only_production = onlyProductionFilter ? 1 : 0;
             }
         },
         columns: [
             {
                 data: null,
-                className: "ps-3",
+                className: "ps-2 pe-1 col-check",
+                width: "1%",
                 orderable: false,
                 searchable: false,
                 visible: false,
@@ -157,6 +174,20 @@ $(document).ready(function() {
                     const key = `${row.type}:${row.id}`;
                     const checked = selectedIds.has(key) ? 'checked' : '';
                     return `<input type="checkbox" class="form-check-input row-checkbox" data-key="${key}" ${checked}>`;
+                }
+            },
+            {
+                // Red dot (with a tooltip) when the formula is in production
+                data: "in_production",
+                className: "text-center px-1 col-prod",
+                width: "1%",
+                orderable: false,
+                searchable: false,
+                render: function(data, type) {
+                    if (type !== 'display') return data;
+                    return data
+                        ? '<span class="in-prod-slot" title="In production formula"><span class="in-prod-dot"></span></span>'
+                        : '';
                 }
             },
             { data: "date_display", className: "no-wrap fw-bold text-muted" },
@@ -172,7 +203,9 @@ $(document).ready(function() {
                 orderable: false,
                 searchable: false,
                 render: function(data) {
-                    // No swatch color saved: write N/A in the box so it is not mistaken for a white swatch
+                    // No swatch color saved: write N/A in the box so it is not mistaken for a white swatch.
+                    // Same box as a normal swatch (same class, still inline), with the text laid over it,
+                    // so the size and position are identical and the boxes line up.
                     if (!data) {
                         return `<div class="color-swatch-rect position-relative" style="background-color: transparent;">
                                     <span class="position-absolute top-50 start-50 translate-middle fw-bold text-muted" style="font-size: 0.65rem; line-height: 1;">N/A</span>
@@ -198,7 +231,7 @@ $(document).ready(function() {
         pageLength: 100,
         scrollY: 'calc(70vh - 110px)',
         scrollCollapse: true,
-        order: [[1, 'desc']],
+        order: [[2, 'desc']],
         language: {
             processing: '<div class="spinner-border text-teal spinner-border-sm"></div>'
         },
@@ -325,6 +358,32 @@ $(document).ready(function() {
             // Inactive: Outlined Muted Star
             icon.removeClass('bi-star-fill text-warning').addClass('bi-star text-muted');
             $(this).attr('title', 'Click to filter Final Formulas only');
+            if (typeof Preline !== 'undefined' && typeof Preline.toast === 'function') {
+                Preline.toast('Showing all formulas', 'info');
+            }
+        }
+
+        // Reload table data from server
+        table.ajax.reload();
+    });
+
+    $('#thProdFilter').on('click', function(e) {
+        e.stopPropagation(); // Prevents default sorting action
+
+        onlyProductionFilter = !onlyProductionFilter;
+        const icon = $('#iconProdFilter');
+
+        if (onlyProductionFilter) {
+            // Active: filled red dot
+            icon.removeClass('bi-circle text-muted').addClass('bi-circle-fill text-danger');
+            $(this).attr('title', 'Showing formulas in production only (click to show all)');
+            if (typeof Preline !== 'undefined' && typeof Preline.toast === 'function') {
+                Preline.toast('Showing formulas in production only', 'info');
+            }
+        } else {
+            // Inactive: outlined muted dot
+            icon.removeClass('bi-circle-fill text-danger').addClass('bi-circle text-muted');
+            $(this).attr('title', 'Click to filter formulas in production only');
             if (typeof Preline !== 'undefined' && typeof Preline.toast === 'function') {
                 Preline.toast('Showing all formulas', 'info');
             }
