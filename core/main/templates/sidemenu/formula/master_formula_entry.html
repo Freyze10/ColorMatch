@@ -277,7 +277,7 @@
                 </button>
             <button type="button" class="btn btn-sm btn-primary px-4 shadow-sm btn-new"
             {% if not is_allowed %}disabled{% endif %}>New</button>
-            <button type="button" 
+            <button type="button" disabled
                 class="btn btn-sm btn-success px-4 shadow-sm btn-save"
                 {% if form_data.is_locked or not is_allowed  %}disabled{% endif %}>
                 {% if form_data.is_new %}Save{% else %}Update{% endif %}

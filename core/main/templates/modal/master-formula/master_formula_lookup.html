@@ -61,6 +61,11 @@
                             <td>{{ item.header.code.product_code|default:"---" }}</td>
                             <td>{{ item.header.lot_no|default:"---" }}</td>
                             <td>{{ item.header.matched_by|default:"---" }}</td>
+                            {% if item.header.is_final %}
+                            <td>
+                                <i class="bi bi-star-fill text-warning ms-2 fs-6" title="Final Formula"></i>
+                            </td>
+                            {% endif %}
                         </tr>
                         
                         <!-- INGREDIENT NESTED TABLE -->
@@ -133,6 +138,11 @@
                                 <span class="ms-2 text-muted extra-small">({{ item.header.sample_size|default:"N/A" }})</span>
                             </td>
                             <td>{{ item.header.matched_by|default:"---" }}</td>
+                            {% if item.header.is_final %}
+                            <td>
+                                <i class="bi bi-star-fill text-warning ms-2 fs-6" title="Final Formula"></i>
+                            </td>
+                            {% endif %}
                         </tr>
                         <tr class="ingredient-sub-row d-none {% if item.header.in_production_formula %}row-already-in-mf{% endif %}">
                             <td colspan="5" class="p-0 border-0">

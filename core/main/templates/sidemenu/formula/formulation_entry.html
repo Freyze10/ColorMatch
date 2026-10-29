@@ -497,7 +497,7 @@
                 selectBtn.disabled = true;
 
                 try {
-                    const response = await fetch(`/master-formula/lookup/?matching_no=${encodeURIComponent(matchingNo)}`);
+                    const response = await fetch(`/formulation/lookup/?matching_no=${encodeURIComponent(matchingNo)}`);
                     lookupModalBody.innerHTML = await response.text();
                     
                     lookupModalBody.querySelectorAll('.mf-lookup-header-row').forEach(row => {
