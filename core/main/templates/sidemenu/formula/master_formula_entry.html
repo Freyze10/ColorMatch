@@ -111,7 +111,7 @@
                             <div class="col-md-8">
                                 {% if not request.GET.form_id or request.GET.new_entry %}
                                     <div class="input-group input-group-sm">
-                                        <select name="cm_no" id="id_mf_cm_no" class="form-select form-select-sm ts-select" placeholder="Search CM#/RS#">
+                                        <select name="cm_no" id="id_mf_cm_no" class="form-select form-select-sm ts-select" placeholder="Search CM#">
                                             <option value=""></option>
                                             <option value="N/A" {% if form_data.cm_no == "N/A" %}selected{% endif %}>N/A</option>
                                             {% for no in matching_numbers %}

@@ -91,8 +91,7 @@ def get_all_matching_numbers():
     nos = cache.get('matching_numbers_list')
     if not nos:
         cmf_nos = list(tbl_cmf.objects.exclude(cm_no__isnull=True).exclude(cm_no='').values_list('cm_no', flat=True))
-        rs_nos = list(tbl_rs.objects.exclude(rs_no__isnull=True).exclude(rs_no='').values_list('rs_no', flat=True))
-        nos = sorted(list(set(cmf_nos + rs_nos)))
+        nos = sorted(list(set(cmf_nos)))
         cache.set('matching_numbers_list', nos, CACHE_TIMEOUT)
     return nos
 
