@@ -7,7 +7,7 @@ from django.http import JsonResponse
 from main.utils.log_audit_trail import log_audit
 from ...models import (
     tbl_cmf, tbl_cmf_formula, tbl_cmf_dates, 
-    tbl_cmf_pending_completed, tbl_cmf_salesman, tbl_customer, tbl_dc_extruder_formula, tbl_dc_extruder_materials, tbl_dc_extruder_version, tbl_feedback_details, tbl_generated_prod_code, tbl_internal_color_code, tbl_mb_extruder_formula, tbl_mb_extruder_formula02, tbl_primary_color, tbl_resin, tbl_rm_incoming, tbl_rs, tbl_submitted_selected
+    tbl_cmf_pending_completed, tbl_cmf_salesman, tbl_customer, tbl_dc_extruder_formula, tbl_dc_extruder_materials, tbl_dc_extruder_version, tbl_feedback_details, tbl_generated_prod_code, tbl_internal_color_code, tbl_mb_extruder_formula, tbl_mb_extruder_formula02, tbl_primary_color, tbl_resin, tbl_rm_incoming, tbl_rs, tbl_standalone_formula, tbl_submitted_selected
 )
 
 def get_salesman_list():
@@ -226,6 +226,10 @@ def get_all_formula_records():
         if f.cm_no_id:
             formula_map[str(f.cm_no_id)] = f
 
+    # --- ADDED: Preload standalone formulas for N/A records ---
+    mb_standalone_map = {sa.mb_no_id: sa for sa in tbl_standalone_formula.objects.filter(mb_no__isnull=False)}
+    dc_standalone_map = {sa.dc_no_id: sa for sa in tbl_standalone_formula.objects.filter(dc_no__isnull=False)}
+
     # select_related pulls the colors in the same query (no extra query per row)
     mb_qs = tbl_mb_extruder_formula.objects.select_related('code', 'cm_no', 'cm_no__in_code_no', 'internal_color')
     dc_qs = tbl_dc_extruder_formula.objects.select_related('code', 'cm_no', 'cm_no__in_code_no')
@@ -239,16 +243,31 @@ def get_all_formula_records():
         # color = cm_obj.color_desc if (cm_obj and cm_obj.color_desc) else "---" COLOR DESC
         # Show the internal color saved on THIS formula, not the CMF's color.
         # Fall back to the CMF's primary color if the formula has none, then to "---".
-        if f.internal_color and f.internal_color.color:
-            color = f.internal_color.color
-        elif cm_obj and cm_obj.in_code_no and cm_obj.in_code_no.color:
-            color = cm_obj.in_code_no.color
+        
+        # if f.internal_color and f.internal_color.color:
+        #     color = f.internal_color.color
+        # elif cm_obj and cm_obj.in_code_no and cm_obj.in_code_no.color:
+        #     color = cm_obj.in_code_no.color
+        # else:
+        #     color = "---"
+
+        # Color Resolution: formula customer_color -> CMF color_desc -> "---"
+        if f.customer_color and f.customer_color.strip():
+            color = f.customer_color.strip().upper()
+        elif cm_obj and cm_obj.color_desc and cm_obj.color_desc.strip():
+            color = cm_obj.color_desc.strip().upper()
         else:
             color = "---"
 
-        f_info = formula_map.get(str(cm_obj.cm_no)) if cm_obj else None
-        customer = f_info.customer.upper() if f_info and f_info.customer else "---"
-        raw_dosage = f_info.dosage if f_info else None
+        if cm_obj:
+            f_info = formula_map.get(str(cm_obj.cm_no))
+            customer = f_info.customer.upper() if f_info and f_info.customer else "---"
+            raw_dosage = f_info.dosage if f_info else None
+        else:
+            sa_info = mb_standalone_map.get(f.mb_no)
+            customer = sa_info.customer.upper() if (sa_info and sa_info.customer) else "N/A"
+            raw_dosage = sa_info.dosage if sa_info else None
+        
         dosage_display = f"{float(raw_dosage):g}%" if raw_dosage is not None else "---"
 
         combined_results.append({
@@ -273,12 +292,31 @@ def get_all_formula_records():
     for f in dc_qs:
         cm_obj = f.cm_no
         cmf_no = cm_obj.cm_no if cm_obj else "N/A"
-        # color = cm_obj.color_desc if (cm_obj and cm_obj.color_desc) else "---" COLOR DESC
-        color = cm_obj.in_code_no.color if (cm_obj and cm_obj.in_code_no and cm_obj.in_code_no.color) else "---"
+        
+        # if f.internal_color and f.internal_color.color:
+        #     color = f.internal_color.color
+        # elif cm_obj and cm_obj.in_code_no and cm_obj.in_code_no.color:
+        #     color = cm_obj.in_code_no.color
+        # else:
+        #     color = "---"
 
-        f_info = formula_map.get(str(cm_obj.cm_no)) if cm_obj else None
-        customer = f_info.customer.upper() if f_info and f_info.customer else "---"
-        raw_dosage = f_info.dosage if f_info else None
+        # Color Resolution: formula customer_color -> CMF color_desc -> "---"
+        if f.customer_color and f.customer_color.strip():
+            color = f.customer_color.strip().upper()
+        elif cm_obj and cm_obj.color_desc and cm_obj.color_desc.strip():
+            color = cm_obj.color_desc.strip().upper()
+        else:
+            color = "---"
+
+        if cm_obj:
+            f_info = formula_map.get(str(cm_obj.cm_no))
+            customer = f_info.customer.upper() if f_info and f_info.customer else "---"
+            raw_dosage = f_info.dosage if f_info else None
+        else:
+            sa_info = dc_standalone_map.get(f.dc_no)
+            customer = sa_info.customer.upper() if (sa_info and sa_info.customer) else "N/A"
+            raw_dosage = sa_info.dosage if sa_info else None
+
         dosage_display = f"{float(raw_dosage):g}%" if raw_dosage is not None else "NA"
 
         combined_results.append({
