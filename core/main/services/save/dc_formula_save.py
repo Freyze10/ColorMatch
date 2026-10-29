@@ -156,6 +156,7 @@ def save_dc_complete_formula(request):
                 'cm_no': cmf_obj,
                 'code': prod_code_obj,
                 'internal_color': color_obj,   # NEW: the color picked in this formula
+                'customer_color': post_data.get('color_desc'),
                 'material_code': mat_code_obj,
                 'sample_size': post_data.get('sample_size'),
                 'mixing_time': post_data.get('mixing_time'),

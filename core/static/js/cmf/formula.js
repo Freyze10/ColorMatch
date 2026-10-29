@@ -562,6 +562,11 @@
         isDC ? 'id_dc_product_used' : 'id_finished_product',
     ];
 
+    const resinInput = document.getElementById(isDC ? 'id_dc_resin' : 'id_resin_used');
+    const resinSelectWrapper = document.getElementById(isDC ? 'id_dc_formula_resin_wrapper' : 'id_resin_select_wrapper');
+    const resinSelectEl = document.getElementById(isDC ? 'id_dc_formula_resin' : 'id_formula_resin');
+    const colorRowWrapper = document.getElementById('id_color_row_wrapper');
+    const colorSelectEl = document.getElementById(isDC ? 'id_dc_color' : 'id_color');
     /**
      * Enable or disable fields based on selection
      */
@@ -575,7 +580,6 @@
                 el.removeAttribute('disabled');
                 el.readOnly = false;
                 el.disabled = false;
-                // Clean up typical read-only/disabled styles (Tailwind/Preline)
                 el.classList.remove('readonly-gray');
             } else {
                 el.setAttribute('readonly', 'readonly');
@@ -583,6 +587,68 @@
                 el.classList.add('readonly-gray');
             }
         });
+
+        // Specific handling for Resin and Color when N/A is toggled
+        if (isEditable) {
+            // Show multi-select resin dropdown, hide text input
+            if (resinInput) resinInput.style.display = 'none';
+            if (resinSelectWrapper) resinSelectWrapper.style.display = 'block';
+            if (resinSelectEl) {
+                resinSelectEl.disabled = false;
+                if (resinSelectEl.tomselect) resinSelectEl.tomselect.enable();
+            }
+
+            // Hide Color dropdown wrapper since it's N/A
+            if (colorRowWrapper) colorRowWrapper.style.display = 'none';
+            if (colorSelectEl) {
+                colorSelectEl.required = false;
+                if (colorSelectEl.tomselect) colorSelectEl.tomselect.disable();
+            }
+        } else {
+            // Show text input resin, hide multi-select dropdown
+            if (resinInput) resinInput.style.display = 'block';
+            if (resinSelectWrapper) resinSelectWrapper.style.display = 'none';
+            if (resinSelectEl) {
+                resinSelectEl.disabled = true;
+                if (resinSelectEl.tomselect) resinSelectEl.tomselect.disable();
+            }
+
+            // Show Color dropdown wrapper
+            if (colorRowWrapper) colorRowWrapper.style.display = 'flex';
+            if (colorSelectEl) {
+                colorSelectEl.required = true;
+                if (colorSelectEl.tomselect) colorSelectEl.tomselect.enable();
+            }
+        }
+    }
+    function clearFormDetails() {
+        const fieldsToClear = [
+            isDC ? 'id_dc_customer' : 'id_customer',
+            isDC ? 'id_dc_application' : 'id_application',
+            isDC ? 'id_dc_product_used' : 'id_finished_product',
+            isDC ? 'id_dc_product_code' : 'id_product',
+            'id_color_desc',
+            'id_dosage',
+            'id_lot_number',
+            'id_mb_index_no'
+        ];
+        fieldsToClear.forEach(id => {
+            const el = document.getElementById(id);
+            if (el) el.value = '';
+        });
+
+        // Clear table compositions
+        const table = document.querySelector('.js-formula-table');
+        if (table) {
+            table.querySelectorAll('select.ts-select-table').forEach(sel => {
+                if (sel.tomselect) sel.tomselect.clear(true);
+                else sel.value = '';
+            });
+            table.querySelectorAll('input[type="number"], .js-version-value').forEach(inp => {
+                inp.value = '';
+            });
+            table.dispatchEvent(new Event('input', { bubbles: true }));
+        }
     }
 
     /**
@@ -729,13 +795,18 @@
                 if (cmfSelectEl.tomselect) {
                     clearInterval(pollTomSelect);
                     
+                    // Unified single change event handler
                     cmfSelectEl.tomselect.on('change', function(value) {
                         if (!value) return;
 
+                        // Check if N/A is selected
                         if (isNA(value)) {
+                            clearFormDetails();
                             setFieldsEditable(true);
+                            Preline.toast("Form cleared for N/A manual entry.", "info");
                             return;
                         }
+
                         // --- If a valid CMF record is chosen, relock fields and prompt ---
                         setFieldsEditable(false);
                        
@@ -753,7 +824,6 @@
             }, 100);
         }
     };
-
     initAutoPop();
     initDcMaterialPop();
 

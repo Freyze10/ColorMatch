@@ -96,12 +96,29 @@
                             </select>
                         </div>
                     </div> -->
+                    <!-- Resin Used (Dynamic: Input when CMF selected, Multi-Select when N/A) -->
                     <div class="row g-2 align-items-center mb-2">
-                        <div class="col-5"><label class="extra-small fw-bold">Resin Used:</label></div>
+                        <div class="col-5"><label class="extra-small fw-bold required-label">Resin Used:</label></div>
                         <div class="col-7">
+                            <!-- Readonly text display when CMF is loaded -->
                             <input type="text" name="resin_used" id="id_resin_used" 
                                    value="{{ form_data.resin_used|default:'' }}" 
                                    class="form-control form-control-sm uniform-input readonly-gray" readonly required>
+                            
+                            <!-- Multi-select dropdown when CMF is N/A (Hidden by default) -->
+                            <div id="id_resin_select_wrapper" style="display: none;">
+                                <select name="formula_resin" id="id_formula_resin" 
+                                        class="form-select form-select-sm ts-select" 
+                                        placeholder="Select resin..." multiple required disabled>
+                                    <option value=""></option>
+                                    {% for r in formula_resins %}
+                                        <option value="{{ r.formula_resin_id }}" 
+                                            {% if r.formula_resin_id in form_data.selected_resins %}selected{% endif %}>
+                                            {{ r.resin }}
+                                        </option>
+                                    {% endfor %}
+                                </select>
+                            </div>
                         </div>
                     </div>
                     
@@ -155,16 +172,16 @@
 
                     <!-- Color Desc Field -->
                     <div class="row g-2 align-items-center mb-2">
-                        <div class="col-5"><label class="extra-small fw-bold">Color Desc:</label></div>
+                        <div class="col-5"><label class="extra-small fw-bold required-label">Color Desc:</label></div>
                         <div class="col-7">
                             <input type="text" name="color_desc" id="id_color_desc" 
                                    value="{{ form_data.color_desc|default:'' }}" 
-                                   class="form-control form-control-sm uniform-input readonly-gray" readonly>
+                                   class="form-control form-control-sm uniform-input" required autocomplete="off">
                         </div>
                     </div>
 
                     <!-- NEW: Color Dropdown (TomSelect) -->
-                    <div class="row g-2 align-items-center mb-2">
+                    <!-- <div class="row g-2 align-items-center mb-2">
                         <div class="col-5"><label class="extra-small fw-bold required-label">Color:</label></div>
                         <div class="col-7">
                             <select name="color" id="id_color" class="form-select form-select-sm ts-select" placeholder="Select color..." required>
@@ -176,7 +193,17 @@
                                 {% endfor %}
                             </select>
                         </div>
-                    </div>
+                    </div> -->
+                    <!-- Color Field (Readonly) -->
+                        <div class="row g-2 align-items-center mb-2" id="id_dc_color_container">
+                            <div class="col-5"><label class="extra-small fw-bold">Color:</label></div>
+                            <div class="col-7">
+                                <input type="text" name="color_display" id="id_dc_color_display" 
+                                       value="{{ form_data.color_display|default:'' }}" 
+                                       class="form-control form-control-sm uniform-input readonly-gray" readonly>
+                                <input type="hidden" name="color" id="id_dc_color_hidden" value="{{ form_data.color|default:'' }}">
+                            </div>
+                        </div>
                     <!-- ... (Application) ... -->
                     <div class="row g-2 align-items-center mb-2">
                         <div class="col-5"><label class="extra-small fw-bold">Application:</label></div>

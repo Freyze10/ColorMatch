@@ -189,6 +189,7 @@ def save_mb_complete_formula(request):
                 'cm_no': cmf_obj,
                 'code': prod_code_obj,
                 'internal_color': color_obj,   # NEW: the color picked in this formula
+                'customer_color': post_data.get('color_desc'),
                 'lot_no': lot_no,
                 'mixing_time': post_data.get('mixing_time'),
                 'notes': post_data.get('note'),
