@@ -7,7 +7,7 @@ from django.utils import cache
 from main.utils.log_audit_trail import log_audit
 from ...models import (
     tbl_cmf, tbl_cmf_formula, tbl_cmf_pending_completed, tbl_formula_resin, tbl_formula_resin_selected, tbl_generated_prod_code, tbl_internal_color_code,
-    tbl_mb_extruder_formula, tbl_mb_extruder_formula02
+    tbl_mb_extruder_formula, tbl_mb_extruder_formula02, tbl_standalone_formula, tbl_standalone_formula_resins
 )
 User = get_user_model()
 
@@ -122,7 +122,9 @@ def save_mb_complete_formula(request):
             ).strip()
 
             cmf_obj = None
-            if raw_cm_no and raw_cm_no.upper() != 'N/A':
+            is_na_record = raw_cm_no.upper() in ('N/A', 'NA', 'NONE')
+
+            if raw_cm_no and not is_na_record:
                 cmf_obj = tbl_cmf.objects.filter(cm_no=raw_cm_no).first()
 
             parent_label = f"CMF: {cmf_obj.cm_no}" if cmf_obj else f"CMF: {raw_cm_no or 'N/A'}"
@@ -326,6 +328,31 @@ def save_mb_complete_formula(request):
                     tbl_mb_extruder_formula02.objects.create(mb=header, **ing)
                     
                 action_type = "Saved"
+
+             # --- ADDED: HANDLE STANDALONE FORMULA DETAILS (If N/A was selected) ---
+            
+            if is_na_record:
+                standalone_defaults = {
+                    'customer': post_data.get('customer'),
+                    'dosage': parse_dosage(post_data.get('dosage')),
+                    'finished_product': post_data.get('finished_product'),
+                    'process': post_data.get('application'),
+                }
+                
+                standalone_obj, _ = tbl_standalone_formula.objects.update_or_create(
+                    mb_no=header,
+                    defaults=standalone_defaults
+                )
+                
+                tbl_standalone_formula_resins.objects.filter(standalone=standalone_obj).delete()
+                if posted_resin_ids:
+                    sa_resins = [
+                        tbl_standalone_formula_resins(standalone=standalone_obj, resin_no_id=rid)
+                        for rid in posted_resin_ids
+                    ]
+                    tbl_standalone_formula_resins.objects.bulk_create(sa_resins)
+            else:
+                tbl_standalone_formula.objects.filter(mb_no=header).delete()
 
             # --- UPDATE PENDING/COMPLETED STATUS RECORD BASED ON IS_FINAL ---
             new_status_code = header.code if header.is_final else None
