@@ -742,6 +742,7 @@ class tbl_master_formula(models.Model):
     resin = models.CharField(max_length=36, blank=True, null=True) # Matched to 36
     application = models.CharField(max_length=36, blank=True, null=True) # Matched to 36
     cm_no = models.CharField(max_length=8, blank=True, null=True) 
+    lot_no = models.CharField(max_length=100, blank=True, null=True)
     colormatch_date = models.DateField(blank=True, null=True)
     notes = models.CharField(max_length=256, blank=True, null=True) 
     date_modified = models.CharField(max_length=32, blank=True, null=True) 
@@ -801,6 +802,7 @@ class tbl_formula01(models.Model):
     application = models.CharField(max_length=36, blank=True, null=True)
     colormatch_no = models.CharField(max_length=8, blank=True, null=True)
     colormatch_date = models.DateField(blank=True, null=True)
+    lot_no = models.CharField(max_length=100, blank=True, null=True)
     notes = models.CharField(max_length=256, blank=True, null=True)
     date_time = models.CharField(max_length=32, blank=True, null=True)
     is_deleted = models.BooleanField(default=False)
