@@ -85,6 +85,23 @@ def sync_master_formula(progress_callback=None):
         emit("Master Formula: Already up to date.")
         return 0
 
+    # --- STEP 3.5: GENERATE SEQUENTIAL LOT NUMBERS FOR MASTER FORMULA ---
+    with connection.cursor() as cursor:
+        cursor.execute("""
+            SELECT MAX(CAST(SUBSTRING(lot_no FROM 8) AS INTEGER)) 
+            FROM tbl_master_formula 
+            WHERE lot_no LIKE 'OLD-MF-%'
+        """)
+        row = cursor.fetchone()
+        start_num = (row[0] or 0) + 1
+
+    for idx, r in enumerate(primary_recs):
+        r["lot_no"] = f"OLD-MF-{start_num + idx}"
+
+    if not primary_recs:
+        emit("Master Formula: Already up to date.")
+        return 0
+
     # --- STEP 4: WRITE TO POSTGRESQL ---
     emit(f"Master Formula: Inserting {len(primary_recs)} new records...")
     try:
@@ -95,13 +112,13 @@ def sync_master_formula(progress_callback=None):
                     INSERT INTO tbl_master_formula (
                         form_id, index_no, date, customer, product_code, prod_color, 
                         dosage, total_concentration, ld, mix_time, resin, application, 
-                        cm_no, colormatch_date, notes, date_modified, is_deleted, is_used,
+                        cm_no, lot_no, colormatch_date, notes, date_modified, is_deleted, is_used,
                         html_code_hex, cyan, magenta, yellow, black, colorant_type
                     )
                     VALUES (
                         %(uid)s, %(index_no)s, %(date)s, %(customer)s, %(prod_code)s, %(prod_color)s, 
                         %(dosage)s, %(total_concentration)s, %(ld)s, %(mix_time)s, %(resin)s, %(application)s, 
-                        %(cm_no)s, %(cm_date)s, %(notes)s, %(date_time)s, %(is_deleted)s, %(is_used)s,
+                        %(cm_no)s, %(lot_no)s, %(cm_date)s, %(notes)s, %(date_time)s, %(is_deleted)s, %(is_used)s,
                         %(html)s, %(cyan)s, %(magenta)s, %(yellow)s, %(black)s, %(colorant_type)s
                     )
                     ON CONFLICT (form_id) DO NOTHING;
