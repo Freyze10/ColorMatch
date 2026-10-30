@@ -30,7 +30,7 @@ from main.models import (
     tbl_cmf_process02, tbl_cmf_process02, tbl_cmf_scanned, tbl_cmf_specification02, tbl_coding_materials, tbl_dc_extruder_formula, 
     tbl_dc_extruder_materials, tbl_feedback_details, tbl_field_note, tbl_formula_resin, tbl_formula_resin_selected, tbl_generated_prod_code, tbl_internal_color_code, tbl_master_formula, tbl_master_formula_encode, tbl_master_formula_info, tbl_mb_extruder_formula, 
     tbl_mb_extruder_formula02, tbl_resin, tbl_cmf_salesman, tbl_resins_selected, 
-    tbl_cmf_color_req, tbl_cmf_specification, tbl_cmf_process, tbl_role, tbl_role_permissions, tbl_rs, tbl_submitted_option, tbl_submitted_selected
+    tbl_cmf_color_req, tbl_cmf_specification, tbl_cmf_process, tbl_role, tbl_role_permissions, tbl_rs, tbl_standalone_formula, tbl_standalone_formula_resins, tbl_submitted_option, tbl_submitted_selected
 )
 
 from .services.cmf_records import cmf_records_services
@@ -614,14 +614,38 @@ def cmf_mb_formula(request):
                     form_data['cm_form_no'] = cmf.cm_no
                     form_data['record_id'] = cmf.cm_no
 
+                # --- 🛑 ADDED: LOAD STANDALONE DATA IF CMF IS NULL ---
+                standalone_info = None
+                saved_resin_ids = []
+                
+                if not header.cm_no:
+                    form_data['cm_form_no'] = "N/A"
+                    form_data['record_id'] = "N/A"
+                    
+                    # Fetch from tbl_standalone_formula
+                    standalone_info = tbl_standalone_formula.objects.filter(mb_no=header).first()
+                    if standalone_info:
+                        form_data.update({
+                            'customer': standalone_info.customer or "",
+                            'finished_product': standalone_info.finished_product or "",
+                            'application': (standalone_info.process or "").upper(),
+                            'dosage': standalone_info.dosage or "",
+                        })
+                    
+                    # Fetch resins from tbl_standalone_formula_resins cleanly
+                    saved_resin_ids = list(
+                        tbl_standalone_formula_resins.objects.filter(standalone=standalone_info)
+                        .values_list('resin_no_id', flat=True)
+                    ) if standalone_info else []
+                else:
+                    # Standard CMF Resins lookup
+                    saved_resin_ids = list(
+                        tbl_formula_resin_selected.objects.filter(mb_no=header)
+                        .values_list('formula_resin_id_id', flat=True)
+                    )
+
                 # Existing record: display actual dosage
                 existing_dosage = getattr(header, 'dosage', None) or (formula_info.dosage if formula_info else "")
-
-                 # ---> 1. GET THE SAVED RESIN IDS FOR THIS FORMULA <---
-                saved_resin_ids = list(
-                    tbl_formula_resin_selected.objects.filter(mb_no=header)
-                    .values_list('formula_resin_id_id', flat=True)
-                )
 
                 ingredients = list(
                     tbl_mb_extruder_formula02.objects.filter(mb=header)
@@ -633,9 +657,17 @@ def cmf_mb_formula(request):
                     ing['weight'] is None for ing in ingredients
                 )
 
+                # Resolve color description with fallback logic
+                resolved_color_desc = ""
+                if header.customer_color and header.customer_color.strip():
+                    resolved_color_desc = header.customer_color.strip()
+                elif cmf and cmf.color_desc and cmf.color_desc.strip():
+                    resolved_color_desc = cmf.color_desc.strip()
+
                 form_data.update({
                     'formula_id': header.pk,
                     'index_no': header.index_no or "",
+                    'color_desc': resolved_color_desc,
                     'selected_resins': saved_resin_ids,
                     'dosage': existing_dosage,
                     'date': header.date.strftime('%m/%d/%Y') if header.date else "",
@@ -663,9 +695,9 @@ def cmf_mb_formula(request):
                 # Show the internal color saved on THIS formula, not the CMF's color.
                 # Older formulas that have none yet fall back to the product code's color,
                 # and finally to the CMF color set above.
-                saved_color_id = header.internal_color_id or (header.code.in_code_id if header.code else None)
-                if saved_color_id:
-                    form_data['color'] = saved_color_id
+                # saved_color_id = header.internal_color_id or (header.code.in_code_id if header.code else None)
+                # if saved_color_id:
+                #     form_data['color'] = saved_color_id
 
                 ingredients = ingredients + [{'material': '', 'value': '', 'weight': ''}] * (10 - len(ingredients))
                 ingredients = ingredients[:10]

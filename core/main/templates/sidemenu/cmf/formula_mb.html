@@ -34,7 +34,7 @@
                         <div class="col-5"><label class="extra-small fw-bold required-label">CMF Number:</label></div>
                         <div class="col-7">
                             {% if form_data.formula_id %}
-                                <!-- Editing Mode: Readonly Input -->
+                                <!-- Editing Mode: Readonly Input (Displays "N/A" if form_data.cm_form_no is "N/A") -->
                                 <input type="text" name="cmf_number" id="id_mb_cmf_number" 
                                     value="{{ form_data.cm_form_no|default:'' }}" 
                                     class="form-control form-control-sm uniform-input readonly-gray" readonly required>
@@ -196,10 +196,10 @@
                     </div> -->
                     <!-- Color Field (Readonly) -->
                         <div class="row g-2 align-items-center mb-2" id="id_dc_color_container">
-                            <div class="col-5"><label class="extra-small fw-bold">Color:</label></div>
+                            <div class="col-5"><label class="extra-small fw-bold">Primary Color:</label></div>
                             <div class="col-7">
                                 <input type="text" name="color_display" id="id_dc_color_display" 
-                                       value="{{ form_data.color_display|default:'' }}" 
+                                       value="{{ form_data.color|default:'N/A' }}" 
                                        class="form-control form-control-sm uniform-input readonly-gray" readonly>
                                 <input type="hidden" name="color" id="id_dc_color_hidden" value="{{ form_data.color|default:'' }}">
                             </div>

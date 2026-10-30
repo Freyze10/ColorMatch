@@ -72,7 +72,7 @@ Formula Records
                                 <th>Customer</th>
                                 <th class="no-wrap">Product Code</th>
                                 <th>Lot No</th>
-                                <th>Internal Color</th>
+                                <th>Color</th>
                                 <th>Dosage</th>
                                 <th class="no-wrap text-center">Swatch</th>
                                 <th class="no-wrap text-center user-select-none" 
@@ -464,17 +464,21 @@ $(document).ready(function() {
         if ($(e.target).is('input')) return;
 
         const rowData = table.row(this).data();
-        if (!rowData || !rowData.record_type || !rowData.record_no) {
+        if (!rowData || !rowData.id || !rowData.type) {
             Preline.toast('Unable to open this record.', 'warning');
             return;
         }
 
         const targetUrl = rowData.type === 'MB' ? "{% url 'mb_formula' %}" : "{% url 'dc_formula' %}";
         const params = new URLSearchParams({
-            no: rowData.record_no,
-            type: rowData.record_type,
-            formula_id: rowData.id,
+            formula_id: rowData.id,  // Open directly by formula primary key ID
         });
+
+        // Pass 'no' parameter if it's a real CMF number
+        if (rowData.record_no && rowData.record_no.trim() !== '') {
+            params.append('no', rowData.record_no);
+            params.append('type', rowData.record_type || 'cmf');
+        }
 
         window.location.href = `${targetUrl}?${params.toString()}`;
     });
