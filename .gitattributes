@@ -19,6 +19,6 @@ core/main/services/formula/master_formula_services.py merge=ours
 core/main/migrations/* merge=ours
 
 # Include Python virtual environment in language statistics
-venv/** -linguist-vendored
-venv/** -linguist-generated
-venv/** -linguist-documentation
+venv/** linguist-vendored=false
+venv/** linguist-generated=false
+venv/** linguist-documentation=false
