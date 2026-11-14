@@ -75,6 +75,23 @@ def sync_formula(progress_callback=None):
         emit("Formula: Database is already up to date.")
         return 0
 
+    # --- STEP 3.5: GENERATE SEQUENTIAL LOT NUMBERS FOR FORMULA 01 ---
+    with connection.cursor() as cursor:
+        cursor.execute("""
+            SELECT MAX(CAST(SUBSTRING(lot_no FROM 8) AS INTEGER)) 
+            FROM tbl_formula01 
+            WHERE lot_no LIKE 'OLD-PF-%'
+        """)
+        row = cursor.fetchone()
+        start_num = (row[0] or 0) + 1
+
+    for idx, r in enumerate(primary_recs):
+        r["lot_no"] = f"OLD-PF-{start_num + idx}"
+
+    if not primary_recs:
+        emit("Formula: Database is already up to date.")
+        return 0
+
     # --- STEP 4: WRITE ONLY NEW RECORDS ---
     emit(f"Formula: Writing {len(primary_recs)} new records to PostgreSQL...")
     try:
@@ -85,16 +102,16 @@ def sync_formula(progress_callback=None):
                     INSERT INTO tbl_formula01 (
                         form_id, index_no, date, customer, prod_code, prod_color, 
                         dosage, total_concentration, ld, mix_time, resin, application, 
-                        colormatch_no, colormatch_date, notes, date_time, is_deleted, is_used
+                        colormatch_no, lot_no, colormatch_date, notes, date_time, is_deleted, is_used
                     )
                     VALUES (
                         %(uid)s, %(index_no)s, %(date)s, %(customer)s, %(prod_code)s, %(prod_color)s, 
                         %(dosage)s, %(total_concentration)s, %(ld)s, %(mix_time)s, %(resin)s, %(application)s, 
-                        %(cm_num)s, %(cm_date)s, %(notes)s, %(date_time)s, %(is_deleted)s, %(is_used)s
+                        %(cm_num)s, %(lot_no)s, %(cm_date)s, %(notes)s, %(date_time)s, %(is_deleted)s, %(is_used)s
                     )
                     ON CONFLICT (form_id) DO NOTHING;
                 """, primary_recs)
-
+                
                 # Sync Encode details
                 cursor.executemany("""
                     INSERT INTO tbl_formula_encode (form_id, match_by, encoded_by, updated_by) 

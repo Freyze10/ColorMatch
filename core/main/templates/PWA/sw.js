@@ -1,5 +1,5 @@
 // This tells the browser to cache your app files for speed
-const CACHE_NAME = 'mbpi-v1';
+const CACHE_NAME = 'cms-v1';
 
 self.addEventListener('install', (event) => {
   self.skipWaiting();

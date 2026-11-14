@@ -113,14 +113,31 @@ class tbl_password_reset_request(models.Model):
 class tbl_internal_color_code(models.Model):
     in_code_no = models.AutoField(primary_key=True)
     color = models.CharField(max_length=100, blank=True, null=True)
-    code = models.CharField(max_length=100, unique=True, blank=True, null=True)
-
+    code = models.CharField(max_length=100, unique=False, blank=True, null=True)
+    status = models.CharField(max_length=20, default='pending', blank=True, null=True) # pending, approved, rejected
+    is_deleted = models.BooleanField(default=False)
+    primary_color = models.ForeignKey(
+        'tbl_primary_color', on_delete=models.SET_NULL, null=True, blank=True,
+        db_column='primary_color_id', related_name='shades')
+    
     class Meta:
         db_table = "tbl_internal_color_code"
 
     def __str__(self):
         return f"{self.code} - {self.color}"
 
+class tbl_primary_color(models.Model):
+    id = models.AutoField(primary_key=True)
+    # points at an EXISTING internal color; that color becomes a primary color
+    in_code = models.OneToOneField(
+        tbl_internal_color_code, on_delete=models.PROTECT,
+        db_column='in_code_no', related_name='primary_entry')
+
+    class Meta:
+        db_table = "tbl_primary_color"
+
+    def __str__(self):
+        return f"{self.in_code.color} ({self.in_code.code})"
 
 class tbl_generated_prod_code(models.Model):
     code_no = models.AutoField(primary_key=True)
@@ -172,10 +189,7 @@ class tbl_resins_selected(models.Model):
         'tbl_cmf', to_field="cm_no", on_delete=models.CASCADE,
         db_column="cm_no", null=True, blank=True   # <- now nullable
     )
-    rs_no = models.ForeignKey(
-        'tbl_rs', on_delete=models.CASCADE,
-        db_column="rs_id", null=True, blank=True   # <- new
-    )
+    # rs_no removed
     resin_no = models.ForeignKey('tbl_resin', on_delete=models.CASCADE, db_column="resin_no")
 
     class Meta:
@@ -249,12 +263,11 @@ class tbl_cmf(models.Model):
         blank=True, 
         null=True
     )
-    est_qty_order = models.DecimalField(
-        max_digits=6, 
-        decimal_places=2, 
+    est_qty_order = models.CharField(
+        max_length=100, 
         blank=True, 
         null=True,
-        help_text="Estimated quantity in KG"
+        help_text="Estimated quantity in KG/MT"
     )
     # ----
     color_desc = models.TextField(blank=True, null=True)
@@ -281,7 +294,7 @@ class tbl_cmf_color_req(models.Model):
     color_req_no = models.AutoField(primary_key=True)
     name = models.CharField(max_length=100, blank=True, null=True)
     cm_no = models.ForeignKey(tbl_cmf, to_field="cm_no", on_delete=models.CASCADE, null=True, blank=True, db_column="cm_no")
-    rs_no = models.ForeignKey('tbl_rs', on_delete=models.CASCADE, null=True, blank=True, db_column="rs_id")
+    # rs_no removed
 
     class Meta:
         db_table = "tbl_cmf_color_req"
@@ -342,7 +355,7 @@ class tbl_cmf_process02(models.Model):
         tbl_cmf_formula, on_delete=models.CASCADE,
         db_column="cmf_formula_no", null=True, blank=True   # <- now nullable
     )
-    rs_no = models.ForeignKey('tbl_rs', on_delete=models.CASCADE, null=True, blank=True, db_column="rs_id")
+    # rs_no removed
     process_no = models.ForeignKey(tbl_cmf_process, on_delete=models.SET_NULL, null=True, blank=True, db_column="process_no")
 
     class Meta:
@@ -420,6 +433,23 @@ class tbl_submitted_selected(models.Model):
     def __str__(self):
         return f"{self.completed_id.completed_id} - {self.option_id.name}"
 
+class tbl_field_note(models.Model):
+    id = models.AutoField(primary_key=True)
+    note = models.TextField(blank=True, null=True)
+    field = models.CharField(max_length=50)  # Stores "dosage", "resin", etc.
+    cmf_formula_no = models.ForeignKey(
+        'tbl_cmf_formula',
+        on_delete=models.CASCADE,
+        db_column="cmf_formula_no",
+        related_name="field_notes"
+    )
+
+    class Meta:
+        db_table = "tbl_field_note"
+        unique_together = ('cmf_formula_no', 'field')  # Ensures 1 note per field per formula
+
+    def __str__(self):
+        return f"{self.field}: {self.note}"
 
 # ==========================================
 # 4. RS & FEEDBACK
@@ -430,14 +460,10 @@ class tbl_rs(models.Model):
     rs_no = models.CharField(max_length=50, blank=True, null=True)
     customer = models.CharField(max_length=150, blank=True, null=True)
     quantity_required = models.DecimalField(max_digits=12, decimal_places=6, null=True, blank=True)
-    dosage = models.DecimalField(max_digits=12, decimal_places=6, null=True, blank=True)
-    finished_product = models.CharField(max_length=150, blank=True, null=True)
-    matching_type = models.CharField(max_length=50, blank=True, null=True)
     sm_no = models.ForeignKey(tbl_cmf_salesman, on_delete=models.SET_NULL, null=True, blank=True, db_column="sm_no")
-    primary_color = models.CharField(max_length=100, blank=True, null=True)
-    color_desc = models.TextField(blank=True, null=True)
-    colorant_type = models.CharField(max_length=50, blank=True, null=True)
     user = models.ForeignKey(tbl_user, on_delete=models.SET_NULL, null=True, blank=True, db_column="user_id")
+
+    approved_by = models.ForeignKey(tbl_user, on_delete=models.SET_NULL, null=True, blank=True, db_column="approved_by", related_name="rs_approved")
     cm_no = models.ForeignKey(tbl_cmf, to_field="cm_no", on_delete=models.SET_NULL, null=True, blank=True, db_column="cm_no")
 
     class Meta:
@@ -460,7 +486,19 @@ class tbl_feedback_details(models.Model):
         db_column="code_no"
     )
     date_sample_received = models.DateField(blank=True, null=True)
-    status = models.CharField(max_length=100, default='pending')
+    status = models.CharField(max_length=100, default='waiting for result')
+
+    abandoned_reason = models.TextField(blank=True, null=True)
+    order_form_no = models.CharField(max_length=100, blank=True, null=True)
+    # --- FOREIGN KEY TO SALESMAN ---
+    submitted_by = models.ForeignKey(
+        'tbl_cmf_salesman',
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        db_column="sm_no"
+    )
+
     comment = models.TextField(blank=True, null=True)
     storage_details = models.CharField(max_length=100, blank=True, null=True)
     
@@ -481,24 +519,30 @@ class tbl_feedback_details(models.Model):
 
 class tbl_mb_extruder_formula(models.Model):
     mb_no = models.AutoField(primary_key=True)
+    index_no = models.CharField(max_length=22, blank=True, null=True)
     date = models.DateField(blank=True, null=True)
     code = models.ForeignKey(tbl_generated_prod_code, on_delete=models.SET_NULL, null=True, blank=True, db_column="code_no")
-    lot_no = models.CharField(max_length=100, unique=True, blank=True, null=True)
+    internal_color = models.ForeignKey(
+        tbl_internal_color_code, on_delete=models.SET_NULL, null=True, blank=True,
+        db_column="in_code_no", related_name="mb_formulas")
+    customer_color = models.CharField(max_length=150, blank=True, null=True)
+    lot_no = models.CharField(max_length=100, blank=True, null=True)
     mixing_time = models.CharField(max_length=50, blank=True, null=True)
     notes = models.TextField(blank=True, null=True) 
     matched_by = models.CharField(max_length=100, blank=True, null=True)
     weighted_by = models.CharField(max_length=100, blank=True, null=True)
     encoded_by = models.CharField(max_length=100, blank=True, null=True)
+    updated_by = models.CharField(max_length=128, blank=True, null=True)
     total_weight = models.DecimalField(max_digits=12, decimal_places=4, null=True, blank=True)
     is_final = models.BooleanField(default=False)
-    in_master_formula = models.BooleanField(default=False)
+    in_production_formula = models.BooleanField(default=False)
     cm_no = models.ForeignKey(tbl_cmf, to_field="cm_no", on_delete=models.SET_NULL, null=True, blank=True, db_column="cm_no")
-    rs_no = models.ForeignKey('tbl_rs', on_delete=models.SET_NULL, blank=True, null=True, db_column='rs_id')
-    L = models.DecimalField(max_digits=10, decimal_places=3, blank=True, null=True)
-    A = models.DecimalField(max_digits=10, decimal_places=3, blank=True, null=True)
-    B = models.DecimalField(max_digits=10, decimal_places=3, blank=True, null=True)
-    C = models.DecimalField(max_digits=10, decimal_places=3, blank=True, null=True)
-    H = models.DecimalField(max_digits=10, decimal_places=3, blank=True, null=True)
+    # rs_no removed
+    L = models.DecimalField(max_digits=10, decimal_places=5, blank=True, null=True)
+    A = models.DecimalField(max_digits=10, decimal_places=5, blank=True, null=True)
+    B = models.DecimalField(max_digits=10, decimal_places=5, blank=True, null=True)
+    C = models.DecimalField(max_digits=10, decimal_places=5, blank=True, null=True)
+    H = models.DecimalField(max_digits=10, decimal_places=5, blank=True, null=True)
     html = models.CharField(max_length=10, blank=True, null=True)
     c = models.IntegerField(blank=True, null=True)
     m = models.IntegerField(blank=True, null=True)
@@ -516,8 +560,8 @@ class tbl_mb_extruder_formula02(models.Model):
     id = models.AutoField(primary_key=True)
     mb = models.ForeignKey(tbl_mb_extruder_formula, on_delete=models.CASCADE, db_column="mb_no")
     material = models.CharField(max_length=150, blank=True, null=True)
-    value = models.DecimalField(max_digits=12, decimal_places=6, null=True, blank=True)
-    weight = models.DecimalField(max_digits=12, decimal_places=7, null=True, blank=True)
+    value = models.DecimalField(max_digits=16, decimal_places=10, null=True, blank=True)
+    weight = models.DecimalField(max_digits=16, decimal_places=10, null=True, blank=True)
 
     class Meta:
         db_table = "tbl_mb_extruder_formula02"
@@ -525,7 +569,12 @@ class tbl_mb_extruder_formula02(models.Model):
 
 class tbl_dc_extruder_formula(models.Model):
     dc_no = models.AutoField(primary_key=True)
+    index_no = models.CharField(max_length=22, blank=True, null=True)
     code = models.ForeignKey(tbl_generated_prod_code, on_delete=models.SET_NULL, null=True, blank=True, db_column="code_no")
+    internal_color = models.ForeignKey(
+        tbl_internal_color_code, on_delete=models.SET_NULL, null=True, blank=True,
+        db_column="in_code_no", related_name="dc_formulas")
+    customer_color = models.CharField(max_length=150, blank=True, null=True)
     date = models.DateField(blank=True, null=True)
     sample_size = models.CharField(max_length=100, blank=True, null=True)
     mixing_time = models.CharField(max_length=50, blank=True, null=True)
@@ -533,17 +582,18 @@ class tbl_dc_extruder_formula(models.Model):
     matched_by = models.CharField(max_length=100, blank=True, null=True)
     weighted_by = models.CharField(max_length=100, blank=True, null=True)
     encoded_by = models.CharField(max_length=100, blank=True, null=True)
+    updated_by = models.CharField(max_length=128, blank=True, null=True)
     total_weight = models.DecimalField(max_digits=12, decimal_places=4, null=True, blank=True)
     cm_no = models.ForeignKey(tbl_cmf, to_field="cm_no", on_delete=models.SET_NULL, null=True, blank=True, db_column="cm_no")
     is_final = models.BooleanField(default=False)
-    in_master_formula = models.BooleanField(default=False)
-    rs_no = models.ForeignKey('tbl_rs', on_delete=models.SET_NULL, blank=True, null=True, db_column='rs_id')
+    in_production_formula = models.BooleanField(default=False)
+    # rs_no removed
     material_code = models.ForeignKey(tbl_coding_materials, on_delete=models.SET_NULL, null=True, blank=True, db_column="lab_material_no")
-    L = models.DecimalField(max_digits=10, decimal_places=3, blank=True, null=True)
-    A = models.DecimalField(max_digits=10, decimal_places=3, blank=True, null=True)
-    B = models.DecimalField(max_digits=10, decimal_places=3, blank=True, null=True)
-    C = models.DecimalField(max_digits=10, decimal_places=3, blank=True, null=True)
-    H = models.DecimalField(max_digits=10, decimal_places=3, blank=True, null=True)
+    L = models.DecimalField(max_digits=10, decimal_places=5, blank=True, null=True)
+    A = models.DecimalField(max_digits=10, decimal_places=5, blank=True, null=True)
+    B = models.DecimalField(max_digits=10, decimal_places=5, blank=True, null=True)
+    C = models.DecimalField(max_digits=10, decimal_places=5, blank=True, null=True)
+    H = models.DecimalField(max_digits=10, decimal_places=5, blank=True, null=True)
     html = models.CharField(max_length=10, blank=True, null=True)
     c = models.IntegerField(blank=True, null=True)
     m = models.IntegerField(blank=True, null=True)
@@ -572,7 +622,7 @@ class tbl_dc_extruder_materials(models.Model):
 class tbl_dc_extruder_version(models.Model):
     id = models.AutoField(primary_key=True)
     version_no = models.IntegerField()
-    value = models.DecimalField(max_digits=12, decimal_places=6, null=True, blank=True)
+    value = models.DecimalField(max_digits=16, decimal_places=10, null=True, blank=True)
     material = models.ForeignKey(tbl_dc_extruder_materials, on_delete=models.CASCADE, db_column="material_id", related_name="versions")
 
     class Meta:
@@ -581,6 +631,100 @@ class tbl_dc_extruder_version(models.Model):
     def __str__(self):
         return f"v{self.version_no} for {self.material.material}"
 
+
+class tbl_formula_resin(models.Model):
+    formula_resin_id = models.AutoField(primary_key=True)
+    resin = models.CharField(max_length=50, unique=True)
+
+    class Meta:
+        db_table = "tbl_formula_resin"
+
+    def __str__(self):
+        return self.resin
+
+
+class tbl_formula_resin_selected(models.Model):
+    id = models.AutoField(primary_key=True)
+    formula_resin_id = models.ForeignKey(
+        tbl_formula_resin,
+        on_delete=models.CASCADE,
+        db_column="formula_resin_id"
+    )
+    mb_no = models.ForeignKey(
+        'tbl_mb_extruder_formula',
+        on_delete=models.CASCADE,
+        null=True,
+        blank=True,
+        db_column="mb_no"
+    )
+    dc_no = models.ForeignKey(
+        'tbl_dc_extruder_formula',
+        on_delete=models.CASCADE,
+        null=True,
+        blank=True,
+        db_column="dc_no"
+    )
+
+    class Meta:
+        db_table = "tbl_formula_resin_selected"
+
+    def __str__(self):
+        parent = f"MB #{self.mb_no_id}" if self.mb_no_id else f"DC #{self.dc_no_id}"
+        return f"{self.formula_resin_id.resin} ({parent})"
+
+class tbl_standalone_formula(models.Model):
+    standalone_id = models.AutoField(primary_key=True)
+    customer = models.CharField(max_length=150, blank=True, null=True)
+    dosage = models.DecimalField(max_digits=12, decimal_places=6, null=True, blank=True)
+    finished_product = models.CharField(max_length=150, blank=True, null=True)
+    process = models.CharField(max_length=100, blank=True, null=True)
+    
+    # Foreign Keys matching your schema graphic
+    mb_no = models.ForeignKey(
+        'tbl_mb_extruder_formula', 
+        on_delete=models.SET_NULL, 
+        null=True, 
+        blank=True, 
+        db_column="mb_no"
+    )
+    dc_no = models.ForeignKey(
+        'tbl_dc_extruder_formula', 
+        on_delete=models.SET_NULL, 
+        null=True, 
+        blank=True, 
+        db_column="dc_no"
+    )
+
+    class Meta:
+        db_table = "tbl_standalone_formula"
+
+    def __str__(self):
+        return f"Standalone Formula #{self.standalone_id} - {self.customer or 'N/A'}"
+
+
+class tbl_standalone_formula_resins(models.Model):
+    selected_resin_no = models.AutoField(primary_key=True)
+    standalone = models.ForeignKey(
+        tbl_standalone_formula, 
+        on_delete=models.CASCADE, 
+        db_column="standalone_id", 
+        null=True, 
+        blank=True,
+        related_name="selected_resins"
+    )
+    resin_no = models.ForeignKey(
+        'tbl_resin', 
+        on_delete=models.CASCADE, 
+        db_column="resin_no"
+    )
+
+    class Meta:
+        db_table = "tbl_standalone_formula_resins"
+
+    def __str__(self):
+        parent_id = self.standalone_id or "Unlinked"
+        resin_name = self.resin_no.resin if self.resin_no else "Unknown Resin"
+        return f"Standalone #{parent_id} - Resin: {resin_name}"
 
 # ==========================================
 # 6. MASTER & DAILY FORMULAS
@@ -600,6 +744,7 @@ class tbl_master_formula(models.Model):
     resin = models.CharField(max_length=36, blank=True, null=True) # Matched to 36
     application = models.CharField(max_length=36, blank=True, null=True) # Matched to 36
     cm_no = models.CharField(max_length=8, blank=True, null=True) 
+    lot_no = models.CharField(max_length=100, blank=True, null=True)
     colormatch_date = models.DateField(blank=True, null=True)
     notes = models.CharField(max_length=256, blank=True, null=True) 
     date_modified = models.CharField(max_length=32, blank=True, null=True) 
@@ -659,6 +804,7 @@ class tbl_formula01(models.Model):
     application = models.CharField(max_length=36, blank=True, null=True)
     colormatch_no = models.CharField(max_length=8, blank=True, null=True)
     colormatch_date = models.DateField(blank=True, null=True)
+    lot_no = models.CharField(max_length=100, blank=True, null=True)
     notes = models.CharField(max_length=256, blank=True, null=True)
     date_time = models.CharField(max_length=32, blank=True, null=True)
     is_deleted = models.BooleanField(default=False)
@@ -793,3 +939,118 @@ class tbl_rm_incoming(models.Model):
 
     def __str__(self):
         return self.material_code or str(self.id)
+
+
+# ==========================================
+# 9. VIEW TABLES FOR MASTER FORMULA + PRODUCTION FORMULA
+# ==========================================
+
+
+class old_formula01(models.Model):
+    """Read-only view: tbl_master_formula + tbl_formula01 (with their encode tables)."""
+    SOURCE_MASTER = "master_formula"
+    SOURCE_FORMULA = "formula"
+
+    view_id = models.CharField(max_length=40, primary_key=True)  # e.g. "master_formula-12"
+    source = models.CharField(max_length=20)                     # "master_formula" or "formula"
+    form_id = models.IntegerField()                              # id in the source table
+
+    index_no = models.CharField(max_length=22, blank=True, null=True)
+    date = models.DateField(blank=True, null=True)
+    customer = models.CharField(max_length=62, blank=True, null=True)
+    product_code = models.CharField(max_length=22, blank=True, null=True)
+    prod_color = models.CharField(max_length=62, blank=True, null=True)
+    dosage = models.DecimalField(max_digits=12, decimal_places=6, null=True, blank=True)
+    total_concentration = models.DecimalField(max_digits=12, decimal_places=6, null=True, blank=True)
+    ld = models.DecimalField(max_digits=12, decimal_places=6, null=True, blank=True)
+    mix_time = models.CharField(max_length=22, blank=True, null=True)
+    resin = models.CharField(max_length=36, blank=True, null=True)
+    application = models.CharField(max_length=36, blank=True, null=True)
+    cm_no = models.CharField(max_length=8, blank=True, null=True)
+    lot_no = models.CharField(max_length=100, blank=True, null=True)
+    colormatch_date = models.DateField(blank=True, null=True)
+    notes = models.CharField(max_length=256, blank=True, null=True)
+    date_modified = models.CharField(max_length=32, blank=True, null=True)
+    is_deleted = models.BooleanField(default=False)
+    is_used = models.BooleanField(default=False)
+
+    # Master formula only (NULL for formula01)
+    html_code_hex = models.CharField(max_length=10, blank=True, null=True)
+    cyan = models.DecimalField(max_digits=12, decimal_places=6, null=True, blank=True)
+    magenta = models.DecimalField(max_digits=12, decimal_places=6, null=True, blank=True)
+    yellow = models.DecimalField(max_digits=12, decimal_places=6, null=True, blank=True)
+    black = models.DecimalField(max_digits=12, decimal_places=6, null=True, blank=True)
+    colorant_type = models.CharField(max_length=5, blank=True, null=True)
+
+    # From the encode tables
+    match_by = models.CharField(max_length=128, blank=True, null=True)
+    encoded_by = models.CharField(max_length=128, blank=True, null=True)
+    updated_by = models.CharField(max_length=128, blank=True, null=True)
+
+    class Meta:
+        managed = False
+        db_table = "old_formula01"
+        ordering = ["colormatch_date"]
+
+    def get_info(self):
+        return old_formula02.objects.filter(source=self.source, form_id=self.form_id)
+
+    def __str__(self):
+        return f"{self.source} #{self.form_id} - {self.product_code}"
+
+
+class old_formula02(models.Model):
+    """Read-only view: tbl_master_formula_info + tbl_formula02."""
+    view_id = models.CharField(max_length=40, primary_key=True)
+    source = models.CharField(max_length=20)
+    form_id = models.IntegerField()
+    sequence_no = models.IntegerField(blank=True, null=True)
+    material_code = models.CharField(max_length=32, blank=True, null=True)
+    concentration = models.DecimalField(max_digits=12, decimal_places=6, null=True, blank=True)
+    is_deleted = models.BooleanField(default=False)
+
+    class Meta:
+        managed = False
+        db_table = "old_formula02"
+        ordering = ["source", "form_id", "sequence_no"]
+
+
+
+# ==========================================
+# 10. is deleted table for CMF, MB, DC
+# ==========================================
+
+class tbl_cmf_is_deleted(models.Model):
+    id = models.AutoField(primary_key=True)
+    reason = models.TextField(blank=True, null=True)
+    
+    # Foreign Keys
+    mb_no = models.ForeignKey(
+        'tbl_mb_extruder_formula', 
+        on_delete=models.SET_NULL, 
+        null=True, 
+        blank=True, 
+        db_column="mb_no"
+    )
+    dc_no = models.ForeignKey(
+        'tbl_dc_extruder_formula', 
+        on_delete=models.SET_NULL, 
+        null=True, 
+        blank=True, 
+        db_column="dc_no"
+    )
+    cm_no = models.ForeignKey(
+        'tbl_cmf', 
+        to_field="cm_no", 
+        on_delete=models.SET_NULL, 
+        null=True, 
+        blank=True, 
+        db_column="cm_no"
+    )
+
+    class Meta:
+        db_table = "tbl_cmf_is_deleted"
+
+    def __str__(self):
+        target = self.cm_no_id or (f"MB #{self.mb_no_id}" if self.mb_no_id else f"DC #{self.dc_no_id}")
+        return f"Deletion Record #{self.id} for {target}"

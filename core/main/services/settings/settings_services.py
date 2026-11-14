@@ -5,6 +5,7 @@ from django.core.mail import send_mail
 from django.urls import reverse
 from django.utils import timezone
 from django.shortcuts import get_object_or_404, redirect, render
+from main.utils.log_audit_trail import log_audit
 from main.models import tbl_password_reset_request, tbl_role_permissions, tbl_access_point
 
 User = get_user_model()
@@ -28,14 +29,34 @@ def has_password_requests_access(user):
 # --- PERSONAL INFO ---
 
 def update_personal_info(request):
-    """Returns (success: bool, message: str)."""
+    """Returns (success: bool, message: str). Writes to the audit trail only when something changed."""
     user = request.user
-    user.first_name = request.POST.get('first_name', user.first_name)
-    user.last_name = request.POST.get('last_name', user.last_name)
-    user.email = request.POST.get('email', user.email)
-    user.save()
-    return True, "Personal information updated successfully."
 
+    new_first = request.POST.get('first_name', user.first_name).strip()
+    new_last = request.POST.get('last_name', user.last_name).strip()
+    new_email = request.POST.get('email', user.email).strip()
+
+    old_name = f"{user.first_name} {user.last_name}".strip() or "---"
+    new_name = f"{new_first} {new_last}".strip() or "---"
+    old_email = user.email or "---"
+    new_email_display = new_email or "---"
+
+    changes = []
+    if old_name != new_name:
+        changes.append(f"Name ({old_name} -> {new_name})")
+    if old_email != new_email_display:
+        changes.append(f"Email ({old_email} -> {new_email_display})")
+
+    if not changes:
+        return True, "No changes were made."
+
+    user.first_name = new_first
+    user.last_name = new_last
+    user.email = new_email
+    user.save(update_fields=['first_name', 'last_name', 'email'])
+
+    log_audit(request, "Updated", f"Personal info of {user.username}. Changes: " + ", ".join(changes))
+    return True, "Personal information updated successfully."
 
 # --- CHANGE PASSWORD (logged-in user) ---
 
@@ -57,6 +78,8 @@ def change_own_password(request):
     request.user.set_password(new_password)
     request.user.save()
     update_session_auth_hash(request, request.user)  # keeps user logged in after password change
+
+    log_audit(request, "Updated", f"Changed own password ({request.user.username})")
     return True, "Password updated successfully."
 
 
@@ -67,6 +90,9 @@ def logout_all_devices(request):
     Deletes every DB-backed session tied to this user, then logs out
     the current session too. Returns nothing; caller handles redirect.
     """
+    # Log first, while request.user is still the logged-in user
+    log_audit(request, "Logout", f"Logged out of all devices ({request.user.username})")
+
     for session in Session.objects.all():
         data = session.get_decoded()
         if str(data.get('_auth_user_id')) == str(request.user.id):
@@ -113,7 +139,7 @@ def approve_request(request_id, admin_user, request):
     req_obj.decided_by = admin_user
     req_obj.decided_at = timezone.now()
     req_obj.save()
-    
+
     reset_path = reverse('reset_password', args=[req_obj.token])
     reset_link = request.build_absolute_uri(reset_path)
     # --- Signature definition ---
@@ -144,10 +170,30 @@ def approve_request(request_id, admin_user, request):
             print("EMAIL SEND FAILED:", e)
             email_sent = False
 
+    # The reset link itself is never written to the audit trail
+    log_audit(
+        request, "Approved",
+        f"Password reset request of {req_obj.user.username} "
+        f"({'email sent' if email_sent else 'email failed, link shared manually'})"
+    )
+
     if email_sent:
         return True, f"Approved. An email was sent to {req_obj.user.email}."
     return True, f"Approved. But Email Failed. Share this link with the user manually: {reset_link}"
 
+
+def reject_request(request_id, admin_user, request):
+    req_obj = tbl_password_reset_request.objects.filter(pk=request_id, status='pending').first()
+    if not req_obj:
+        return False, "Request not found or already handled."
+
+    req_obj.status = 'rejected'
+    req_obj.decided_by = admin_user
+    req_obj.decided_at = timezone.now()
+    req_obj.save()
+
+    log_audit(request, "Rejected", f"Password reset request of {req_obj.user.username}")
+    return True, f"Request from {req_obj.user.username} was rejected."
 
 def reject_request(request_id, admin_user):
     req_obj = tbl_password_reset_request.objects.filter(pk=request_id, status='pending').first()

@@ -192,7 +192,7 @@
                 selectBtn.disabled = true;
 
                 try {
-                    const response = await fetch(`/master-formula/lookup/?matching_no=${encodeURIComponent(matchingNo)}`);
+                    const response = await fetch(`/formulation/lookup/?matching_no=${encodeURIComponent(matchingNo)}`);
                     lookupModalBody.innerHTML = await response.text();
                     
                     lookupModalBody.querySelectorAll('.mf-lookup-header-row').forEach(row => {
@@ -238,6 +238,15 @@
                 iframe.src = `/master-formula/print/${formId}/`;
 
                 iframe.onload = function () {
+                    const logUrl = "{% url 'log_master_formula_print' 0 %}".replace('0', encodeURIComponent(formId));
+
+                    fetch(logUrl, {
+                        method: 'GET',
+                        headers: {
+                            'X-Requested-With': 'XMLHttpRequest'
+                        }
+                    }).catch(err => console.error('Audit trail logging failed:', err));
+
                     // Small delay to ensure styles are loaded
                     setTimeout(() => {
                         iframe.contentWindow.focus();

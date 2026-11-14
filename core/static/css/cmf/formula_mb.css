@@ -26,8 +26,11 @@
 .table-input:focus { background-color: rgba(13, 148, 136, 0.08); }
 
 .total-weight-input {
-    width: 160px; background-color: #0f172a !important; color: #2dd4bf !important;
+    width: 170px; background-color: #020617 !important; color: #2dd4bf !important;
     font-weight: 700; text-align: right; border: none; border-radius: 0.4rem; padding: 0.5rem 1rem;
+}
+.total-weight-input::placeholder { 
+    color: #94a3b8 !important;
 }
 
 /* Style TomSelect specifically for table usage */

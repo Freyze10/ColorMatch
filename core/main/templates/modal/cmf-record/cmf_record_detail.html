@@ -8,7 +8,7 @@
     <td>{{ rev.formula_info.customer|default:"---" }}</td>
     <td>{{ rev.cmf.in_code_no.color|default:"---" }}</td>
     <td>{{ rev.cmf.matching_type|default:"---" }}</td>
-    <td><code>{{ rev.pending_info.code.product_code|default:"---" }}</code></td>
+    <td><code class="fw-bold" style="font-size: 1rem;">{{ rev.pending_info.code.product_code|default:"---" }}</code></td>
     <td>
         <span class="badge {% if rev.pending_info.is_completed %}bg-success-subtle text-success border border-success{% else %}bg-warning-subtle text-warning border border-warning{% endif %}">
             {% if rev.pending_info.is_completed %}Completed{% else %}Pending{% endif %}

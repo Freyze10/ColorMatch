@@ -220,7 +220,7 @@
                     <td class="num">{{ row.value }}</td>
                     <td class="num">&nbsp;</td>
                     <td class="num">&nbsp;</td>
-                    <td class="num">{% if row.weight %}{{ row.weight }}g{% endif %}</td>
+                    <td class="num">{% if row.weight %}{{ row.weight }}{% endif %}</td>
                 </tr>
                 {% endfor %}
                 <tr class="total-row">
@@ -228,7 +228,7 @@
                     <td class="num">{{ total_value }}</td>
                     <td class="num">&nbsp;</td>
                     <td class="num">&nbsp;</td>
-                    <td class="num">{% if total_weight %}{{ total_weight }}g{% endif %}</td>
+                    <td class="num">{% if total_weight %}{{ total_weight }} KG{% endif %}</td>
                 </tr>
             </tbody>
         </table>

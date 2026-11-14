@@ -1,0 +1,76 @@
+<div class="modal fade" id="deleteFormulaModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header py-2">
+                <h6 class="modal-title fw-bold text-danger"><i class="bi bi-trash me-1"></i> Delete Formula</h6>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <p class="small mb-2">This formula will be removed from the records. Please enter the reason.</p>
+                <textarea id="deleteReason" class="form-control form-control-sm" rows="3" placeholder="Reason for deleting..."></textarea>
+                <div class="text-danger extra-small fw-bold mt-1 d-none" id="deleteReasonError">Reason is required.</div>
+            </div>
+            <div class="modal-footer py-2">
+                <button type="button" class="btn btn-sm btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <button type="button" class="btn btn-sm btn-danger px-3" id="btnConfirmDelete">Delete</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+    const deleteBtn = document.querySelector('.btn-delete-formula');
+    const modalEl = document.getElementById('deleteFormulaModal');
+    if (!deleteBtn || !modalEl) return;
+
+    const form = deleteBtn.closest('form');
+    const isMB = form.classList.contains('js-mb-formula');
+    const formulaId = form.querySelector('[name="formula_id"]')?.value;
+    const csrfToken = form.querySelector('[name="csrfmiddlewaretoken"]')?.value || '';
+    const deleteUrl = isMB
+        ? `/cmf/mb-formula/delete/${formulaId}/`
+        : `/cmf/dc-formula/delete/${formulaId}/`;
+
+    const reasonEl = document.getElementById('deleteReason');
+    const errorEl = document.getElementById('deleteReasonError');
+    const confirmBtn = document.getElementById('btnConfirmDelete');
+
+    deleteBtn.addEventListener('click', function () {
+        reasonEl.value = '';
+        errorEl.classList.add('d-none');
+        bootstrap.Modal.getOrCreateInstance(modalEl).show();
+    });
+
+    confirmBtn.addEventListener('click', async function () {
+        const reason = reasonEl.value.trim();
+        if (!reason) {
+            errorEl.classList.remove('d-none');
+            reasonEl.focus();
+            return;
+        }
+
+        confirmBtn.disabled = true;
+        try {
+            const body = new FormData();
+            body.append('reason', reason);
+            const res = await fetch(deleteUrl, {
+                method: 'POST',
+                headers: { 'X-CSRFToken': csrfToken },
+                body: body
+            });
+            const data = await res.json();
+
+            if (data.success) {
+                window.location.href = "{% url 'formula_records' %}";   // the success message shows there
+            } else {
+                Preline.toast(data.error || 'Delete failed.', 'error');
+                confirmBtn.disabled = false;
+            }
+        } catch (err) {
+            Preline.toast('Delete failed.', 'error');
+            confirmBtn.disabled = false;
+        }
+    });
+});
+</script>

@@ -91,8 +91,7 @@ def get_all_matching_numbers():
     nos = cache.get('matching_numbers_list')
     if not nos:
         cmf_nos = list(tbl_cmf.objects.exclude(cm_no__isnull=True).exclude(cm_no='').values_list('cm_no', flat=True))
-        rs_nos = list(tbl_rs.objects.exclude(rs_no__isnull=True).exclude(rs_no='').values_list('rs_no', flat=True))
-        nos = sorted(list(set(cmf_nos + rs_nos)))
+        nos = sorted(list(set(cmf_nos)))
         cache.set('matching_numbers_list', nos, CACHE_TIMEOUT)
     return nos
 
@@ -114,7 +113,9 @@ def get_master_formula_context(form_id=None, request=None):
     )
     allowed_departments = ['Laboratory', 'Information Technology', 'Sales']
     is_allowed = request.user.role.department in allowed_departments or request.user.is_superuser
-        
+
+    user_fullname = f"{request.user.first_name} {request.user.last_name}".strip() if (request and request.user.is_authenticated) else ''
+
     return {
         'form_data': form_data,
         'matching_numbers': get_all_matching_numbers(),
@@ -122,6 +123,7 @@ def get_master_formula_context(form_id=None, request=None):
         'materials': cmf_records_services.get_raw_material_codes(),
         'customers': cmf_records_services.get_customer_list(),
         'is_allowed': is_allowed,
+        'user_fullname': user_fullname,
     }
 
 # --- 2. DATA TABLES ---
@@ -303,7 +305,7 @@ def save_master_formula(request):
             source_pk, source_type = data.get('source_formula_pk'), data.get('source_formula_type')
             if source_pk and source_type:
                 model = tbl_mb_extruder_formula if source_type == 'MB' else tbl_dc_extruder_formula
-                model.objects.filter(pk=source_pk).update(in_master_formula=True)
+                model.objects.filter(pk=source_pk).update(in_production_formula=True)
 
             # 6. AUDIT TRAIL
             if is_new:

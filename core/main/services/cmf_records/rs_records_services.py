@@ -1,0 +1,117 @@
+from django.http import JsonResponse
+from django.shortcuts import render
+from django.db.models import Q, Value, OuterRef, Subquery, CharField
+from django.db.models.functions import Coalesce, Concat
+from main.models import tbl_rs, tbl_cmf_pending_completed
+
+# Column index order matching DataTables
+RS_ORDER_COLUMNS = [
+    'id',           # 0 - hidden
+    'rs_no',        # 1 - RS No.
+    'customer',     # 2 - Customer
+    'cm_no__cm_no', # 3 - CMF No.
+    'product_code', # 4 - Product Code (subquery)
+    'sm_no__name',  # 5 - Salesman
+    'approved_by',  # 6 - Approved by
+    'is_completed', # 7 - Status (subquery)
+]
+
+RS_SEARCH_FIELDS = {
+    '0': ['rs_no'],
+    '1': ['customer'],
+    '2': ['cm_no__cm_no'],
+    '3': ['product_code'],
+    '4': ['sm_no__name'],
+    '5': ['approved_by__first_name', 'approved_by__last_name', 'approved_by__username'],
+}
+ALL_RS_SEARCH_FIELDS = sorted({f for fields in RS_SEARCH_FIELDS.values() for f in fields})
+
+
+def rs_records_data(request):
+    """DataTables AJAX JSON endpoint."""
+    draw = int(request.GET.get('draw', 1))
+    start = int(request.GET.get('start', 0))
+    length = int(request.GET.get('length', 1000))
+    order_col = int(request.GET.get('order[0][column]', 1))
+    order_dir = request.GET.get('order[0][dir]', 'desc')
+
+    search_col = request.GET.get('search_col', 'all')
+    search_term = (request.GET.get('search_term') or '').strip()
+
+    # Pending/completed rows are linked either by RS or only by CM, so try the RS first, then the CM.
+    # Newest row wins.
+    all_rows = tbl_cmf_pending_completed.objects.order_by('-completed_id')
+    coded_rows = all_rows.filter(code__isnull=False)
+
+    code_by_rs = coded_rows.filter(rs_no=OuterRef('pk')).values('code__product_code')[:1]
+    code_by_cm = coded_rows.filter(cm_no=OuterRef('cm_no')).values('code__product_code')[:1]
+    status_by_rs = all_rows.filter(rs_no=OuterRef('pk')).values('is_completed')[:1]
+    status_by_cm = all_rows.filter(cm_no=OuterRef('cm_no')).values('is_completed')[:1]
+
+    qs = tbl_rs.objects.select_related('cm_no', 'sm_no', 'approved_by').annotate(
+        product_code=Coalesce(Subquery(code_by_rs), Subquery(code_by_cm), output_field=CharField()),
+        is_completed=Coalesce(Subquery(status_by_rs), Subquery(status_by_cm)),
+        approver_name=Concat('approved_by__first_name', Value(' '), 'approved_by__last_name')
+    )
+
+    total_count = qs.count()
+
+    # Search filter
+    if search_term:
+        fields = ALL_RS_SEARCH_FIELDS if search_col == 'all' else RS_SEARCH_FIELDS.get(search_col, [])
+        if fields:
+            q = Q()
+            for f in fields:
+                q |= Q(**{f"{f}__icontains": search_term})
+            qs = qs.filter(q)
+
+    filtered_count = qs.count()
+
+    # Ordering
+    if 0 <= order_col < len(RS_ORDER_COLUMNS):
+        order_field = RS_ORDER_COLUMNS[order_col]
+    else:
+        order_field = 'rs_no'
+    if order_dir == 'desc':
+        order_field = f"-{order_field}"
+    qs = qs.order_by(order_field)
+
+    page_qs = qs[start:start + length]
+
+    data = []
+    for rs in page_qs:
+        data.append({
+            "id": rs.id,
+            "rs_no": rs.rs_no or "---",
+            "customer": rs.customer or "---",
+            "cm_no": rs.cm_no.cm_no if rs.cm_no else "---",
+            "product_code": rs.product_code or "---",
+            "salesman": rs.sm_no.name if rs.sm_no else "---",
+            "approved_by": rs.approver_name.strip() if rs.approver_name and rs.approver_name.strip() else (rs.approved_by.username if rs.approved_by else "---"),
+            "status": "Completed" if rs.is_completed else "Pending"
+        })
+
+    return JsonResponse({
+        "draw": draw,
+        "recordsTotal": total_count,
+        "recordsFiltered": filtered_count,
+        "data": data
+    })
+
+
+def get_cmf_final_code(request):
+    cm_no = request.GET.get('cm_no', '').strip()
+    product_code = ""
+
+    if cm_no:
+        # Newest row for this CM that actually has a code
+        pending_record = (tbl_cmf_pending_completed.objects
+                          .filter(cm_no__cm_no=cm_no, code__isnull=False)
+                          .select_related('code')
+                          .order_by('-completed_id')
+                          .first())
+
+        if pending_record:
+            product_code = pending_record.code.product_code or ""
+
+    return JsonResponse({'success': True, 'product_code': product_code})

@@ -5,6 +5,9 @@
 Color Matching Records
 {% endblock navigation %}
 
+{% block style %}
+{% endblock %}
+
 {% block content %}
 
 <div class="d-flex flex-column">
@@ -15,7 +18,7 @@ Color Matching Records
         <div class="col-md-2">
             <select class="form-select form-select-sm uniform-input" id="searchFieldSelect">
                 <option value="all" selected>All Fields</option>
-                <option value="0" id="optNoLabel">CMF No.</option>
+                <option value="0">CMF No.</option>
                 <option value="1">Customer</option>
                 <option value="2">Primary Color</option>
                 <option value="3">Color Description</option>
@@ -40,16 +43,6 @@ Color Matching Records
             </div>
         </div>
 
-        <!-- CMF / RS Toggle Switch -->
-        <div class="col-auto d-flex align-items-center gap-2">
-            <span class="extra-small fw-bold text-teal" id="modeLabelCmf">CMF</span>
-            <label class="teal-toggle-switch mb-0">
-                <input type="checkbox" id="modeToggle">
-                <span class="teal-toggle-slider"></span>
-            </label>
-            <span class="extra-small fw-bold text-muted" id="modeLabelRs">RS</span>
-        </div>
-
         <div class="col-auto">
             <button class="btn btn-sm btn-primary shadow-sm px-3" id="refreshBtn" type="button">
                 <i class="bi bi-arrow-clockwise"></i>
@@ -61,72 +54,38 @@ Color Matching Records
 
     <!-- TABLE CARD -->
     <div class="card border-0 shadow-sm rounded-3 cmf-table-card">
-        <div class="cmf-scroll-body">
-            <table class="table table-hover align-middle mb-0 cmf-records-table">
-                <thead>
-                    <tr class="small text-uppercase">
-                        <th class="d-none" data-col-index="id">ID</th>
-                        <th class="ps-3" data-col-index="0" id="tableHeaderNo">CMF No.</th>
-                        <th data-col-index="1">Customer</th>
-                        <th data-col-index="2">Primary Color</th>
-                        <th data-col-index="3">Color Description</th>
-                        <th data-col-index="4">Finished Product</th>
-                        <th data-col-index="5">Required Date</th>
-                        <th data-col-index="6">Target Date</th>
-                        <th data-col-index="7">Matching Type</th>
-                        <th data-col-index="13">Colorant</th>
-                        <th data-col-index="8">Product Code</th>
-                        <th data-col-index="9">Status</th>
-                        <th data-col-index="10">Submitted Date</th>
-                        <th data-col-index="11">AR No.</th>
-                        <th class="pe-3" data-col-index="12">Reason</th>
-                    </tr>
-                </thead>
-
-                <tbody class="small" id="recordsTbody">
-                    {% for record in records %}
-                    <tr class="record-row" data-mode="{{ record.mode }}" data-status="{{ record.status }}">
-                        <td class="d-none" data-col-index="id">{{ record.id }}</td>
-                        <td class="ps-3 fw-bold" data-col-index="0">{{ record.no }}</td>
-                        <td data-col-index="1">{{ record.customer }}</td>
-                        <td data-col-index="2">{{ record.primary_color}}</td>
-                        <td data-col-index="3">{{ record.description }}</td>
-                        <td data-col-index="4">{{ record.product }}</td>
-                        <td data-col-index="5">{{ record.required_date }}</td>
-                        <td data-col-index="6">{{ record.target_date }}</td>
-                        <td data-col-index="7">{{ record.type }}</td>
-                        <td data-col-index="13">{{ record.colorant_type }}</td>
-                        <td data-col-index="8">{{ record.code }}</td>
-                        <td data-col-index="9">
-                            <span class="badge
-                                {% if record.status == 'Completed' %}
-                                    bg-success-subtle text-success border border-success
-                                {% else %}
-                                    bg-warning-subtle text-warning-emphasis border border-warning
-                                {% endif %}">
-                                {{ record.status }}
-                            </span>
-                        </td>
-                        <td data-col-index="10">{{ record.submitted_date }}</td>
-                        <td data-col-index="11">{{ record.ar_no }}</td>
-                        <td class="pe-3" data-col-index="12">{{ record.reason }}</td>
-                    </tr>
-                    {% empty %}
-                    <tr id="emptyRow">
-                        <td colspan="14" class="text-center py-5 text-muted">
-                            No records found in database.
-                        </td>
-                    </tr>
-                    {% endfor %}
-                </tbody>
-            </table>
-        </div>
+        <table class="table table-hover align-middle mb-0 cmf-records-table" style="width: 100%;">
+            <thead>
+                <tr class="small text-uppercase">
+                    <th class="d-none" data-col-index="id">ID</th>
+                    <th class="ps-3" data-col-index="0">CMF No.</th>
+                    <th data-col-index="1">Customer</th>
+                    <th data-col-index="2">Primary Color</th>
+                    <th data-col-index="3">Color Description</th>
+                    <th data-col-index="4">Finished Product</th>
+                    <th data-col-index="5">Required Date</th>
+                    <th data-col-index="6">Target Date</th>
+                    <th data-col-index="7">Matching Type</th>
+                    <th data-col-index="13">Colorant</th>
+                    <th data-col-index="8">Product Code</th>
+                    <th data-col-index="9">Status</th>
+                    <th data-col-index="10">Submitted Date</th>
+                    <th data-col-index="11">AR No.</th>
+                    <th class="no-wrap" data-col-index="14">Submitted Option</th>
+                    <th class="no-wrap" data-col-index="15">Qty</th>
+                    <th class="no-wrap" data-col-index="16">Set</th>
+                    <th class="pe-3" data-col-index="12">Reason</th>
+                </tr>
+            </thead>
+            <tbody class="small" id="recordsTbody"></tbody>
+        </table>
     </div>
 
     <!-- Footer Area -->
     <div class="mt-2 py-3 px-2">
         <div class="d-flex flex-column flex-md-row justify-content-between align-items-md-center gap-3">
             <div class="d-flex flex-column flex-sm-row align-items-sm-center gap-2 gap-sm-3">
+                
                 <span class="small fw-bold">Filter Status:</span>
                 <div class="d-flex flex-wrap gap-3">
                     <div class="form-check">
@@ -139,6 +98,12 @@ Color Matching Records
                     </div>
                 </div>
                 <div class="vr d-none d-sm-block"></div>
+                <select class="form-select form-select-sm uniform-input" id="pageLengthSelect" style="width: 80px;">
+                    <option value="100">100</option>
+                    <option value="500">500</option>
+                    <option value="1000" selected>1000</option>
+                    <option value="5000">5000</option>
+                </select>
                 <small class="text-muted" id="recordCounter">Showing 0 records</small>
             </div>
 
@@ -225,9 +190,6 @@ Color Matching Records
     <a class="dropdown-item extra-small py-2" href="#" id="linkCmfEntry">
         <i class="bi bi-pencil-square me-2 text-teal"></i> Go to CMF Entry
     </a>
-    <a class="dropdown-item extra-small py-2 d-none" href="#" id="linkRsEntry">
-        <i class="bi bi-pencil-square me-2 text-teal"></i> Go to RS Entry
-    </a>
     <a class="dropdown-item extra-small py-2" href="#" id="linkMbFormula">
         <i class="bi bi-gear-wide-connected me-2 text-teal"></i> Go to MB Formula
     </a>
@@ -241,6 +203,7 @@ Color Matching Records
 {% endblock %}
 
 {% block scripts %}
+<script src="https://cdn.datatables.net/2.1.8/js/dataTables.min.js"></script>
 <script src="{% static 'js/cmf/cmf_records.js' %}"></script>
 <script src="{% static 'js/modal/cmf-record/cmf_record_detail.js' %}"></script>
 {% endblock %}

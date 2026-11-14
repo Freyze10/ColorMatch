@@ -1,0 +1,100 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block navigation %}
+Request for Sample (RS) Records
+{% endblock navigation %}
+
+{% block extra_head %}
+<link rel="stylesheet" href="https://cdn.datatables.net/2.1.8/css/dataTables.dataTables.min.css">
+{% endblock %}
+
+{% block content %}
+<div class="d-flex flex-column">
+
+    <!-- Search Row -->
+    <div class="row g-2 mb-3 align-items-center">
+        <div class="col-md-2">
+            <select class="form-select form-select-sm uniform-input" id="searchFieldSelect">
+                <option value="all" selected>All Fields</option>
+                <option value="0">RS No.</option>
+                <option value="1">Customer</option>
+                <option value="2">CMF No.</option>
+                <option value="3">Product Code</option>
+                <option value="4">Salesman</option>
+                <option value="5">Approved By</option>
+            </select>
+        </div>
+
+        <div class="col">
+            <div class="input-group input-group-sm">
+                <input type="text" id="recordSearchInput" class="form-control form-control-sm uniform-input ps-2 border-end-0" placeholder="Search RS records...">
+                <span class="input-group-text uniform-input border-start-0">
+                    <i class="bi bi-search text-muted"></i>
+                </span>
+            </div>
+        </div>
+
+        <div class="col-auto">
+            <button class="btn btn-sm btn-primary shadow-sm px-3" id="refreshBtn" type="button">
+                <i class="bi bi-arrow-clockwise"></i>
+                <span class="d-none d-sm-inline">Refresh</span>
+            </button>
+        </div>
+    </div>
+
+    <!-- TABLE CARD -->
+    <div class="card border-0 shadow-sm rounded-3 cmf-table-card">
+        <div class="cmf-scroll-body">
+            <table class="table table-hover align-middle mb-0 rs-records-table" style="width: 100%;">
+                <thead>
+                    <tr class="small text-uppercase">
+                        <th class="d-none">ID</th>
+                        <th class="ps-3">RS No.</th>
+                        <th>Customer</th>
+                        <th>CMF No.</th>
+                        <th>Product Code</th>
+                        <th>Salesman</th>
+                        <th>Approved By</th>
+                        <th class="pe-3">Status</th>
+                    </tr>
+                </thead>
+                <tbody class="small" id="rsRecordsTbody"></tbody>
+            </table>
+        </div>
+    </div>
+
+    <!-- Footer Area (Page Length & Count Only) -->
+    <div class="mt-2 py-3 px-2">
+        <div class="d-flex justify-content-between align-items-center">
+            <div class="d-flex align-items-center gap-3">
+                <select class="form-select form-select-sm uniform-input" id="pageLengthSelect" style="width: 80px;">
+                    <option value="100">100</option>
+                    <option value="500">500</option>
+                    <option value="1000" selected>1000</option>
+                    <option value="5000">5000</option>
+                </select>
+                <small class="text-muted" id="recordCounter">Showing 0 records</small>
+            </div>
+        </div>
+    </div>
+
+</div>
+
+<!-- Custom Context Menu (Right Click) -->
+<div id="customContextMenu" class="dropdown-menu shadow-sm border-0 custom-context-menu cmf-records-custom-menu">
+    <div class="px-3 py-2 extra-small fw-bold text-muted border-bottom mb-1 bg-light">
+        OPTION: <span id="contextMenuTitle" class="text-teal"></span>
+    </div>
+    <a class="dropdown-item extra-small py-2" href="#" id="linkRsEntry">
+        <i class="bi bi-pencil-square me-2 text-teal"></i> Go to RS Entry
+    </a>
+    <a class="dropdown-item extra-small py-2" href="#" id="linkPendingCompleted">
+        <i class="bi bi-calendar-range me-2 text-teal"></i> Go to Pending/Completed
+    </a>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script src="{% static 'js/cmf/rs_records.js' %}"></script>
+{% endblock %}

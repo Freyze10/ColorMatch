@@ -1,7 +1,7 @@
 {
-  "name": "MBPI System",
-  "short_name": "MBPI",
-  "description": "MBPI Business Management System",
+  "name": "Color Matching System",
+  "short_name": "CMS",
+  "description": "Color Matching System",
   "start_url": "/",
   "display": "standalone",
   "background_color": "#0f172a",

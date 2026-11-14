@@ -1,0 +1,812 @@
+[33m17699d87[m[33m ([m[1;36mHEAD[m[33m -> [m[1;32mcolormatch-v2[m[33m)[m HEAD@{0}: reset: moving to 17699d8754e5807677fd00b633f93e7be7106f3d
+[33mbed62b0e[m[33m ([m[1;31morigin/colormatch-v2[m[33m)[m HEAD@{1}: commit: edited the none values and the other suggestion
+[33mac041be7[m HEAD@{2}: commit: updated the product code to not be changed to readonly in formula
+[33m231a6929[m HEAD@{3}: commit: updated the toggle of the for rs to enable the dropdown
+[33m428c3ea2[m HEAD@{4}: checkout: moving from new-main to colormatch-v2
+[33m4669ec6a[m[33m ([m[1;31morigin/new-main[m[33m, [m[1;32mnew-main[m[33m)[m HEAD@{5}: commit: updated the height of the cmf table records
+[33md0e7e1e1[m HEAD@{6}: checkout: moving from colormatch-v2 to new-main
+[33m428c3ea2[m HEAD@{7}: commit: fixed the double click function for the cmf records
+[33maf4a4c25[m HEAD@{8}: checkout: moving from new-main to colormatch-v2
+[33md0e7e1e1[m HEAD@{9}: commit: added the display of the AR in the cmf
+[33m571923dd[m HEAD@{10}: checkout: moving from colormatch-v2 to new-main
+[33maf4a4c25[m HEAD@{11}: commit: updated the disabling of the rs toggle and the rs approved by
+[33m6f2bdf46[m HEAD@{12}: commit: modified the cmf js calitate function when viewing existing record
+[33m6c5ddc9e[m HEAD@{13}: checkout: moving from new-main to colormatch-v2
+[33m571923dd[m HEAD@{14}: checkout: moving from colormatch-v2 to new-main
+[33m6c5ddc9e[m HEAD@{15}: commit: added migration in the gitartributes
+[33m818b1e77[m HEAD@{16}: commit: updated the migration
+[33m16c6241b[m HEAD@{17}: commit: removed same migration
+[33mecb0cd56[m HEAD@{18}: commit: removed same migration
+[33mf83e7bc8[m HEAD@{19}: commit: removed the same migration
+[33mbe8b01b2[m HEAD@{20}: cherry-pick: remove the other field auto suggest/auto compplete
+[33m30fcba8c[m HEAD@{21}: cherry-pick: updated the fields to have 4 decimal
+[33m01e2bed1[m HEAD@{22}: cherry-pick: updating the mb formula to be 4 decimal point
+[33m67f1d8cd[m HEAD@{23}: cherry-pick: changed the size of other foelds
+[33md3e151e2[m HEAD@{24}: commit (cherry-pick): added a note for the dosage and the resin
+[33m17699d87[m[33m ([m[1;36mHEAD[m[33m -> [m[1;32mcolormatch-v2[m[33m)[m HEAD@{25}: reset: moving to 17699d8754e5807677fd00b633f93e7be7106f3d
+[33m17699d87[m[33m ([m[1;36mHEAD[m[33m -> [m[1;32mcolormatch-v2[m[33m)[m HEAD@{26}: cherry-pick: changed the datatype of the est wty ordedr and its input
+[33m22cd057b[m HEAD@{27}: cherry-pick: updated the displaying of the others in process
+[33m89a55c89[m HEAD@{28}: cherry-pick: yodated the linking of the forgot password
+[33mbd5af81a[m HEAD@{29}: cherry-pick: chaged the limit of the qty per order
+[33m30d03038[m HEAD@{30}: cherry-pick: updated the signup session
+[33m4ad02a4d[m HEAD@{31}: cherry-pick: changed the display label for the fields to match the form
+[33m02693bc0[m HEAD@{32}: commit (cherry-pick): updated the layout of the cmf entry
+[33m6567e51f[m[33m ([m[1;32mcolormatch-v2-bup[m[33m)[m HEAD@{33}: checkout: moving from colormatch-v2-bup to colormatch-v2
+[33m6567e51f[m[33m ([m[1;32mcolormatch-v2-bup[m[33m)[m HEAD@{34}: checkout: moving from colormatch-v2 to colormatch-v2-bup
+[33m6567e51f[m[33m ([m[1;32mcolormatch-v2-bup[m[33m)[m HEAD@{35}: checkout: moving from new-main to colormatch-v2
+[33m571923dd[m HEAD@{36}: commit: remove the other field auto suggest/auto compplete
+[33mc8384214[m HEAD@{37}: commit: updated the fields to have 4 decimal
+[33m1fe8624e[m HEAD@{38}: checkout: moving from colormatch-v2 to new-main
+[33m6567e51f[m[33m ([m[1;32mcolormatch-v2-bup[m[33m)[m HEAD@{39}: checkout: moving from new-main to colormatch-v2
+[33m1fe8624e[m HEAD@{40}: commit: updating the mb formula to be 4 decimal point
+[33m48602cce[m HEAD@{41}: commit: changed the size of other foelds
+[33m0703c450[m HEAD@{42}: commit: added a note for the dosage and the resin
+[33ma4cfcf77[m HEAD@{43}: commit: changed the datatype of the est wty ordedr and its input
+[33mf3d7fd7a[m HEAD@{44}: commit: updated the displaying of the others in process
+[33m7aad8390[m HEAD@{45}: commit: yodated the linking of the forgot password
+[33m018a2182[m HEAD@{46}: checkout: moving from colormatch-v2 to new-main
+[33m6567e51f[m[33m ([m[1;32mcolormatch-v2-bup[m[33m)[m HEAD@{47}: commit: fix the display of the record tata table
+[33ma91bf316[m HEAD@{48}: checkout: moving from new-main to colormatch-v2
+[33m018a2182[m HEAD@{49}: checkout: moving from colormatch-v2 to new-main
+[33ma91bf316[m HEAD@{50}: checkout: moving from new-main to colormatch-v2
+[33m018a2182[m HEAD@{51}: commit: chaged the limit of the qty per order
+[33mcc71838d[m HEAD@{52}: checkout: moving from colormatch-v2 to new-main
+[33ma91bf316[m HEAD@{53}: commit: added a data table in the cmf records
+[33mba3541bf[m HEAD@{54}: commit: addeed template for the rs
+[33mab7c3c13[m HEAD@{55}: commit: updated the cmf records to be only for CMF
+[33m74759489[m HEAD@{56}: checkout: moving from new-main to colormatch-v2
+[33mcc71838d[m HEAD@{57}: commit: updated the signup session
+[33mba38e2c6[m HEAD@{58}: checkout: moving from colormatch-v2 to new-main
+[33m74759489[m HEAD@{59}: checkout: moving from new-main to colormatch-v2
+[33mba38e2c6[m HEAD@{60}: commit: changed the display label for the fields to match the form
+[33m7eaa6e8c[m HEAD@{61}: commit: updated the layout of the cmf entry
+[33ma366c57b[m[33m ([m[1;31morigin/main[m[33m, [m[1;32mmain[m[33m)[m HEAD@{62}: checkout: moving from main to new-main
+[33ma366c57b[m[33m ([m[1;31morigin/main[m[33m, [m[1;32mmain[m[33m)[m HEAD@{63}: checkout: moving from colormatch-v2 to main
+[33m74759489[m HEAD@{64}: commit: updated the view fto have the specific matcher only
+[33m1fc0ade8[m HEAD@{65}: cherry-pick: fixed the row locking in the mb formula
+[33m7e1a00ba[m HEAD@{66}: cherry-pick: added formula dc js to put the added row locking and the enter as tab
+[33m63e14ea8[m HEAD@{67}: cherry-pick: updated the md formula to have enter to next and a row locking
+[33m95d95509[m HEAD@{68}: cherry-pick: updated the employee stat for Maam Ana
+[33m915b5bf9[m HEAD@{69}: cherry-pick: changed the weighed by to be text field
+[33mfb6f9935[m HEAD@{70}: checkout: moving from colormatch-v2.1 to colormatch-v2
+[33m035b953d[m[33m ([m[1;32mcolormatch-v2.1[m[33m)[m HEAD@{71}: cherry-pick: added to do in the RS Entry page to fix the services and view
+[33m767f0b12[m HEAD@{72}: cherry-pick: updated the save and update of the cmf to relate it to the RS
+[33mdf78f812[m HEAD@{73}: cherry-pick: modified the cmf entry to accept the cmf for the rs
+[33mc564bbb5[m HEAD@{74}: commit (cherry-pick): updated the mb and dc view to remove the rs
+[33ma17738f6[m HEAD@{75}: cherry-pick: fix the calling of the formulas, removed rs
+[33m3188b68a[m HEAD@{76}: cherry-pick: changed the model to match the RS requirements
+[33ma366c57b[m[33m ([m[1;31morigin/main[m[33m, [m[1;32mmain[m[33m)[m HEAD@{77}: checkout: moving from colormatch-v2 to colormatch-v2.1
+[33mfb6f9935[m HEAD@{78}: reset: moving to fb6f9935cda618ce2874e03fed8cd50539aa4746
+[33m14c8bd5d[m HEAD@{79}: cherry-pick: updated the employee stat for Maam Ana
+[33m2965b60c[m HEAD@{80}: cherry-pick: changed the weighed by to be text field
+[33mb409fc9d[m HEAD@{81}: cherry-pick: removed the IT in the dashboard analytics to be only for the Lab KPI
+[33m243132f0[m HEAD@{82}: cherry-pick: change the return for the RS to display the maintenance page
+[33mfb6f9935[m HEAD@{83}: reset: moving to fb6f9935cda618ce2874e03fed8cd50539aa4746
+[33mfb6f9935[m HEAD@{84}: reset: moving to fb6f9935cda618ce2874e03fed8cd50539aa4746
+[33m1b7fd33b[m HEAD@{85}: commit: git reset --hard fb6f9935cda618ce2874e03fed8cd50539aa4746
+[33m5660c10f[m HEAD@{86}: checkout: moving from main to colormatch-v2
+[33ma366c57b[m[33m ([m[1;31morigin/main[m[33m, [m[1;32mmain[m[33m)[m HEAD@{87}: checkout: moving from colormatch-v2 to main
+[33m5660c10f[m HEAD@{88}: commit (cherry-pick): changed the choices for the matcher selection
+[33me640ddc1[m HEAD@{89}: cherry-pick: updated the employee stat for Maam Ana
+[33mda98decd[m HEAD@{90}: cherry-pick: changed the weighed by to be text field
+[33mf4612a5d[m HEAD@{91}: cherry-pick: removed the IT in the dashboard analytics to be only for the Lab KPI
+[33mfc296f2f[m HEAD@{92}: cherry-pick: change the return for the RS to display the maintenance page
+[33mfb6f9935[m HEAD@{93}: checkout: moving from colormatch-v2.1 to colormatch-v2
+[33ma366c57b[m[33m ([m[1;31morigin/main[m[33m, [m[1;32mmain[m[33m)[m HEAD@{94}: checkout: moving from main to colormatch-v2.1
+[33ma366c57b[m[33m ([m[1;31morigin/main[m[33m, [m[1;32mmain[m[33m)[m HEAD@{95}: merge new-main: Fast-forward
+[33m4fb0fd33[m HEAD@{96}: checkout: moving from new-main to main
+[33ma366c57b[m[33m ([m[1;31morigin/main[m[33m, [m[1;32mmain[m[33m)[m HEAD@{97}: commit: fixed the row locking in the mb formula
+[33m4fb0fd33[m HEAD@{98}: checkout: moving from main to new-main
+[33m4fb0fd33[m HEAD@{99}: merge new-main: Fast-forward
+[33m193de943[m HEAD@{100}: checkout: moving from new-main to main
+[33m4fb0fd33[m HEAD@{101}: commit: added a todo in the mb_dc formulation
+[33m0a726fd2[m HEAD@{102}: commit: added formula dc js to put the added row locking and the enter as tab
+[33m3d8d7cb5[m HEAD@{103}: commit: updated the md formula to have enter to next and a row locking
+[33mfe04d26c[m HEAD@{104}: commit: changed the choices for the matcher selection
+[33m695777a7[m HEAD@{105}: commit: updated the employee stat for Maam Ana
+[33m35359508[m HEAD@{106}: commit: changed the weighed by to be text field
+[33mb2c203dd[m HEAD@{107}: commit: removed the IT in the dashboard analytics to be only for the Lab KPI
+[33m43a9c35c[m HEAD@{108}: commit: change the return for the RS to display the maintenance page
+[33mc962f641[m HEAD@{109}: checkout: moving from colormatch-v2 to new-main
+[33mfb6f9935[m HEAD@{110}: commit: added to do in the RS Entry page to fix the services and view
+[33mcbe0735a[m HEAD@{111}: commit: updated the save and update of the cmf to relate it to the RS
+[33mad355b3f[m HEAD@{112}: commit: modified the cmf entry to accept the cmf for the rs
+[33m7f48d27f[m HEAD@{113}: commit: changed the rs with the new entry
+[33me0a99f29[m HEAD@{114}: commit: updated the mb and dc view to remove the rs
+[33m5063843e[m HEAD@{115}: commit: fix the calling of the formulas, removed rs
+[33m6f848a17[m HEAD@{116}: commit: changed the model to match the RS requirements
+[33mc962f641[m HEAD@{117}: checkout: moving from flexi-print to colormatch-v2
+[33mce764699[m[33m ([m[1;32mflexi-print[m[33m)[m HEAD@{118}: commit (merge): Merge branch 'new-main' into flexi-print
+[33m5e96e7b5[m[33m ([m[1;31morigin/flexi-print[m[33m)[m HEAD@{119}: checkout: moving from new-main to flexi-print
+[33mc962f641[m HEAD@{120}: commit: added one for the dc formula too
+[33m42f95ee7[m HEAD@{121}: commit: added N/a in the formula mb to match
+[33m5551b181[m HEAD@{122}: commit: added a n/a in the formulation and the masterformula
+[33m5560e1ad[m HEAD@{123}: commit: updated the docker so the web can restart in the script
+[33m5d1d622c[m[33m ([m[1;31mremote/new-main[m[33m)[m HEAD@{124}: checkout: moving from flexi-print to new-main
+[33m5e96e7b5[m[33m ([m[1;31morigin/flexi-print[m[33m)[m HEAD@{125}: commit (merge): Merge branch 'new-main' into flexi-print
+[33mf01338ba[m HEAD@{126}: checkout: moving from new-main to flexi-print
+[33m5d1d622c[m[33m ([m[1;31mremote/new-main[m[33m)[m HEAD@{127}: commit: fix the getting og the rematched entry
+[33mf7ec323e[m HEAD@{128}: commit: fixed the error on rerouting the master formula new entry
+[33m437b295a[m HEAD@{129}: commit: added a styling on the settings to be compatible in the dark mode
+[33m40e0ce46[m HEAD@{130}: commit: fixed the error on hidden headers of feedback
+[33m7dd929d8[m HEAD@{131}: checkout: moving from flexi-print to new-main
+[33mf01338ba[m HEAD@{132}: commit (merge): Merge branch 'new-main' into flexi-print
+[33m575c94fa[m HEAD@{133}: checkout: moving from new-main to flexi-print
+[33m7dd929d8[m HEAD@{134}: commit: updated the hidden header in the formula too
+[33mdd2a50fa[m HEAD@{135}: checkout: moving from flexi-print to new-main
+[33m575c94fa[m HEAD@{136}: checkout: moving from new-main to flexi-print
+[33mdd2a50fa[m HEAD@{137}: checkout: moving from flexi-print to new-main
+[33m575c94fa[m HEAD@{138}: commit (merge): Merge branch 'new-main' into flexi-print
+[33med0d7af9[m HEAD@{139}: checkout: moving from new-main to flexi-print
+[33mdd2a50fa[m HEAD@{140}: cherry-pick: fixed the missing header display on the master and forrmulation
+[33m6a0fe823[m HEAD@{141}: checkout: moving from flexi-print to new-main
+[33med0d7af9[m HEAD@{142}: commit: fixed the missing header display on the master and forrmulation
+[33me0b44158[m HEAD@{143}: commit (merge): Merge branch 'new-main' into flexi-print
+[33ma3bfff53[m HEAD@{144}: checkout: moving from new-main to flexi-print
+[33m6a0fe823[m HEAD@{145}: commit: fixed the load of the manifest.js so the installation of the app is a standalone
+[33mc8276ee6[m HEAD@{146}: commit: added a installable as an app for phone and pc as standalone
+[33m73d60271[m HEAD@{147}: commit: rename the formulation to index- formulation to reduce confusion
+[33m55698e45[m HEAD@{148}: commit: added the past records ok matches from tt he legacy
+[33mbef50183[m HEAD@{149}: checkout: moving from flexi-print to new-main
+[33ma3bfff53[m HEAD@{150}: commit (merge): Merge branch 'new-main' into flexi-print
+[33ma70ec438[m HEAD@{151}: reset: moving to a70ec43815b69dbd219fa8d67ba4958a3f0f2da7
+[33mfe52af25[m HEAD@{152}: checkout: moving from new-main to flexi-print
+[33mbef50183[m HEAD@{153}: commit: updated the session control only up to midnight
+[33ma5c49df4[m HEAD@{154}: checkout: moving from flexi-print to new-main
+[33mfe52af25[m HEAD@{155}: commit: updated the session control only up to midnight
+[33ma70ec438[m HEAD@{156}: commit (merge): Merge branch 'new-main' into flexi-print
+[33mdf500c06[m HEAD@{157}: checkout: moving from new-main to flexi-print
+[33ma5c49df4[m HEAD@{158}: commit: addeda sortable columns and a default to display the latest records on top
+[33m3f5cdaf0[m HEAD@{159}: commit: fixed the displaying of the headers inn the feedback
+[33m7e6bf5d4[m HEAD@{160}: commit: make thee feedback details use a data table
+[33m24ae0433[m HEAD@{161}: commit: revert back to original feedback
+[33m6ef6f0c3[m HEAD@{162}: checkout: moving from flexi-print to new-main
+[33mdf500c06[m HEAD@{163}: checkout: moving from main to flexi-print
+[33m193de943[m HEAD@{164}: checkout: moving from new-main to main
+[33m6ef6f0c3[m HEAD@{165}: checkout: moving from bb10647e0ff82da0199afc1ffaf2797a9d6e1195 to new-main
+[33mbb10647e[m HEAD@{166}: checkout: moving from new-main to bb10647e0ff82da0199afc1ffaf2797a9d6e1195
+[33m6ef6f0c3[m HEAD@{167}: commit: added a ajax for the datatables in the feedback records
+[33mbb10647e[m HEAD@{168}: commit: adjusted the scrrollbar design based on the theme
+[33m80e081c7[m HEAD@{169}: commit: fix the model default
+[33m89bf54bd[m HEAD@{170}: commit: updated tthe feedback locating the db column
+[33mf4ba17c3[m HEAD@{171}: commit: added the data from tjhe database in the pie chart
+[33m67cd8049[m HEAD@{172}: commit: addeed the persistend text color even changes night mode
+[33mb363edc6[m HEAD@{173}: commit: added modification in the permission access control design too
+[33mb862676c[m HEAD@{174}: commit: make the table for the table of the password reqs to be responsive
+[33m193de943[m HEAD@{175}: merge main: Fast-forward
+[33ma589ad28[m HEAD@{176}: checkout: moving from main to new-main
+[33m193de943[m HEAD@{177}: commit: git added a session flush to remove the cookies of the site
+[33ma589ad28[m HEAD@{178}: merge new-main: Fast-forward
+[33mc92cd443[m[33m ([m[1;31mremote/main[m[33m)[m HEAD@{179}: checkout: moving from flexi-print to main
+[33mdf500c06[m HEAD@{180}: commit: revert back the price first for the synology
+[33m46ea55ad[m HEAD@{181}: commit (merge): Merge branch 'new-main' into flexi-print
+[33mb5e3b845[m[33m ([m[1;32mflexi-print-backup[m[33m)[m HEAD@{182}: checkout: moving from new-main to flexi-print
+[33ma589ad28[m HEAD@{183}: commit: added a submit to lab field and fix the save and update func
+[33m476e7b23[m HEAD@{184}: commit: updated the modell to add the submit to lab column
+[33m4b37c489[m HEAD@{185}: cherry-pick: added a permission access control for more streamlined controll acees change
+[33m2a942e66[m HEAD@{186}: cherry-pick: fixed the role and department permission access
+[33mca9d283a[m HEAD@{187}: cherry-pick: added accesspoint in the database
+[33ma027007d[m HEAD@{188}: cherry-pick: added a message more detailed
+[33md2caa0b6[m HEAD@{189}: cherry-pick: added a signature in the email when sending the password change link
+[33maff96544[m HEAD@{190}: reset: moving to aff96544
+[33mcf6e8287[m HEAD@{191}: cherry-pick: added a permission access control for more streamlined controll acees change
+[33m4b9e8939[m HEAD@{192}: cherry-pick: fixed the role and department permission access
+[33ma59fc22d[m HEAD@{193}: cherry-pick: added accesspoint in the database
+[33m0b334f3f[m HEAD@{194}: cherry-pick: added a message more detailed
+[33md3d527aa[m HEAD@{195}: cherry-pick: added a signature in the email when sending the password change link
+[33m765c5b4f[m HEAD@{196}: cherry-pick: fixed the print to have uneeded import for the synology to work
+[33maff96544[m HEAD@{197}: checkout: moving from flexi-print-backup to new-main
+[33mb5e3b845[m[33m ([m[1;32mflexi-print-backup[m[33m)[m HEAD@{198}: reset: moving to b5e3b845d6a091e69cb32e4102375a79038d1f89
+[33mb5e3b845[m[33m ([m[1;32mflexi-print-backup[m[33m)[m HEAD@{199}: merge flexi-print: Fast-forward
+[33m71eba213[m[33m ([m[1;31mremote/flexi-print[m[33m)[m HEAD@{200}: checkout: moving from new-main to flexi-print-backup
+[33maff96544[m HEAD@{201}: reset: moving to aff96544
+[33m10679826[m HEAD@{202}: commit: add the merge ours
+[33maff96544[m HEAD@{203}: reset: moving to aff96544
+[33mb5e3b845[m[33m ([m[1;32mflexi-print-backup[m[33m)[m HEAD@{204}: merge flexi-print: Fast-forward
+[33maff96544[m HEAD@{205}: checkout: moving from flexi-print to new-main
+[33mb5e3b845[m[33m ([m[1;32mflexi-print-backup[m[33m)[m HEAD@{206}: commit: added a permission access control for more streamlined controll acees change
+[33m0d94bad8[m HEAD@{207}: commit: fixed the role and department permission access
+[33m283dec6c[m HEAD@{208}: commit: added accesspoint in the database
+[33mbb4a760a[m HEAD@{209}: commit: added a message more detailed
+[33mf3678b46[m HEAD@{210}: commit: added a signature in the email when sending the password change link
+[33mccdfe4fa[m HEAD@{211}: commit: fixed the print to have uneeded import for the synology to work
+[33maff96544[m HEAD@{212}: checkout: moving from synology-print to flexi-print
+[33mec36c474[m[33m ([m[1;32msynology-print[m[33m)[m HEAD@{213}: checkout: moving from flexi-print to synology-print
+[33maff96544[m HEAD@{214}: checkout: moving from new-main to flexi-print
+[33maff96544[m HEAD@{215}: checkout: moving from flexi-print to new-main
+[33maff96544[m HEAD@{216}: merge new-main: Fast-forward
+[33me1e3c1d2[m HEAD@{217}: checkout: moving from new-main to flexi-print
+[33maff96544[m HEAD@{218}: commit: fixed the timezone display for the audit and display
+[33m6da3606c[m HEAD@{219}: commit: updated the setting ui
+[33mf8bc761c[m HEAD@{220}: commit: updating the display of the setting
+[33m2ece24a1[m HEAD@{221}: commit: fixed the setting services and the admin decision on change password
+[33m2b855262[m HEAD@{222}: commit: created a forgot password and a ui for the admin to approveor reject forgot password change
+[33m2987890e[m HEAD@{223}: commit: added a todo message that will create a forget password func
+[33m328b773b[m HEAD@{224}: commit: created a new services file
+[33m5472dd10[m HEAD@{225}: commit: creating a settings tab for the user
+[33me1e3c1d2[m HEAD@{226}: checkout: moving from flexi-print to new-main
+[33me1e3c1d2[m HEAD@{227}: merge new-main: Fast-forward
+[33m3f9f83b5[m HEAD@{228}: checkout: moving from new-main to flexi-print
+[33me1e3c1d2[m HEAD@{229}: commit: upodated thee docker yaml to connect more fine with the system server
+[33m0679ab23[m HEAD@{230}: commit: updated the docker yaml
+[33mad88c263[m HEAD@{231}: commit: UPDATED THE YAML TO AUTOO START THE LINK
+[33m3f9f83b5[m HEAD@{232}: merge flexi-print: Fast-forward
+[33mc8d6bbea[m HEAD@{233}: checkout: moving from flexi-print to new-main
+[33m3f9f83b5[m HEAD@{234}: commit: updated the syncs to have a transaction atomic forr more faster syncing
+[33m5ce774af[m HEAD@{235}: commit (merge): Merge branch 'new-main' into flexi-print
+[33m71eba213[m[33m ([m[1;31mremote/flexi-print[m[33m)[m HEAD@{236}: checkout: moving from new-main to flexi-print
+[33mc8d6bbea[m HEAD@{237}: commit: modified the yaml and evv as wella s settings for synology
+[33m2e40d333[m HEAD@{238}: checkout: moving from synology-print to new-main
+[33mec36c474[m[33m ([m[1;32msynology-print[m[33m)[m HEAD@{239}: checkout: moving from new-main to synology-print
+[33m2e40d333[m HEAD@{240}: checkout: moving from flexi-print to new-main
+[33m71eba213[m[33m ([m[1;31mremote/flexi-print[m[33m)[m HEAD@{241}: checkout: moving from new-main to flexi-print
+[33m2e40d333[m HEAD@{242}: checkout: moving from flexi-print to new-main
+[33m71eba213[m[33m ([m[1;31mremote/flexi-print[m[33m)[m HEAD@{243}: checkout: moving from new-main to flexi-print
+[33m2e40d333[m HEAD@{244}: checkout: moving from flexi-print to new-main
+[33m71eba213[m[33m ([m[1;31mremote/flexi-print[m[33m)[m HEAD@{245}: checkout: moving from new-main to flexi-print
+[33m2e40d333[m HEAD@{246}: commit: added the isfinal selection in the entry of mb and dc
+[33m6a4d0057[m HEAD@{247}: commit: fixing the mb formula to also select a final from the entry
+[33m23861aa9[m HEAD@{248}: commit: added restriction for the rs
+[33m9230c7b5[m HEAD@{249}: commit: added a new hidden input to submit in the cmf entry to verify if new input or no
+[33mc81a869b[m HEAD@{250}: commit: changed the display of the feedback records
+[33m1ab10438[m HEAD@{251}: commit: remove the debugging print
+[33m0056521f[m HEAD@{252}: commit: updated the feedback status to get the newly added statuses
+[33mc92cd443[m[33m ([m[1;31mremote/main[m[33m)[m HEAD@{253}: checkout: moving from main to new-main
+[33mc92cd443[m[33m ([m[1;31mremote/main[m[33m)[m HEAD@{254}: checkout: moving from for-nas to main
+[33m8e6a8908[m[33m ([m[1;32mfor-nas[m[33m)[m HEAD@{255}: commit: updated the yaml
+[33ma06d0ab1[m HEAD@{256}: checkout: moving from synology-print to for-nas
+[33mec36c474[m[33m ([m[1;32msynology-print[m[33m)[m HEAD@{257}: checkout: moving from for-nas to synology-print
+[33ma06d0ab1[m HEAD@{258}: checkout: moving from for-nas to for-nas
+[33ma06d0ab1[m HEAD@{259}: commit: removed zip
+[33mb6e185dd[m HEAD@{260}: commit: removed the import od python com and win32
+[33m71eba213[m[33m ([m[1;31mremote/flexi-print[m[33m)[m HEAD@{261}: checkout: moving from flexi-print to for-nas
+[33m71eba213[m[33m ([m[1;31mremote/flexi-print[m[33m)[m HEAD@{262}: merge flexi-print-backup: Fast-forward
+[33m20b605c0[m HEAD@{263}: reset: moving to HEAD
+[33m20b605c0[m HEAD@{264}: checkout: moving from flexi-print-backup to flexi-print
+[33m71eba213[m[33m ([m[1;31mremote/flexi-print[m[33m)[m HEAD@{265}: commit (merge): merge the other changes from main without affecting the print
+[33m8b1f4775[m HEAD@{266}: commit: updated the git attributes
+[33m20b605c0[m HEAD@{267}: checkout: moving from flexi-print to flexi-print-backup
+[33m20b605c0[m HEAD@{268}: commit: updated the cmf print function
+[33m4a499611[m HEAD@{269}: commit: modified up to remarks
+[33m1e1dbfc6[m HEAD@{270}: commit: updating the cmf print to match the template, curr: mi info
+[33me6d361c3[m HEAD@{271}: commit: added the new flexible print for the cmf
+[33m7b4c795c[m HEAD@{272}: checkout: moving from main to flexi-print
+[33mc92cd443[m[33m ([m[1;31mremote/main[m[33m)[m HEAD@{273}: merge new-main: Fast-forward
+[33m3caae81c[m HEAD@{274}: checkout: moving from new-main to main
+[33mc92cd443[m[33m ([m[1;31mremote/main[m[33m)[m HEAD@{275}: commit: restricted the other department in visiting the master formula as well as removed the display of the side bar to them
+[33m3caae81c[m HEAD@{276}: checkout: moving from main to new-main
+[33m3caae81c[m HEAD@{277}: checkout: moving from new-main to main
+[33m3caae81c[m HEAD@{278}: checkout: moving from main to new-main
+[33m3caae81c[m HEAD@{279}: checkout: moving from flexi-print to main
+[33m7b4c795c[m HEAD@{280}: commit: Protect specific print and formula files from being overwritten on merge
+[33me3dbf55f[m HEAD@{281}: reset: moving to e3dbf55fab4195319e78bd2268edfa182f646863
+[33mce1a6823[m HEAD@{282}: commit: remove the display of the side bar masterformula for other department
+[33mbd50683a[m HEAD@{283}: commit: added restriction of other departments in the master formula
+[33me3dbf55f[m HEAD@{284}: commit: updated the print preview for the dc formula
+[33m9c0b5038[m HEAD@{285}: commit: creating the dc print formula
+[33m257e7f8e[m HEAD@{286}: commit: modify the print preview of the mb formulation to match the original template
+[33me7a07009[m HEAD@{287}: commit: added the new printing function for the mb formula for more flexibility
+[33m3caae81c[m HEAD@{288}: checkout: moving from main to flexi-print
+[33m3caae81c[m HEAD@{289}: merge new-main: Fast-forward
+[33m176252d3[m HEAD@{290}: checkout: moving from new-main to main
+[33m3caae81c[m HEAD@{291}: commit: adjusted the texts and modify the display of the remarks to have linebreaker
+[33mc29ae653[m HEAD@{292}: commit: modifying the print layout of the master formula
+[33m844fb155[m HEAD@{293}: commit: updated the value of the default in the master formula and removed the print in the formulation
+[33m176252d3[m HEAD@{294}: merge main: Fast-forward
+[33mb3bd5df8[m HEAD@{295}: checkout: moving from main to new-main
+[33m176252d3[m HEAD@{296}: checkout: moving from main to main
+[33m176252d3[m HEAD@{297}: commit: updated the print prev and the print for the masterformula
+[33mcbff2341[m HEAD@{298}: commit: updated the print preview
+[33mf130e615[m HEAD@{299}: commit: creaing a print function for the master formula
+[33m6fdcca50[m HEAD@{300}: commit: refactored the masterformmula. seperated the js in the other file
+[33m88bcb3cc[m HEAD@{301}: commit: refactored the masterformmula. seperated the js in the other file
+[33m44b09922[m HEAD@{302}: commit (merge): Merge branch 'new-main' updated the auudit log for print and cache in updating pending ocmpleted
+[33ma30e829c[m HEAD@{303}: checkout: moving from new-main to main
+[33mb3bd5df8[m HEAD@{304}: commit: updated the cache deleting and the log in the printing of docu
+[33mdd83794c[m HEAD@{305}: checkout: moving from main to new-main
+[33ma30e829c[m HEAD@{306}: commit (merge): Merge branch 'main' of https://github.com/Freyze10/ColorMatch
+[33m8a212e3d[m HEAD@{307}: checkout: moving from new-main to main
+[33mdd83794c[m HEAD@{308}: checkout: moving from main to new-main
+[33m8a212e3d[m HEAD@{309}: checkout: moving from new-main to main
+[33mdd83794c[m HEAD@{310}: commit: Stop tracking __pycache__ files
+[33me8a687c3[m HEAD@{311}: checkout: moving from main to new-main
+[33m8a212e3d[m HEAD@{312}: checkout: moving from new-main to main
+[33me8a687c3[m HEAD@{313}: commit: py
+[33m6fe1edb1[m HEAD@{314}: checkout: moving from main to new-main
+[33m8a212e3d[m HEAD@{315}: reset: moving to HEAD
+[33m8a212e3d[m HEAD@{316}: commit: Remove __pycache__ files from tracking
+[33m407d833e[m HEAD@{317}: reset: moving to HEAD
+[33m407d833e[m HEAD@{318}: commit: updated
+[33mf75241ad[m HEAD@{319}: checkout: moving from new-main to main
+[33m6fe1edb1[m HEAD@{320}: commit: updated the database model and added submitted (samples,chips,price)
+[33m4e39722d[m HEAD@{321}: commit: added a checkboxes for the submitted
+[33m0b719e0c[m HEAD@{322}: commit: updated the acces in the master formula
+[33m3681fd41[m HEAD@{323}: commit: added the same department validation saving for the formulation
+[33m85c6f371[m HEAD@{324}: commit: check if if the user department is allowed to edit orr add record
+[33mc2be04e1[m HEAD@{325}: commit: added a new validation to not let A9151c to exist if the A9151b is not yet present
+[33m3329d0e2[m HEAD@{326}: commit: added a validation for when the same matching number is entered
+[33m7e96130f[m HEAD@{327}: checkout: moving from main to new-main
+[33mf75241ad[m HEAD@{328}: checkout: moving from new-main to main
+[33m7e96130f[m HEAD@{329}: checkout: moving from new-main to new-main
+[33m7e96130f[m HEAD@{330}: commit: updated the venv
+[33m85f1c483[m HEAD@{331}: checkout: moving from main to new-main
+[33mf75241ad[m HEAD@{332}: reset: moving to origin/main
+[33m8af311cd[m HEAD@{333}: checkout: moving from main to main
+[33m8af311cd[m HEAD@{334}: checkout: moving from new-main to main
+[33m85f1c483[m HEAD@{335}: commit: revert back to original setup of print
+[33mb33fa868[m HEAD@{336}: commit: updated the print fo forcefully rezixe the file
+[33me1d47214[m HEAD@{337}: commit: updated the installed requirements
+[33m5d5e995e[m HEAD@{338}: checkout: moving from bff33630401313fae19dce1c09af15f221545539 to new-main
+[33mbff33630[m HEAD@{339}: checkout: moving from 5d5e995e6c70c8b13bfee424289844f020d80ff2 to bff33630401313fae19dce1c09af15f221545539
+[33m5d5e995e[m HEAD@{340}: checkout: moving from new-main to 5d5e995e6c70c8b13bfee424289844f020d80ff2
+[33m5d5e995e[m HEAD@{341}: checkout: moving from new-main to new-main
+[33m5d5e995e[m HEAD@{342}: commit: updated the display of the navigation based on the department
+[33mbff33630[m HEAD@{343}: commit: added n/a in the default of mi customer resin
+[33mb705e0d5[m HEAD@{344}: commit: updated git ignore
+[33ma47dba32[m HEAD@{345}: commit: chore: remove venv and vscode from tracking
+[33m55a6594a[m HEAD@{346}: commit: chore: remove venv and vscode from tracking
+[33m92d76697[m HEAD@{347}: commit: modified the new error found in the tom select and added waitres in the requirements
+[33mc7255a59[m HEAD@{348}: commit: updated the requirements
+[33mc52b9749[m HEAD@{349}: commit: use the past templates for print prev
+[33m401e8573[m HEAD@{350}: checkout: moving from main to new-main
+[33m8af311cd[m HEAD@{351}: commit: update
+[33m4c3e17a2[m HEAD@{352}: checkout: moving from new-main to main
+[33m401e8573[m HEAD@{353}: commit: updated the print function to reuse the python com
+[33mec36c474[m[33m ([m[1;32msynology-print[m[33m)[m HEAD@{354}: checkout: moving from main to new-main
+[33m4c3e17a2[m HEAD@{355}: commit: added note on what file they belong
+[33mae3bf052[m HEAD@{356}: checkout: moving from new-main to main
+[33mec36c474[m[33m ([m[1;32msynology-print[m[33m)[m HEAD@{357}: checkout: moving from synology-print to new-main
+[33mec36c474[m[33m ([m[1;32msynology-print[m[33m)[m HEAD@{358}: commit: updated the docker yaml and the setting
+[33m10944071[m[33m ([m[1;31morigin/synology-print[m[33m)[m HEAD@{359}: commit: updated the static files for the css
+[33mca3349a5[m HEAD@{360}: commit: added a date sample received
+[33m8fd1ceb6[m HEAD@{361}: commit: added the docker composer and fix the requirements
+[33m6cc439d5[m HEAD@{362}: commit: created a dockerfole
+[33m90e4f417[m HEAD@{363}: commit: changed the settings and the dot env so it is more secured
+[33madce6ada[m HEAD@{364}: commit: fixed trhe print for the mb formula
+[33maf2a4001[m HEAD@{365}: commit: fixed the displaying of the print application and the note field in the display
+[33m725c07c8[m HEAD@{366}: commit: upodated the print template for the dc formula and the print func
+[33m38ceeb1f[m HEAD@{367}: commit: fixing the preview of the dc formulation print
+[33m3a0f0e70[m HEAD@{368}: commit: updated the print function of the cmf to use open pyxl to be more flexible
+[33m3749764f[m HEAD@{369}: commit: change the export function of the price first and modify the cmf template
+[33mae3bf052[m HEAD@{370}: checkout: moving from main to synology-print
+[33mae3bf052[m HEAD@{371}: commit: updated the requirements to support new print func
+[33m37555da2[m HEAD@{372}: commit: added a maintenance mesage
+[33m21821410[m HEAD@{373}: commit: added a new homepage to redirect those restricted by department
+[33m579f83b5[m HEAD@{374}: commit: added another decorator, restriction based on role/department
+[33m79a4c8d6[m HEAD@{375}: commit: woorking employee performance table
+[33m189d91c3[m HEAD@{376}: commit: added a bulletproof call and a conf message
+[33mddf93d57[m HEAD@{377}: commit: added a matcher id in the database ad fix the display in the entries
+[33me80a7200[m HEAD@{378}: commit: added the total pending in the dashboard
+[33me6a09634[m HEAD@{379}: commit: fixed the displaying of the existing record
+[33m5c52e57f[m HEAD@{380}: commit: added a lot number calculation
+[33ma18d0998[m HEAD@{381}: commit: updated thee calling of the next product code
+[33md6103184[m HEAD@{382}: commit: UPDATED THE MASTER FORMULA TEMPLATE
+[33m4ef477b0[m HEAD@{383}: commit: modifying realtime data from the database to display on the chart
+[33mf2874aeb[m HEAD@{384}: commit: added fulll name in the encoded and matchedby
+[33m959d941b[m HEAD@{385}: commit: added a column search for the master formula and the formulation
+[33m76bdd26e[m HEAD@{386}: commit: added a clear of field when the error happens
+[33m1416122b[m HEAD@{387}: commit: updated the getting of the production code for the dc
+[33m71003fb4[m HEAD@{388}: commit: added a material used for the dc formula
+[33m1eab4b97[m HEAD@{389}: commit: updated the logic for suggesting the next product code tfor the MB
+[33mb624dde5[m HEAD@{390}: commit: modified the audit log on the export, and the display in the audit page
+[33m635e553b[m HEAD@{391}: commit: fixed the export of the cmf records and the audit trail
+[33m648383be[m HEAD@{392}: commit: refactored the file names
+[33mde658782[m HEAD@{393}: commit: changed the loacation of the exports
+[33me831a4f4[m HEAD@{394}: commit: added export for the audit trail
+[33m169a9884[m HEAD@{395}: commit: added status in the export
+[33m7bc760eb[m HEAD@{396}: commit: fixed the export of the feedback
+[33mc8074043[m HEAD@{397}: commit: added confirmation message top export all or specific date range
+[33mb3cb2151[m HEAD@{398}: commit: updated the fetching ofor the export
+[33m11bca1ab[m HEAD@{399}: commit: updating the feedback export
+[33m8e96b23a[m HEAD@{400}: commit: fixed the dropzone and added the view of the uploaded file
+[33mc49781e4[m HEAD@{401}: commit: updated the cmf entry save to change the file saving
+[33m47896f6d[m HEAD@{402}: commit: added a login required function for the main funcs
+[33mfbdd2101[m HEAD@{403}: commit: updated the update lock in the buttons after 3 days of time
+[33mc753d1df[m HEAD@{404}: commit: updated the saving of the formulation
+[33m7f121f60[m HEAD@{405}: commit: updated the save function of the master formula
+[33mf84be6b9[m HEAD@{406}: commit: updated the file to reade the all dc trial if needed
+[33m7ecf41da[m HEAD@{407}: commit: updated the lookup to display only the final trial of the dc
+[33m58ca6e3d[m HEAD@{408}: commit: updated the exported name of formulattion and master
+[33md508aa2b[m HEAD@{409}: commit: working master formula print
+[33md716505e[m HEAD@{410}: commit: woeking export on the formulation
+[33m8fed0612[m HEAD@{411}: commit: updated the formulation records
+[33mf9d3af13[m HEAD@{412}: commit: modified the right display of the salesman and a export all function
+[33m488f9414[m HEAD@{413}: commit: updated the pricefirst export and added bold on all text
+[33m105eb673[m HEAD@{414}: commit: updated the min on the mb and dc formula entry
+[33m8ec5105f[m HEAD@{415}: commit: updated the print of the dc
+[33m6bde5d40[m HEAD@{416}: commit: updated the correct column name base on the legacy database
+[33m5743fa5b[m HEAD@{417}: commit: fixed the cmf entry newly added fields, as well as the syncing of the formulation and master
+[33m9b893718[m HEAD@{418}: commit: updated the print cmf coordinates and uses the new cmf template
+[33m41d6c9d9[m HEAD@{419}: commit: modified the saving of the cmf and the displaying of records
+[33mb9bfc1bc[m HEAD@{420}: commit: updated then cmf table to have newly added fields in the cmf a,d modified the html
+[33m64847dd1[m HEAD@{421}: commit: modified the lookup forr mb and dc for the formulations
+[33m66e50f17[m HEAD@{422}: commit: added the updated cmftemplate
+[33m4c8dc93e[m HEAD@{423}: commit: ADDED ALL THE CUSTOMER IN THE CHOICES WITH THE CACHE
+[33m752be93b[m HEAD@{424}: commit: added a ftable for the customers
+[33med7a0372[m HEAD@{425}: commit: updated the print of the dc formula to include alll the 10 trials
+[33md08c69fd[m HEAD@{426}: commit: fix the view of the dc for the cmf detail records
+[33ma9f4254d[m HEAD@{427}: commit: modified the formulation to display the dc final
+[33m74210aa8[m HEAD@{428}: commit: fixed the formulation entry
+[33mff501d17[m HEAD@{429}: commit: updating masterformula anf formuulation
+[33m4a75cb2b[m HEAD@{430}: commit: updated master formula services
+[33mb87142c6[m HEAD@{431}: commit: modified the database of the dc formula to contail all trials and updated the master forlula lok up anf formulation look up
+[33m51f17d63[m HEAD@{432}: commit: added a double click function in the formulation records to go to mb or dc
+[33m31e64cf2[m HEAD@{433}: commit: changed the default name to Formula
+[33m28468f54[m HEAD@{434}: commit: modified the editing of excel and actually downloading it to have it protected after download
+[33m8d1d8ba3[m HEAD@{435}: commit: modified the formulation price first to include modification before downloading
+[33m56c5e2fd[m HEAD@{436}: commit: added amodal for the formulation form price first
+[33ma9398533[m HEAD@{437}: commit: updated the python to pdf frunction to use the new standard
+[33mb0e66148[m HEAD@{438}: commit: added a log print in the cmf entry too
+[33m76962e7d[m HEAD@{439}: commit: added a audit trail in printing a mb or dc
+[33me0db6094[m HEAD@{440}: commit: FIXED THE ERROR IN THE DROPDOWN COLUMN SEARCH
+[33m15423794[m HEAD@{441}: commit: fix the datatables for the formula, as well a s the multiple selection
+[33m393ac5bc[m HEAD@{442}: commit: updated the label for whern the formula is selected
+[33m140dc48a[m HEAD@{443}: commit: updating the fetching of all formula records and displaying
+[33mbc04a2e1[m HEAD@{444}: commit: added a formulaation page and a retreival of all record
+[33m9e4bbb6d[m HEAD@{445}: commit: modified the template to merge the remarks
+[33m7bc002a8[m HEAD@{446}: commit: fixed the print button display errpoor
+[33m3f934b4c[m HEAD@{447}: commit: fixed the printing error in the dc formula
+[33me445b47c[m HEAD@{448}: commit: created one for the dc formula using word
+[33ma5082589[m HEAD@{449}: commit: fixed the print prev ifor the mbformula
+[33mc9d003b3[m HEAD@{450}: commit: added print for the mb formula
+[33m060fb97a[m HEAD@{451}: commit: added a excel edit function for the print view
+[33mcfb02463[m HEAD@{452}: commit: modified the database to have 7 decimal point
+[33me4581640[m HEAD@{453}: commit: fixed the global loader to alse include in the print preview
+[33m39d147a2[m HEAD@{454}: commit: modified the requirements and fix the printing mismatch of the pdf
+[33m4059fa5d[m HEAD@{455}: commit: fixed the print mismatch after converting to pdf
+[33m1bd01e58[m HEAD@{456}: commit: updated the print function to remove the margins for the export then resize the pdf to the desired size
+[33mf6107512[m HEAD@{457}: commit: added a util for the prints, and updated the requirements
+[33m82d25ada[m HEAD@{458}: commit: created a modification for the excecl template, modifued using open pyxel then transfer to pdf
+[33mef85a3a0[m HEAD@{459}: commit: updated the requirements, as well as updating the print logic
+[33m03cc562c[m HEAD@{460}: commit: added the excel template and modifying the coorrdinates
+[33mfa68f91c[m HEAD@{461}: commit: added a simple print view to acces excel using python
+[33mff4b0938[m HEAD@{462}: commit: updated the field for pending page and fix the updates in the page submittion
+[33m51100bbd[m HEAD@{463}: commit: updated feedback audit ttrail as wel as add cache clearing when the pending completed is updates
+[33m43b3a595[m HEAD@{464}: commit: updated the pending completed save and audit trail
+[33m8178beb6[m HEAD@{465}: commit: updated the audit trail logging to remove redundancy
+[33ma78800f1[m HEAD@{466}: commit: added auto fill in the total of the dc formula
+[33m318b3a8c[m HEAD@{467}: commit: added note field in the dc and the detaild audit trail as well as fixed error in saving
+[33m4ccbc962[m HEAD@{468}: commit: updating the formula dc for the mismatch
+[33m4ed43226[m HEAD@{469}: commit: updated the mb formula dave/update logic and the audit trail
+[33m0c080a02[m HEAD@{470}: commit: updated the rs logic for update and also fix the detailed audit trail, to kanow who edit what
+[33m5fb046b7[m HEAD@{471}: commit: updated the audit trrail changes for the cmf
+[33mcd592c8c[m HEAD@{472}: commit: updated the audit trail for master and formualtion to entet what was specifically changed
+[33m312b9da7[m HEAD@{473}: commit: transfer the function of the lookyup to the shared function of mb and dc, and fixed the preline confirmation message
+[33m65328ce3[m HEAD@{474}: commit: added the ajax and routing of the look up of the cmf details for the formula
+[33m6f25290b[m HEAD@{475}: commit: added a formulation service
+[33maa1f146d[m HEAD@{476}: commit: updated the matching number annd the custoomer name in the display to make it display even wwheen not in the cmf reecords
+[33m444f1be5[m HEAD@{477}: commit: updated the entry of formulation, to display the past matched, and not based on the current accounntts
+[33mf4ef9272[m HEAD@{478}: commit: remove the deebuggeer console
+[33m644cf554[m HEAD@{479}: commit: added debounce global in the search
+[33m014f25f0[m HEAD@{480}: commit: fixed the displayijng of the data in the audit trail as well as the search
+[33ma7d6f4b9[m HEAD@{481}: commit: modified the audit trail to have pagination to make it future proof
+[33m7cbd722d[m HEAD@{482}: commit: fix the total display opf rows for formulations
+[33mabcfe9ed[m HEAD@{483}: commit: updated the forrmula fetching of data so we will not be fetching all the 117k records in out memory
+[33m809de78d[m HEAD@{484}: commit: use data tables in the master formula too
+[33mcbc066c6[m HEAD@{485}: commit: added datatabled for server side pagination
+[33m45530051[m HEAD@{486}: commit: added datatables and jquery
+[33m77159faf[m HEAD@{487}: commit: fix the displaying of the table for the formulas
+[33m7fad3cbf[m HEAD@{488}: commit: updated the masterformula logic too
+[33m19349e12[m HEAD@{489}: commit: updated formulation logic in reloading page
+[33m304d0109[m HEAD@{490}: commit: added a logic to dedfault to records tab in the formulation
+[33maa826d83[m HEAD@{491}: commit: FIX THE MASTERFORMULA ISSUE IN RELOADING NOT STAYING IN THE RECORDS PAGE
+[33mafd17c6e[m HEAD@{492}: commit: created a formulation details and view
+[33mdb0c1da5[m HEAD@{493}: commit: renamed the formula services
+[33mdd56aa09[m HEAD@{494}: commit: added routing for the formulation
+[33m4cd4ad97[m HEAD@{495}: commit: added form id manual instead of auto fill database
+[33m2bf35947[m HEAD@{496}: commit: fix the error message for the materials
+[33m0163cdac[m HEAD@{497}: commit: fix the issue of not displaying rs formula details
+[33mebfb8409[m HEAD@{498}: commit: modified the naming of the updated column and fixes the fetching of data
+[33m5f58db5d[m HEAD@{499}: commit: added a log audit trail
+[33mdca13a15[m HEAD@{500}: commit: added save function for the mb formula
+[33mdc9e3d08[m HEAD@{501}: commit: modified the formula table to have a distinction if it is in masterformula
+[33m10d02fc1[m HEAD@{502}: commit: modified the sync to handle the deletion of the cached key
+[33m3425ce1c[m HEAD@{503}: commit: updated the cmf record too
+[33mf1d8e71a[m HEAD@{504}: commit: updated the design as well as the responsiveness of the modal
+[33mb41b49b3[m HEAD@{505}: commit: updated the matcthing no to only accept tose entered in the cmf or rs entry
+[33mbd9f93bd[m HEAD@{506}: commit: updated the fetching of the data as well as the parent match
+[33m8f143920[m HEAD@{507}: commit: modified the styling to match the cmf modal
+[33m9839deba[m HEAD@{508}: commit: working selection
+[33m507c9f6c[m HEAD@{509}: commit: modifyting the display of thhe formulas modal
+[33m17c5ec25[m HEAD@{510}: commit: modified the entry for the master formula
+[33m0f127dc3[m HEAD@{511}: commit: updated the error in assigning the function when in another page
+[33m0b6f4af9[m HEAD@{512}: commit: updated the entry for the master formula
+[33m3227a85c[m HEAD@{513}: commit: modified the total record of the master formula
+[33mab121bcb[m HEAD@{514}: commit: updated the fetching of the master forrmula and fix error in js
+[33m4938937b[m HEAD@{515}: commit: created a fetching of the data from the database for master formula
+[33ma4f036a2[m HEAD@{516}: commit: added the styling of the formula page in the feedback for more uniform design
+[33m4401e59a[m HEAD@{517}: commit: added a simple master formula page with a tabs
+[33me06cfaf3[m HEAD@{518}: commit: fix the syncing of the database to update only the newest data
+[33ma50a9fd0[m HEAD@{519}: commit: fix the loader function
+[33mdf5934fc[m HEAD@{520}: commit: modified the database for the master formula
+[33m0d400cf4[m HEAD@{521}: commit: creating a legacy sync for the master formula
+[33mce311214[m HEAD@{522}: commit: added a route for the master formula
+[33m0c4f59ba[m HEAD@{523}: commit: added the active sub menu if the user goes in the export preview
+[33mc793adf2[m HEAD@{524}: commit: updated the error message for the product code error
+[33mf96b7aa9[m HEAD@{525}: commit: added notes in the save function
+[33m9fbdecc1[m HEAD@{526}: commit: added a logic in the mb to check the total weight if it matches with the suposed weight
+[33m9d6479ae[m HEAD@{527}: commit: added a logic to display the lotnumbers for the same product code that is bind to the single cmf
+[33m903f429a[m HEAD@{528}: commit: added a working auto fill for the previous record, and a confirmation message
+[33md7ebc92b[m HEAD@{529}: commit: added a confirmation logic for the previous cmf record, for rematches
+[33m3a6b7100[m HEAD@{530}: commit: added a reusable debounce scrpit
+[33m56a091da[m HEAD@{531}: commit: modified the column of thhe exported excel to adjust based on the column
+[33ma178dff1[m HEAD@{532}: commit: transfer to a virtual env and make sure the export is worrking
+[33mede83ff9[m HEAD@{533}: commit: added a export function and updated requiremnts
+[33m461c36c8[m HEAD@{534}: commit: working preview for export
+[33m0e9e3bdc[m HEAD@{535}: commit: updated the structure of the urls and thhe routing for the export
+[33me7876af9[m HEAD@{536}: commit: fixed the preline message and added a footer for the filter for exporting
+[33m44231cb8[m HEAD@{537}: commit: fix the popup warning for the missing entry
+[33md79c6df5[m HEAD@{538}: commit: remove the names to only pass the needed fields and added required so when the other field valus is missing, it will not pass
+[33m8ad5280f[m HEAD@{539}: commit: added a js for the feedback entry to display error
+[33m056e4112[m HEAD@{540}: commit: fixes the feedback details fetching of data across diff tables
+[33m2824e674[m HEAD@{541}: commit: fixed the errors in the dates fetchingn for the rs
+[33mf4ad52db[m HEAD@{542}: commit: updated the fetching of data as well as the saving of the rs
+[33mabfbfa20[m HEAD@{543}: commit: modified the database of the rs do join in the cmf_dates to reduce duplication of columns
+[33mdc76b67c[m HEAD@{544}: commit: fix the swatches color
+[33me22d4ad5[m HEAD@{545}: commit: display only in the necesarry
+[33m9159fda4[m HEAD@{546}: commit: added required sign in the required fields
+[33m6375534f[m HEAD@{547}: commit: fix the dc formula too
+[33m3350a602[m HEAD@{548}: commit: fix the mb formula to handle the totals
+[33md7bfc32f[m HEAD@{549}: commit: updated the rs displaying subparent
+[33m89ddc31b[m HEAD@{550}: commit: display the product code for the cmf sub formula
+[33m3a1dabba[m HEAD@{551}: commit: updated the saving of the final formula
+[33ma6ed9e4d[m HEAD@{552}: commit: updated the rs table save to handle the right product coded
+[33m522c5c27[m HEAD@{553}: commit: modified the pending completed to make the prod code read only
+[33m5d82d70a[m HEAD@{554}: commit: fix the display on the feedback entry
+[33mdadf2194[m HEAD@{555}: commit: modifying the routing of thefeedback to g et the data
+[33m3d42c701[m HEAD@{556}: commit: updated views for feedback
+[33md71a454c[m HEAD@{557}: commit: modified the views for the feedback
+[33m11c9f847[m HEAD@{558}: commit: update feedback views to become possible to get all the data
+[33m5a7e238a[m HEAD@{559}: commit: fix the displaying of the product code
+[33m30a337b4[m HEAD@{560}: commit: working safe formula for rs entry
+[33m9c843bd4[m HEAD@{561}: commit: working cmf final formula setter
+[33mac22ba81[m HEAD@{562}: commit: updating the logic for choosing final formula
+[33m9b1db251[m HEAD@{563}: commit: updated the database to handle final formula
+[33m1c95dc96[m HEAD@{564}: commit: fix the dosage naming
+[33m2c11cf36[m HEAD@{565}: commit: fix the saving of the mb formula for the rsentry
+[33mc749c63d[m HEAD@{566}: commit: updated the saving function of thee mb and dc to connect rs and cmf
+[33ma1e71f75[m HEAD@{567}: commit: fix the pending completed complettion of display
+[33m06dccc0c[m HEAD@{568}: commit: updated the dc formula getting of the rs no
+[33m3f215290[m HEAD@{569}: commit: fix the availability of the dosage in the mb formula if the dosage is present
+[33m86c10c65[m HEAD@{570}: commit: modified the hidden input for the update in the rs entry
+[33mc9848160[m HEAD@{571}: commit: added logic for the pending to get the rs detaisl
+[33m7a17c94a[m HEAD@{572}: commit: added the logic for getting the rs details for thew formula
+[33md00d1aff[m HEAD@{573}: commit: updated the logic of the getting of rs or cmf to get the primar key or uniwue only
+[33m8d28377a[m HEAD@{574}: commit: modified the custom menu to display go to rs or go to cmf
+[33me0affbc5[m HEAD@{575}: commit: updated the database for the multiple same rs number van be entered
+[33m48e52735[m HEAD@{576}: commit: modifying the rstable
+[33me58cc63d[m HEAD@{577}: commit: added migration in database to support the ssaving of the rs
+[33m02cf2258[m HEAD@{578}: commit: modified the rs saving function and update
+[33me2d19a7e[m HEAD@{579}: commit: added a save function in the rs entry
+[33me7c2c8d4[m HEAD@{580}: commit: modified the models
+[33m116a3666[m HEAD@{581}: commit: added a cache in the lists so the database will not be calledd every time
+[33m21cc0cf9[m HEAD@{582}: commit: modified the rs entry for more better accuracy
+[33m76ba31e6[m HEAD@{583}: commit: added qty req in tbl feeedback, modified the tbl rs to only include what was in the paper
+[33m4b13ab1a[m HEAD@{584}: commit: modified cmf entry
+[33m21885837[m HEAD@{585}: commit: modified the cmd detail to display all the cmf related
+[33meabb124a[m HEAD@{586}: commit: fixed the tom select initialize to dont have a conflict
+[33m8cc23ef3[m HEAD@{587}: commit: modified the database to add lot number in the pending completed
+[33m6a1f7811[m HEAD@{588}: commit: updated the pending completed as well as the confirmation message for formula
+[33m39073146[m HEAD@{589}: commit: updated the view to display the start of the product code for mb
+[33mb73a8b69[m HEAD@{590}: commit: modified the rs entry to match that in the cmf
+[33m5db9c923[m HEAD@{591}: commit: fixed js not continuing bc of tom select error
+[33mddf671d3[m HEAD@{592}: commit: updated the audit trail for more detaild updates created
+[33m63cb7a08[m HEAD@{593}: commit: added a js to have a confirm message before saving or updating
+[33mb5faa1aa[m HEAD@{594}: checkout: moving from 392e818c149de78979a7c43dd5cce30ba7776839 to main
+[33m392e818c[m HEAD@{595}: checkout: moving from main to 392e818c149de78979a7c43dd5cce30ba7776839
+[33mb5faa1aa[m HEAD@{596}: checkout: moving from 4eaebb6c4ab15dd91c5f8c85f96e408b46f49927 to main
+[33m4eaebb6c[m HEAD@{597}: checkout: moving from main to 4eaebb6c4ab15dd91c5f8c85f96e408b46f49927
+[33mb5faa1aa[m HEAD@{598}: commit: added a message when clicking the buttonm
+[33m392e818c[m HEAD@{599}: commit: updated the dc for thhe audit trail too
+[33m4eaebb6c[m HEAD@{600}: commit: updated the error in the saving log audit and added read only
+[33m6cc5d0ea[m HEAD@{601}: commit: fix the update of the mb formula aswell as the audit trail
+[33m5b0c9bfb[m HEAD@{602}: commit: updated the lot number to become unique
+[33m591e108f[m HEAD@{603}: commit: adjusted the materials column to display even if there is no record
+[33ma5f9b0ac[m HEAD@{604}: commit: fix the weighed
+[33m6edd767a[m HEAD@{605}: commit: fix the pre filled data when the formula is clicked
+[33m6f9d12fb[m HEAD@{606}: commit: added a cache so the load will not always be long
+[33m41086893[m HEAD@{607}: commit: added a simple dispolay of the audit trail
+[33m486620d8[m HEAD@{608}: commit: updated the mesages in the audit trail
+[33mf42c1bbe[m HEAD@{609}: commit: added the update confirmation message for the submit
+[33m60618c53[m HEAD@{610}: commit: fix the display of the salesman
+[33m38159331[m HEAD@{611}: commit: added an update for the cmf
+[33m163d9fe6[m HEAD@{612}: commit: fixed the audit trail
+[33m8c923854[m HEAD@{613}: commit: fixed the pending/completed page
+[33mcf071f2b[m HEAD@{614}: commit: changed the readonly for the pending/completed
+[33mf35f10e5[m HEAD@{615}: commit: added a pending/completed logic to get the cmf data
+[33mc3ce14f6[m HEAD@{616}: commit: added a context menu for the pending/completed
+[33m4cad1e3f[m HEAD@{617}: commit: fixed the saving and the fetching of the data of the cmf esp the process
+[33mf9bee3aa[m HEAD@{618}: commit: fixed the confirmation message for both mb and dc
+[33m041c0bf8[m HEAD@{619}: commit: updated the preline to accept second calback for cancel
+[33m136148a4[m HEAD@{620}: commit: updating the logic for confirmation message
+[33m9d69025d[m HEAD@{621}: commit: added a logic where if a mb cmf is oppend in dc formula
+[33m98805ac4[m HEAD@{622}: commit: fix the display of the modal using the py
+[33m0d7e5a69[m HEAD@{623}: commit: renamed the js file and the redirect in views
+[33m6a1d8e4d[m HEAD@{624}: commit: modified the js for both the mb and dc formula can use it
+[33m8a605329[m HEAD@{625}: commit: fix the mb formula savingn process
+[33m4fc0733c[m HEAD@{626}: commit: added restriction in the entry of the hex
+[33m71537e59[m HEAD@{627}: commit: added required field for the formula entries
+[33mac94f3a5[m HEAD@{628}: commit: added tom select for the user choices of matched by and weighted by
+[33me23b4181[m HEAD@{629}: commit: added default username for the encoded by in the formula
+[33m42225e60[m HEAD@{630}: commit: added tom select for the raw materials liost in the dc
+[33ma12205fd[m HEAD@{631}: commit: added tom select in the table for mb formula
+[33m50cb8122[m HEAD@{632}: commit: added fetching of the rm lists
+[33mdbed2999[m HEAD@{633}: commit: updated the restriction on the formula fetail
+[33m3b298d0c[m HEAD@{634}: commit: updated the dc formula for the prefilled data field
+[33mc6c80bdf[m HEAD@{635}: commit: added a prefilled data field in the mb formulation form
+[33m8fdf9e07[m HEAD@{636}: commit: fixing the display of the prefilled values
+[33m15c95c6d[m HEAD@{637}: commit: do the same pantone for the dc formula
+[33m98e22f8c[m HEAD@{638}: commit: added the pantone color entry and the display shape for it
+[33mca5e6ad4[m HEAD@{639}: commit: fix the routing when the context menu is clicked
+[33m54d26e90[m HEAD@{640}: commit: added a routing in the cmf records
+[33m33fe83ab[m HEAD@{641}: commit: finalize the getting of the mb/dc formula
+[33m049e2b20[m HEAD@{642}: commit: fixing cmf formula fetch
+[33m8d3efabf[m HEAD@{643}: commit: working fetch
+[33mfecccef3[m HEAD@{644}: commit: added a fetching of the histpory of the cmf in the services
+[33mf2a2f81e[m HEAD@{645}: commit: refactored the services for cmf
+[33m4c0e2fab[m HEAD@{646}: commit: created the modal for the cmf record using bootstrap
+[33m43dd9ee9[m HEAD@{647}: commit: deleted the datatable library
+[33mbe6b8fa1[m HEAD@{648}: commit: fixing the Modal for the details
+[33m313d6ee0[m HEAD@{649}: commit: working display of modal
+[33m62d3a36c[m HEAD@{650}: commit: updating the datatable
+[33mefc5ebf7[m HEAD@{651}: commit: added a new separate modal
+[33mf85ca7b5[m HEAD@{652}: commit: added datatables library
+[33mb2e88f81[m HEAD@{653}: commit: updated the cmf primary color to be a foreing key to out internal color code
+[33md07702a3[m HEAD@{654}: commit: modify the display of the records to not reload the whole page
+[33m0a0def32[m HEAD@{655}: commit: added a cache to store the call from the database
+[33mce6f95bd[m HEAD@{656}: commit: updated the cmf services to get the current data from the cmf
+[33m16747049[m HEAD@{657}: commit: fix the audit trail saving function
+[33m285eda3c[m HEAD@{658}: commit: fixed the error in the variable naming for the audit trail
+[33m4fdce93d[m HEAD@{659}: commit: added a audit trail reusable function and connected it to save
+[33m5734175e[m HEAD@{660}: commit: added the auto save for the pending and the feedback
+[33m33dd02d1[m HEAD@{661}: commit: modified the database to include the pantone color
+[33me6ffca3d[m HEAD@{662}: commit: updated cm no in tbl_rs
+[33m731c2045[m HEAD@{663}: commit: Fixed and finalize the saving and error messages for the cmf
+[33me1d524f4[m HEAD@{664}: commit: modified the services for the cmf
+[33m6c3641fe[m HEAD@{665}: commit: fill the sales table
+[33ma05f67d7[m HEAD@{666}: commit: updated the cmf entry to require all fields
+[33m6c09cdc7[m HEAD@{667}: commit: updated the services
+[33mad7085c0[m HEAD@{668}: commit: updated the error message so when there is an error, it will redirect to the entry with the datas intact
+[33m33ae0662[m HEAD@{669}: commit: updated thhe cmf entry services
+[33mdca4d357[m HEAD@{670}: commit: ADDED A RESTRICTION IN THE OTHERS FIELD
+[33mc2ffaa32[m HEAD@{671}: commit: updated the restriction on the numeric fields
+[33m27da61a9[m HEAD@{672}: commit: tried adding the getting of post and the saving to another .py file
+[33m98a199e8[m HEAD@{673}: commit: updated the display of the preline alert
+[33m8ebe79ec[m HEAD@{674}: checkout: moving from 74db5da6b23dd74564464054db26eadb075ded69 to main
+[33m74db5da6[m HEAD@{675}: checkout: moving from main to 74db5da6b23dd74564464054db26eadb075ded69
+[33m8ebe79ec[m HEAD@{676}: commit: so debug preline
+[33m4142a5a3[m HEAD@{677}: commit: added a simple reusable alert modal
+[33m74db5da6[m HEAD@{678}: commit: modify the database entry for the resin
+[33m37482c8d[m HEAD@{679}: commit: added the cmf js in the new file for more readability
+[33meadb25eb[m HEAD@{680}: commit: put the scripin the cmf entry
+[33m1f82c5fd[m HEAD@{681}: commit: make the field to be numbers only for tthe dosage and temperature
+[33mbaca0fb7[m HEAD@{682}: commit: modified the display of the username in the sidebar
+[33m01219d15[m HEAD@{683}: commit: added a dedicated page for users without a roles yet
+[33me672d04f[m HEAD@{684}: commit: added a pending role rout
+[33m93424637[m HEAD@{685}: commit: added a new decorator
+[33mc9ef9aa9[m HEAD@{686}: commit: modified the sign out and the icon
+[33m1043ad76[m HEAD@{687}: commit: removed the temporary js for the login, and modified the admin assigning roles
+[33m0d04fc0e[m HEAD@{688}: commit: rebuild the database and created a dropdown for the Admin page
+[33mf6d50ff7[m HEAD@{689}: commit: uses the built in authentication of the django
+[33me9395284[m HEAD@{690}: commit: updated the user model to have fist name, last name and email
+[33m93be3eb7[m HEAD@{691}: commit: fixed the log in sign in routing
+[33me3457cf5[m HEAD@{692}: commit: seperated the signin and signup to make it more readable
+[33ma7b38aee[m HEAD@{693}: commit: deleted the product
+[33mae8e6be2[m HEAD@{694}: commit: added a product image. and connected it to index
+[33m1e838776[m HEAD@{695}: commit: creating a login page
+[33m68f1258d[m HEAD@{696}: commit: updated the cmf form
+[33m84efd9f0[m HEAD@{697}: commit: updated the cmf entry field
+[33m2dc5c62b[m HEAD@{698}: commit: updated the naming of the field to retreive the data when submitted
+[33m5e10f693[m HEAD@{699}: commit: updated the migration files
+[33m2d75bec7[m HEAD@{700}: commit: deleted all the migrations
+[33m1727a976[m HEAD@{701}: commit: updated the database model to accept multiple resins
+[33m814a11c4[m HEAD@{702}: commit: updated the views for the retreival of data from the database for the resin and the primari=y colors
+[33me86d3868[m HEAD@{703}: commit: updated the database to have resins and materials abd default data
+[33m970deb16[m HEAD@{704}: commit: updated the text field for number input
+[33m758976aa[m HEAD@{705}: checkout: moving from 758976aa59bc993a62ed646b04274a33bf711e44 to main
+[33m758976aa[m HEAD@{706}: commit: ADDED A README
+[33mac863c4f[m HEAD@{707}: commit: added git ignore
+[33md8d94b2d[m HEAD@{708}: commit: added back the date fields
+[33mce11d6b2[m HEAD@{709}: commit: added a requirements.txt
+[33m0812273a[m HEAD@{710}: commit: added init.py to treat them as modules
+[33m1c45c4ec[m HEAD@{711}: commit: transfer the legacy sync from the dbf to the postgre
+[33maa64edaf[m HEAD@{712}: commit: updated the feedback date field to use the datepickr
+[33me7a2b2e6[m HEAD@{713}: commit: updated the feedback tab to be fine even in the mobilke view
+[33ma5b0c3c2[m HEAD@{714}: commit: updated the select option for the search bar in the cmf records based on the table headers
+[33m3da122b5[m HEAD@{715}: commit: separated the cmf records js to be more organized and easier to maintain
+[33m3790d979[m HEAD@{716}: commit: refactored the services to not populate the views to contain only the routing and related functions
+[33mf923ae5b[m HEAD@{717}: commit: changed the views fto be able to refresh data whenever it is refreshed for future database conection
+[33m6a58a507[m HEAD@{718}: commit: modified the records for cmf, and created a sample data to display using dict
+[33m82514acc[m HEAD@{719}: commit: updated the design for the uploading drag and drop in dropzone
+[33mce79a6a5[m HEAD@{720}: commit: modifying the dropdown
+[33m3b1e770a[m HEAD@{721}: commit: added a dropzone for uploading file using drag and drop or browse
+[33maf5d9956[m HEAD@{722}: commit: added a dropzone library
+[33m92dde0f1[m HEAD@{723}: commit: updated the formuila and the pending entries
+[33m14474630[m HEAD@{724}: commit: added asap in the required field, and mmultiple date selection in the received
+[33meb369307[m HEAD@{725}: commit: updatred the format for the rs entry
+[33m13c134ec[m HEAD@{726}: commit: updated the datepicker to accept the ASAP
+[33m7f3e7161[m HEAD@{727}: commit: updated the datepicker of thd cmf entry
+[33m3b9b3242[m HEAD@{728}: commit: added the flatpicker for the multiple dates
+[33mfbe0a282[m HEAD@{729}: commit: modified the spectro responsive in the dc formula too
+[33m80683bce[m HEAD@{730}: commit: modified the responsiveness of the input of the labch
+[33m18980acc[m HEAD@{731}: commit: updated the layout of the cmf entry, and added more fields required
+[33m98463ce8[m HEAD@{732}: commit: added editable dropdown choiches
+[33m748405dc[m HEAD@{733}: commit: refactored the css files for more organize
+[33mc20094a8[m HEAD@{734}: commit: updated the tom select root variable to change it in the dark mode
+[33m36600cba[m HEAD@{735}: commit: refactored js components
+[33m08da6227[m HEAD@{736}: commit: added tom select library for better input with dropdown
+[33mf666e46b[m HEAD@{737}: commit: modified the side bar for more good ux experience
+[33mb5ce8f92[m HEAD@{738}: commit: changed the color of the suzzess rate in the dashboard
+[33m8ebd3824[m HEAD@{739}: commit: updated the displaying of the table in audit trail
+[33m43d575f2[m HEAD@{740}: commit: updated the tabled for the records and its hover issues
+[33me6ea01d8[m HEAD@{741}: commit: updated the table display in the darkmode and the search box for the records
+[33m282293fe[m HEAD@{742}: commit: addedd audit trail page and updated the search bar
+[33ma59a3cdd[m HEAD@{743}: commit: created pending/completed page, and refactored all the css to make one global css for the common styling
+[33mecc8b47f[m HEAD@{744}: commit: updated the toggle for darkmode
+[33m4576e2f7[m HEAD@{745}: commit: updated the dashboard responsive
+[33m4427d78e[m HEAD@{746}: commit: updated the routing for the sidebar and the linknking of icon
+[33mb6fee847[m HEAD@{747}: commit: modified the navigation and the sidebar footer to work fine even in mobile
+[33m9806653c[m HEAD@{748}: commit: refactored the position inside the template page
+[33m58ec3c67[m HEAD@{749}: commit: added dc formula entry
+[33m494731ba[m HEAD@{750}: commit: updated the step for the table entry in MB
+[33me85cab81[m HEAD@{751}: commit: added the mb_formula_entry
+[33m1ba5615a[m HEAD@{752}: commit: modified the button for print in both pages
+[33m13152bd6[m HEAD@{753}: commit: added a mbpi logo for the website and fixed the rs entry tab for dark mode
+[33mb7688afb[m HEAD@{754}: commit: modified the date field to align with the others
+[33m9486f911[m HEAD@{755}: commit: added rs entry page sample ui
+[33m39ff5023[m HEAD@{756}: commit: modified the sidedbar for better header and function
+[33mae2d0095[m HEAD@{757}: commit: addedd a cmt entry page and working dark mode
+[33m8f8c8849[m HEAD@{758}: commit: added a dropdown for the search box
+[33m1b549dcd[m HEAD@{759}: commit: modify the dashboard table design and the container color
+[33ma6c3ac01[m HEAD@{760}: commit: updated the dashboard. created a seperate css
+[33mb1d2ea9f[m HEAD@{761}: checkout: moving from main to main
+[33mb1d2ea9f[m HEAD@{762}: commit: fix the contents in the records page
+[33m2b3b4d51[m HEAD@{763}: commit: create initial table for the records
+[33m993ee225[m HEAD@{764}: commit: changed the darkmode for the sub menu
+[33m30f3bdf2[m HEAD@{765}: commit: added the pending/completed page too
+[33m95526161[m HEAD@{766}: commit: added the dc formula page
+[33m121ec205[m HEAD@{767}: commit: addedd the rs entry and the mb formula page
+[33m78a4b503[m HEAD@{768}: commit: updated the sidebar to work fine even if in the mobile
+[33m787dd538[m HEAD@{769}: commit: added the cmf entry page
+[33m0f7776dd[m HEAD@{770}: commit: modified the matches chart to be working in darkmode
+[33m91c790f4[m HEAD@{771}: commit: fixing the matchess chart
+[33m1be77587[m HEAD@{772}: commit: modified the sample chart to make it visible in darkmode
+[33mdb0a3ae3[m HEAD@{773}: commit: fixed the donut chart with the dark mode
+[33m47c8d7f5[m HEAD@{774}: checkout: moving from main to main
+[33m47c8d7f5[m HEAD@{775}: checkout: moving from main to main
+[33m47c8d7f5[m HEAD@{776}: commit: before updating the darkmode for dashboarrd
+[33meef6506e[m HEAD@{777}: commit: modified the donut chart to display the orders and the samples dynamically
+[33m367702cd[m HEAD@{778}: commit: fixing the domut chart
+[33mb5c0c77d[m HEAD@{779}: commit: rename the dashboard for the matches/rematches
+[33ma16b7110[m HEAD@{780}: commit: adjusted the responsiveness of the page to be able to view from the mobile
+[33m3c0bac6c[m HEAD@{781}: commit: added more data in the chhart to display full year, and make it scrollable
+[33mc29db15d[m HEAD@{782}: commit: modified the chart for the matches/rematches and the label
+[33m308ceefd[m HEAD@{783}: commit: added all the amcharts to be used offline and changed the setting to make it work
+[33md53b4220[m HEAD@{784}: commit: added the library of am charts inside the static
+[33m92dd86dc[m HEAD@{785}: commit: modified the path when accessing the cmf
+[33md4c7e551[m HEAD@{786}: commit: modified the routing to display the cmf page
+[33mf8c6b608[m HEAD@{787}: commit: modified the block for the navigation
+[33m3423d9b8[m HEAD@{788}: commit: created a block for navigation
+[33m9a27e183[m HEAD@{789}: commit: changed the navigation position and not included in the base
+[33m4e3ee06d[m HEAD@{790}: commit: added buttons for cmf in the side menu
+[33mdd8cede3[m HEAD@{791}: commit: adjusted the color when dark mode
+[33m541bc997[m HEAD@{792}: commit: fixed the usage of the dark and light moded
+[33m132fc16c[m HEAD@{793}: commit: updated the footer and sidedbar for more responsive view
+[33macafd91c[m HEAD@{794}: commit: updateed the css and js and sidebar agiain for more dark color
+[33mdeb1b7fa[m HEAD@{795}: commit: updated it again to malke sure the side bar is working
+[33mdb2c5103[m HEAD@{796}: commit: updated ther sidebar css and js
+[33ma684c2a0[m HEAD@{797}: commit: updated the positioning of the side bar
+[33m8d2991b2[m HEAD@{798}: commit: changed the routing, and added dashboard
+[33mb8ff23f0[m HEAD@{799}: commit: adjusted the tab of the sidebar
+[33ma7be7ed0[m HEAD@{800}: commit: connected the icons in the links
+[33md80d946b[m HEAD@{801}: commit: imported the fonts.css for bootstrap
+[33m7d776efa[m HEAD@{802}: commit: created new sidebar and sidebar.css
+[33maa1533dd[m HEAD@{803}: commit: added the sidebar in the base.html
+[33m70f84211[m HEAD@{804}: commit: added sidebar
+[33mdef5c56c[m HEAD@{805}: commit: added the link in the base template
+[33m41de2385[m HEAD@{806}: commit: modified the settings to add static
+[33m7e55d0ac[m HEAD@{807}: commit: added bundle of bootstrap
+[33me7dc7970[m HEAD@{808}: commit: added bootstrap bundle static
+[33m00c54eb6[m HEAD@{809}: commit: created a base html
+[33m42171581[m HEAD@{810}: commit: updated the database model to include the cm no as foreign key in cmreq
+[33m19d871a4[m HEAD@{811}: commit (initial): first commit

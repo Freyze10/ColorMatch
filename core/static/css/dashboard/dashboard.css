@@ -42,6 +42,74 @@ body.dark-mode .theme-card span:not(.badge) {
 .icon-circle { width: 48px; height: 48px; border-radius: 12px; display: flex; align-items: center; justify-content: center; }
 .dash-bg-teal-subtle { background-color: rgba(20, 184, 166, 0.15); color: #14b8a6; }
 .dash-bg-primary-subtle { background-color: rgba(59, 130, 246, 0.15); color: #3b82f6; }
+.kpi-icon-sm { width: 36px; height: 36px; font-size: 1.1rem; border-radius: 10px; align-items: center; justify-content: center; display: flex; }
+
+/* KPI cards: float + teal pulse on hover */
+.kpi-card {
+    transition: transform .25s ease, box-shadow .25s ease, border-color .25s ease;
+    will-change: transform;
+}
+.kpi-card:hover {
+    transform: translateY(-6px);
+    box-shadow: 0 .9rem 1.6rem rgba(0, 0, 0, .15) !important;
+    border-color: rgba(20, 184, 166, .65) !important;      /* teal edge */
+}
+.kpi-card:active {
+    transform: translateY(-2px);                            /* small press-down feel on click */
+}
+
+/* Dark mode: a black shadow is invisible, so use a teal glow */
+body.dark-mode .kpi-card:hover {
+    box-shadow: 0 .8rem 1.8rem rgba(20, 184, 166, .28),
+                0 0 0 1px rgba(20, 184, 166, .35) !important;
+}
+
+/* Teal pulse ring: lives on ::after so the !important shadow on .theme-card can't block it */
+.kpi-card::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    border-radius: inherit;
+    pointer-events: none;                                   /* clicks still reach the card link */
+    opacity: 0;
+}
+.kpi-card:hover::after {
+    opacity: 1;
+    animation: kpi-ring 1.6s ease-out infinite;
+}
+@keyframes kpi-ring {
+    0%   { box-shadow: 0 0 0 0 rgba(20, 184, 166, .55); }
+    100% { box-shadow: 0 0 0 16px rgba(20, 184, 166, 0); }
+}
+
+/* Icon and number */
+.kpi-card .kpi-icon,
+.kpi-card .kpi-value {
+    transition: transform .25s ease;
+}
+.kpi-card:hover .card-body .kpi-icon {
+    animation: kpi-pulse 1.3s ease-in-out infinite;
+}
+.kpi-card:hover .card-body div .kpi-value {
+    transform: scale(1.06);
+    transform-origin: left center;
+}
+@keyframes kpi-pulse {
+    0%, 100% { transform: scale(1); }
+    50%      { transform: scale(1.09); }
+}
+
+/* Respect users who turn animations off in their OS */
+@media (prefers-reduced-motion: reduce) {
+    .kpi-card, .kpi-card .kpi-icon, .kpi-card .kpi-value { transition: none; }
+    .kpi-card:hover .kpi-icon, .kpi-card:hover::after { animation: none; }
+}
+
+/* Respect users who turn animations off in their OS */
+@media (prefers-reduced-motion: reduce) {
+    .kpi-card, .kpi-card .kpi-icon, .kpi-card .kpi-value { transition: none; }
+    .kpi-card:hover .kpi-icon { animation: none; }
+}
 
 /* FIX: Update 60% success badge (typically bg-warning) to be lighter */
 .badge.bg-warning {

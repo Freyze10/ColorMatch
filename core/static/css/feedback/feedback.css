@@ -115,6 +115,60 @@
     z-index: 2;
 }
 
+/* Apply to RS question: same look as the Preline confirm. Yes (left, outline) / No (right, red) */
+#applyRsModal .modal-content {
+    border: 0;
+    border-radius: 28px;
+    background-color: #f1f3f3;
+    box-shadow: 0 20px 50px rgba(15, 23, 42, 0.25);
+    padding: 8px 8px 12px;
+}
+#applyRsModal .rs-icon {
+    width: 64px; height: 64px;
+    border-radius: 50%;
+    background-color: #ede9fe;          /* light purple, same family as the RS badge */
+    color: #7c3aed;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 1.6rem;
+    margin: 0 auto 14px;
+}
+#applyRsModal .rs-title {
+    font-size: 1.15rem; font-weight: 800; color: #1e293b;
+    text-align: center; margin-bottom: 6px;
+}
+#applyRsModal .rs-text {
+    font-size: 0.82rem; color: #64748b;
+    text-align: center; margin-bottom: 10px;
+}
+#applyRsModal .rs-list {
+    font-size: 0.78rem; font-weight: 700; color: #7c3aed;
+    background-color: #f5f3ff; border: 1px solid #ddd6fe;
+    border-radius: 12px; padding: 6px 12px;
+    text-align: center; margin: 0 auto 18px; max-width: 100%;
+    word-break: break-word;
+}
+#applyRsModal .rs-btn {
+    flex: 1 1 0;
+    border-radius: 999px;
+    padding: 10px 0;
+    font-weight: 700;
+    font-size: 0.9rem;
+}
+/* Yes: left, no background */
+#applyRsModal .rs-btn-yes {
+    background: transparent;
+    border: 1.5px solid #10b981;
+    color: #10b981;
+}
+#applyRsModal .rs-btn-yes:hover { background-color: rgba(16, 185, 129, 0.08); }
+/* No: right, red */
+#applyRsModal .rs-btn-no {
+    background-color: #ef4444;
+    border: 1.5px solid #ef4444;
+    color: #fff;
+}
+#applyRsModal .rs-btn-no:hover { background-color: #dc2626; border-color: #dc2626; }
+
 /* ==============================================
    DARK MODE COMPATIBILITY
    ============================================== */

@@ -57,8 +57,9 @@
             padding: 0 0 0 15px;
             margin: 2px 0;
         }
-        .field-label { width: 155px; flex-shrink: 0; text-transform: uppercase; }
+        .field-label { width: 170px; flex-shrink: 0; text-transform: uppercase; }
         .field-row:nth-child(12) .field-label { width: 170px; }
+        .field-row:nth-child(16) .field-label, .field-row:nth-child(17) .field-label { text-align:right; padding-right: 8px; }
         .field-colon { width: 8px; flex-shrink: 0; }
         .field-value {
             border-bottom: 1px solid #000;
@@ -100,12 +101,29 @@
             padding-left: 3px;
         }
 
-        .section-note {
-            position: absolute;
+        /* Small italic hint beside a row (e.g. "If yes, please provide TDS.") */
+        .inline-note {
             font-size: 9.5px;
             font-style: italic;
-            width: 230px;
-            right:0;
+            font-weight: normal;
+            padding: 2px 0 4px;
+        }
+
+        /* Sub-text under a label, e.g. "(for PP or PE)" */
+        .label-sub {
+            display: block;
+            font-size: 9px;
+            font-weight: normal;
+            font-style: italic;
+            text-transform: none;
+        }
+
+        /* Other Specification: "Food Contact?  [ ] Yes [ ] No" rows */
+        .spec-question {
+            display: inline-block;
+            width: 95px;
+            font-weight: normal;
+            font-size: 11px;
         }
 
         .remarks-label { 
@@ -334,12 +352,8 @@
         
                 </div>
             </div>
-            <div class="field-row">
-                <span class="field-label">Qty. of Resin Used for Testing</span>
-                <span class="field-colon">:</span>
-                <span class="field-value">{{ qty_resin_testing }}</span>
-            </div>
 
+            <!-- CHANGED: note is now just "If yes, please provide TDS." -->
             <div class="field-row">
                 <span class="field-label">Customer Provided Resin?</span>
                 <span class="field-colon">:</span>
@@ -347,10 +361,12 @@
                     <span class="checkbox-item"><span class="checkbox-box">{% if resin_provided_yes %}/{% endif %}</span> Yes</span>
                     <span class="checkbox-item"><span class="checkbox-box">{% if resin_provided_no %}/{% endif %}</span> No</span>
                 </div>
-                <div class="section-note">*MI of Customer’s resin:  If PP or PE, please provide MI parameters that includes test weight & temperature (if possible). For PET, PVC, or other eng'g plastics, pls provide Technical Data Sheet (TDS) if possible.</div>
+                <span class="inline-note">x If yes, please provide TDS.</span>
             </div>
 
-            <div class="field-row"><span class="field-label">MI Customer's Resin</span>
+            <!-- CHANGED: label + prints only the actual selection, e.g. "12 at 2.16 kg & 230 °C" -->
+            <div class="field-row">
+                <span class="field-label">MI Customer's Resin <span class="label-sub">(for PP or PE)</span></span>
                 <span class="field-colon">:</span>
                 <span class="field-value">{{ mi_customer_resin }}</span>
             </div>
@@ -364,34 +380,41 @@
                 </div>
             </div>
 
+            <!-- CHANGED: Food Contact? / Outdoor use? are now Yes/No rows -->
             <div class="field-row">
                 <span class="field-label">Other Specification</span>
                 <span class="field-colon">:</span>
                 <div>
                     <div class="checkbox-group">
-                        <span class="checkbox-item"><span class="checkbox-box">{% if spec_food_contact %}/{% endif %}</span> Food Contact</span>
-                        <span class="checkbox-item"><span class="checkbox-box">{% if spec_sunlight %}/{% endif %}</span> Sunlight Exposure</span>
+                        <span class="spec-question">Food Contact?</span>
+                        <span class="checkbox-item"><span class="checkbox-box">{% if spec_food_yes %}/{% endif %}</span> Yes</span>
+                        <span class="checkbox-item"><span class="checkbox-box">{% if spec_food_no %}/{% endif %}</span> No</span>
                     </div>
                     <div class="checkbox-group">
-                        <span class="checkbox-item"><span class="checkbox-box">{% if spec_others %}/{% endif %}</span> Others: <span class="checkbox-others-line">{{ spec_others_value }}</span></span>
+                        <span class="spec-question">Outdoor use?</span>
+                        <span class="checkbox-item"><span class="checkbox-box">{% if spec_outdoor_yes %}/{% endif %}</span> Yes</span>
+                        <span class="checkbox-item"><span class="checkbox-box">{% if spec_outdoor_no %}/{% endif %}</span> No</span>
+                    </div>
+                    <div class="checkbox-group">
+                        <span class="checkbox-item">Others: <span class="checkbox-others-line">{{ spec_others_value }}</span></span>
                     </div>
                 </div>
             </div>
 
             <div class="field-row">
-                <span class="field-label">Processing Temperature</span>
+                <span class="field-label">Max Processing Temperature (°C)</span>
                 <span class="field-colon">:</span>
                 <span class="field-value">{{ temperature }}</span>
             </div>
 
+            <!-- CHANGED: moved here (was "Qty. of Resin Used for Testing"); prints value + chosen unit, e.g. "3 KG" -->
             <div class="field-row">
-                <span class="field-label">Low Cost?</span>
+                <span class="field-label">Qty. of Sample Needed for Test</span>
                 <span class="field-colon">:</span>
-                <div class="checkbox-group">
-                    <span class="checkbox-item"><span class="checkbox-box">{% if low_cost_yes %}/{% endif %}</span> Yes</span>
-                    <span class="checkbox-item"><span class="checkbox-box">{% if low_cost_no %}/{% endif %}</span> No</span>
-                </div>
+                <span class="field-value">{{ qty_resin_testing }}</span>
             </div>
+
+            <!-- REMOVED: Low Cost? row (not on the revised form) -->
 
             <div class="remarks-box">
                 <span class="remarks-label">REMARKS</span>
@@ -405,7 +428,7 @@
             <div class="product-code-row">
                 <span>PRODUCT CODE :</span>
                 <span class="product-code-value">{{ product_code }}</span>
-                <span class="form-code">FM00004B</span>
+                <span class="form-code">FM00004D</span>
             </div>
         </div>
     </div>

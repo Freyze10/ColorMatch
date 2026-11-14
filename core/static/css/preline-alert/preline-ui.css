@@ -68,14 +68,29 @@ body.dark-mode {
 }
 
 .modal-icon-circle {
-    width: 56px;
-    height: 56px;
-    border-radius: 50%;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    margin: 0 auto 1.25rem;
-    font-size: 1.5rem;
+    width: 56px !important;
+    height: 56px !important;
+    border-radius: 50% !important;
+    display: inline-flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    margin: 0 auto 1.25rem !important;
+    font-size: 1.5rem !important;
+}
+
+/* Ensure all types have background and color matching your theme */
+.modal-icon-circle.icon-success,
+.modal-icon-circle.icon-info { 
+    background: rgba(0, 200, 150, 0.15) !important; 
+    color: #00c896 !important; 
+}
+.modal-icon-circle.icon-danger { 
+    background: rgba(239, 68, 68, 0.15) !important; 
+    color: #ef4444 !important; 
+}
+.modal-icon-circle.icon-warning { 
+    background: rgba(245, 158, 11, 0.15) !important; 
+    color: #f59e0b !important; 
 }
 
 .icon-success { background: rgba(0, 200, 150, 0.15); color: #00c896; }

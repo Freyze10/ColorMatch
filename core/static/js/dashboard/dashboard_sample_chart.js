@@ -59,6 +59,7 @@ am5.ready(function() {
             color: categoryColors[d.category] || am5.color(0x8c8a89)
         };
     });
+    
 
     // Create Series
     let series = chart.series.push(am5percent.PieSeries.new(root, {

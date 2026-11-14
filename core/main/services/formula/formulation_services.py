@@ -85,7 +85,9 @@ def get_formulation_context(form_id=None, request=None):
     from .master_formula_services import get_all_matching_numbers
     allowed_departments = ['Laboratory', 'Information Technology', 'Sales']
     is_allowed = request.user.role.department in allowed_departments or request.user.is_superuser
-    
+
+    user_fullname = f"{request.user.first_name} {request.user.last_name}".strip() if (request and request.user.is_authenticated) else ''
+
     return {
         'form_data': form_data,
         'matching_numbers': get_all_matching_numbers(),
@@ -93,6 +95,7 @@ def get_formulation_context(form_id=None, request=None):
         'materials': cmf_records_services.get_raw_material_codes(),
         'customers': cmf_records_services.get_customer_list(),
         'is_allowed': is_allowed,
+        'user_fullname': user_fullname,
     }
 
 # --- 2. DATA TABLES (HIGH PERFORMANCE JSON) ---
@@ -269,7 +272,7 @@ def save_formulation(request):
             source_pk, source_type = data.get('source_formula_pk'), data.get('source_formula_type')
             if source_pk and source_type:
                 model = tbl_mb_extruder_formula if source_type == 'MB' else tbl_dc_extruder_formula
-                model.objects.filter(pk=source_pk).update(in_master_formula=True)
+                model.objects.filter(pk=source_pk).update(in_production_formula=True)
 
             # 6. AUDIT TRAIL
             if is_new:
