@@ -10,7 +10,7 @@ dist/
 downloads/
 eggs/
 .eggs/
-# lib/
+lib/
 lib64/
 parts/
 sdist/
@@ -23,13 +23,13 @@ share/python-wheels/
 MANIFEST
 
 # --- Virtual Environments ---
-# venv/
-# .venv/
-# env/
-# .env/
-# ENV/
-# env.bak/
-# venv.bak/
+venv/
+.venv/
+env/
+.env/
+ENV/
+env.bak/
+venv.bak/
 
 # --- Django ---
 db.sqlite3
