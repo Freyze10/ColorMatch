@@ -17,3 +17,8 @@ core/main/services/formula/master_formula_services.py merge=ours
 
 # Protect migrations during merge
 core/main/migrations/* merge=ours
+
+# Include Python virtual environment in language statistics
+venv/** -linguist-vendored
+venv/** -linguist-generated
+venv/** -linguist-documentation
